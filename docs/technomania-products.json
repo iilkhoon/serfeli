@@ -1,0 +1,50 @@
+{
+  "storeId": "technomania",
+  "name": "TechnoMania",
+  "checkedAt": "2026-10-27T16:11:55.9743210Z",
+  "offers": [],
+  "directStatus": 403,
+  "rawResponsePath": "work/technomania-product.html",
+  "robots": {
+    "rawPath": "work/technomania-robots.txt",
+    "disallowsApi": true,
+    "status": 200,
+    "allowsGeneralPages": true,
+    "url": "https://technomania.az/robots.txt"
+  },
+  "sitemap": {
+    "rawPath": "work/technomania-sitemap.xml",
+    "status": 200,
+    "url": "https://technomania.az/sitemap.xml"
+  },
+  "candidates": [
+    {
+      "url": "https://technomania.az/product/apple-iphone-16-128gb",
+      "discoveredFrom": "https://technomania.az/sitemap.xml",
+      "primaryImageUrl": "https://technomania.az/storage/products/img_1789389793501_bb35f259.webp",
+      "price": null,
+      "stock": "unknown",
+      "variantVerification": "not completed; product response403",
+      "liveOfferEligible": false
+    },
+    {
+      "url": "https://technomania.az/product/apple-airpods-4-qulaqlq",
+      "discoveredFrom": "https://technomania.az/sitemap.xml",
+      "primaryImageUrl": "https://technomania.az/storage/products/img_1789223036734_79bf62f2.webp",
+      "price": null,
+      "stock": "unknown",
+      "variantVerification": "not completed; product response403",
+      "liveOfferEligible": false
+    },
+    {
+      "url": "https://technomania.az/product/iphone-17-pro-256-3b26d5",
+      "discoveredFrom": "https://technomania.az/sitemap.xml",
+      "primaryImageUrl": "https://technomania.az/storage/products/img_1789120656019_1e387575.webp",
+      "price": null,
+      "stock": "unknown",
+      "variantVerification": "not completed; product response403",
+      "liveOfferEligible": false
+    }
+  ],
+  "result": "No current product price verified. Product pages/home are403; robots and sitemap accessible. No search-snippet prices imported."
+}

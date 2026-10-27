@@ -1,0 +1,2 @@
+import Platform from '../platform';
+export default async function Page({params,searchParams}:{params:Promise<{slug:string[]}>;searchParams:Promise<Record<string,string|string[]|undefined>>}){const {slug}=await params;const query=await searchParams;const q=new URLSearchParams();for(const [key,value] of Object.entries(query||{})){if(typeof value==='string')q.set(key,value);}const initialPath='/'+slug.join('/')+(q.size?'?'+q.toString():'');return <Platform initialPath={initialPath}/>;}
