@@ -1,7 +1,8 @@
 import {fetchTechnomania} from '../../../../lib/technomania';
 import { env } from 'cloudflare:workers';
 import { getChatGPTUser } from '../../../chatgpt-auth';
-import { seedCatalog,seedProducts,seedStores,seedOffers,seedHistory, type Catalog } from '../../../../lib/catalog';
+import {seedCatalog,seedProducts,seedStores,seedOffers,seedHistory} from '../../../../lib/server-catalog';
+import type {Catalog} from '../../../../lib/catalog';
 import { scanProduct,safeMerchantUrl,allowedHosts } from '../../../../lib/extractor';
 import { z } from 'zod';
 export const dynamic='force-dynamic';

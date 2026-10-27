@@ -33,3 +33,11 @@ API: GET `catalog`, `session`, `personal`; POST `personal`, `reviews`, `applicat
 İstifadəçinin təqdim etdiyi rəsmi Technomania JSON feed-i HTTP 200 ilə yoxlanıb və inteqrasiya edilib: https://technomania.az/api/catalog/feed?format=json . Əvvəlki HTML 403 qeydi bu rəsmi feed bağlantısına aid deyil. İlkin feed 235 məhsuldan 423 rəng variantı verir; 3 variant stokdadır. `lib/technomania.ts` rəngləri ayırır, stok, şəkil və 6/12/18 aylıq taksit yekunlarını saxlayır. Eyni qara/128 GB iPhone 16 ayrıca təsdiqlənmiş qayda ilə mövcud modelə uyğunlaşdırılıb. Digər qeyri-müəyyən modellər birləşdirilmir.
 
 Admin → Məlumat mənbələri → Technomania feed-i bölməsində önizləmə və serverdə yeniləmə var. Tam olmayan/xətalı cavab bazadakı əvvəlki kataloqu əvəz etmir; mənbədən çıxan təkliflər stokdan çıxarılır. 31 əlavə yoxlanmış mağaza və loqosu ilə ümumi mağaza sayı 38-dir. Yeni mağazalar qiymət mənbəyi qoşulmamış kataloq qeydi statusundadır. Mənbələr `local-merchants.json` faylında saxlanır. Köhnə nümunə məhsullar ictimai kataloqdan deaktiv edilib.
+
+## Son SEO və vitrin yeniləməsi
+
+Ana səhifədə 7 məhsul bölməsi və əlavə 24 mənbədə yoxlanmış stok məhsulu var. Mağaza sayı38, ictimai aktiv məhsul/variant sayı451-dir. Bütün qiymət mənbələri qoşulmuş kimi təqdim edilmir. Tam Technomania snapshot-u server moduluna keçirilib; böyük feed brauzerin JavaScript paketinə daxil edilmir.
+
+SEO: səhifəyə aid title/description, canonical, OpenGraph/Twitter şəkli, Product/AggregateOffer və BreadcrumbList JSON-LD, sitemap.xml, robots.txt, həqiqi404, şəxsi səhifələrdə noindex. Məhsul və kateqoriya naviqasiyası crawl edilən href linkləridir. `scripts/verify-seo.mjs` lokal yoxlamadan keçib; ilkin sitemap505 URL verir. Sayt sahibə məxsus şəxsi yayımdadır; axtarış indekslənməsi üçün sonradan ictimai giriş və seçilən domen üzrə Search Console sazlanmalıdır.
+
+Dizaynın son istiqaməti `app/commerce.css` faylındadır: qrafit, ağ və kobalt mavi; Archivo başlıq şrifti; sıx alış-veriş vitrini. Əvvəlki pastel təqdimat üslubu dəyişdirilib.
