@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {extractProduct,extractIrshad,safeMerchantUrl} from '../lib/extractor.ts';
+import ts from 'typescript';
+const domains=JSON.parse(fs.readFileSync('docs/local-merchants.json','utf8')).map(s=>s.domain);
+const code=fs.readFileSync('lib/extractor.ts','utf8').replace("import {merchantDomains} from './merchants';",'const merchantDomains='+JSON.stringify(['kontakt.az','irshad.az','bakuelectronics.az','ispace.az','soliton.az','birmarket.az','technomania.az',...domains])+';');
+const compiled=ts.transpileModule(code,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
+const {extractProduct,extractIrshad,safeMerchantUrl}=await import('data:text/javascript;base64,'+Buffer.from(compiled).toString('base64'));
+
 for(const url of ['http://irshad.az/test','https://irshad.az.evil.example/test','https://user:pass@irshad.az/test','https://127.0.0.1/','https://irshad.az:8443/test'])assert.throws(()=>safeMerchantUrl(url));
 assert.equal(safeMerchantUrl('https://technomania.az/product/apple-airpods-4-qulaqlq').hostname,'technomania.az');
 assert.throws(()=>extractProduct('<html><h1>Just a moment</h1></html>'));

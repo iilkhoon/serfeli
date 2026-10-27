@@ -1,3 +1,5 @@
+import localMerchants from '../docs/local-merchants.json';
+export const merchantDomains=['kontakt.az','irshad.az','bakuelectronics.az','ispace.az','soliton.az','birmarket.az','technomania.az',...localMerchants.map(s=>s.domain)];
 export const merchantLogos:Record<string,{src:string;wordmark:boolean}>={
  kontakt:{src:'/logos/kontakt.ico',wordmark:false},
  irshad:{src:'/logos/irshad.svg',wordmark:true},

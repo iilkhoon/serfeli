@@ -27,3 +27,9 @@ Arxa planda daimi qiymət skanı, e-poçt/SMS/Telegram/push çatdırılması, ma
 `npm run dev`; tip yoxlaması `npx tsc --noEmit`; build üçün Sites-in `build-site.mjs` helper-i. D1 migration faylları `drizzle/` qovluğundadır. Production və lokal məlumat bazası ayrıdır. `scripts/verify-api.mjs` yalnız localhost üçün test məlumatı yaradır və əsas CRUD qeydlərini silir. `scripts/verify-live.mjs` yalnız lokal bazaya yoxlanmış ilkin real kataloqu əlavə edir və bir mənbə sorğusunu sınayır.
 
 API: GET `catalog`, `session`, `personal`; POST `personal`, `reviews`, `applications`, `click`; admin üçün `bootstrap`, GET `admin/data`, POST `admin/save`, `admin/delete`, `admin/import`, `admin/scan`, `admin/moderate`. Bütün yollar `/api/v1/` prefiksindədir. Yazma əməliyyatları hesab tələb edir; admin əməliyyatları əlavə olaraq sahib identifikatorunu serverdə yoxlayır.
+
+## 27 oktyabr — rəsmi feed və mağaza genişləndirilməsi
+
+İstifadəçinin təqdim etdiyi rəsmi Technomania JSON feed-i HTTP 200 ilə yoxlanıb və inteqrasiya edilib: https://technomania.az/api/catalog/feed?format=json . Əvvəlki HTML 403 qeydi bu rəsmi feed bağlantısına aid deyil. İlkin feed 235 məhsuldan 423 rəng variantı verir; 3 variant stokdadır. `lib/technomania.ts` rəngləri ayırır, stok, şəkil və 6/12/18 aylıq taksit yekunlarını saxlayır. Eyni qara/128 GB iPhone 16 ayrıca təsdiqlənmiş qayda ilə mövcud modelə uyğunlaşdırılıb. Digər qeyri-müəyyən modellər birləşdirilmir.
+
+Admin → Məlumat mənbələri → Technomania feed-i bölməsində önizləmə və serverdə yeniləmə var. Tam olmayan/xətalı cavab bazadakı əvvəlki kataloqu əvəz etmir; mənbədən çıxan təkliflər stokdan çıxarılır. 31 əlavə yoxlanmış mağaza və loqosu ilə ümumi mağaza sayı 38-dir. Yeni mağazalar qiymət mənbəyi qoşulmamış kataloq qeydi statusundadır. Mənbələr `local-merchants.json` faylında saxlanır. Köhnə nümunə məhsullar ictimai kataloqdan deaktiv edilib.
