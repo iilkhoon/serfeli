@@ -2,6 +2,7 @@
 import { useEffect, useEffectEvent, useState } from "react";
 import { Play, Pause, RefreshCw, Database, ArrowUpRight } from "lucide-react";
 import { api, errorMessage } from "./ui";
+import type { CrawlRuntime } from "../lib/crawl-jobs";
 type Job = {
   id: string;
   sourceId: string;
@@ -21,6 +22,7 @@ type Job = {
   busy?: boolean;
 };
 type Source = { id: string; name: string; root: string };
+type JobsResponse = { sources: Source[]; jobs: Job[]; runtime: CrawlRuntime | null };
 const names: Record<string, string> = {
   discovering: "Sitemap mərhələsi",
   importing: "Məhsul mərhələsi",
@@ -39,25 +41,41 @@ export default function CrawlPanel({
     [sourceId, setSourceId] = useState("baku"),
     [runningId, setRunningId] = useState<string | null>(null),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [runtime, setRuntime] = useState<CrawlRuntime | null>(null);
   const update = (j: Job) => setJobs((old) => [j, ...old.filter((x) => x.id !== j.id)]);
   const reload = async () => {
-    const data = await api<{ sources: Source[]; jobs: Job[] }>("admin/jobs");
+    const data = await api<JobsResponse>("admin/jobs");
     setSources(data.sources);
     setJobs(data.jobs);
+    setRuntime(data.runtime);
   };
   useEffect(() => {
     let cancelled = false;
-    api<{ sources: Source[]; jobs: Job[] }>("admin/jobs").then(
-      (data) => {
-        if (cancelled) return;
-        setSources(data.sources);
-        setJobs(data.jobs);
-      },
-      (e) => !cancelled && setError(errorMessage(e)),
-    );
+    let loading = false;
+    const poll = () => {
+      if (loading || document.visibilityState === "hidden") return;
+      loading = true;
+      api<JobsResponse>("admin/jobs")
+        .then(
+          (data) => {
+            if (cancelled) return;
+            setSources(data.sources);
+            setJobs(data.jobs);
+            setRuntime(data.runtime);
+            setError("");
+          },
+          (e) => !cancelled && setError(errorMessage(e)),
+        )
+        .finally(() => {
+          loading = false;
+        });
+    };
+    poll();
+    const timer = setInterval(poll, 15000);
     return () => {
       cancelled = true;
+      clearInterval(timer);
     };
   }, []);
   const refreshCatalog = useEffectEvent(() => void onCatalogRefresh());
@@ -118,6 +136,8 @@ export default function CrawlPanel({
     }
     setBusy(false);
   };
+  const runtimeFresh =
+    runtime && Date.now() - (runtime.completedAt || runtime.startedAt) < 5 * 60000;
   return (
     <article className="admin-panel crawl-panel">
       <div className="section-heading">
@@ -129,9 +149,45 @@ export default function CrawlPanel({
       </div>
       <p className="form-help">
         Məhsul adı, AZN qiyməti, şəkli və stok məlumatı oxunan səhifələr kataloqa yazılır. Hər
-        sorğuda bir URL işlənir. Növbə bu panel açıq və davam rejimi aktiv olduğu müddətdə
-        irəliləyir; səhifəni bağladıqda mövqe bazada qalır. Bu, fon scheduler-i deyil.
+        sorğuda bir URL işlənir. Mövqe bazada qalır. Panel açıq olduqda idxalı idarə edə bilərsən;
+        panel bağlı ikən davam etməsi aşağıdakı fon icrası qeydi ilə yoxlanır.
       </p>
+      <div
+        className={
+          "crawl-runtime " +
+          (runtimeFresh && runtime?.status !== "error" ? "observed" : "unconfirmed")
+        }
+        role="status"
+      >
+        <Database size={20} />
+        <div>
+          <strong>
+            {!runtime
+              ? "Fon icrası hələ təsdiqlənməyib"
+              : !runtimeFresh
+                ? "Fon icrasından yeni siqnal gəlməyib"
+                : runtime.status === "error"
+                  ? "Son fon icrasında xəta var"
+                  : runtime.status === "running"
+                    ? "Fon idxalı işləyir"
+                    : "Son fon icrası qeydə alınıb"}
+          </strong>
+          <p>
+            {runtime
+              ? `${new Date(runtime.completedAt || runtime.startedAt).toLocaleString("az-AZ", { timeZone: "Asia/Baku" })} · ${runtime.jobs} aktiv iş · ${runtime.ticks} addım · ${runtime.errors.length} xəta`
+              : "Cron konfiqurasiyası təkbaşına işləməsini sübut etmir. İlk server icrası burada vaxtı və nəticəsi ilə görünəcək."}
+          </p>
+          {runtime?.errors.map((failure, i) => (
+            <p className="crawl-error" key={i}>
+              {failure.message}
+            </p>
+          ))}
+          <small>
+            Vəziyyət panel açıq olduqda 15 saniyədən bir yenilənir. Dayandırılmış işlər fon icrasına
+            daxil edilmir.
+          </small>
+        </div>
+      </div>
       <div className="crawl-start">
         <label>
           Mağaza

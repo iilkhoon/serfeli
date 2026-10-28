@@ -2243,3 +2243,42 @@ footer .footer-main h4 {
     font-size: 12px;
   }
 }
+.crawl-runtime {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 18px;
+  margin: 20px 0;
+  border: 1px solid #dfd2e7;
+  border-radius: 14px;
+  background: #f4eef7;
+}
+.crawl-runtime > svg {
+  flex: none;
+  margin-top: 3px;
+}
+.crawl-runtime strong {
+  font-size: 14px;
+}
+.crawl-runtime p {
+  margin: 5px 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.crawl-runtime small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.crawl-runtime.observed {
+  background: #edf4ef;
+  border-color: #c4d6ca;
+}
+.admin-person > img {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: block;
+  object-fit: contain;
+}

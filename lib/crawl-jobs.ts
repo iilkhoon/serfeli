@@ -70,6 +70,21 @@ export function jobSummary(j: CrawlJob) {
   const { queue, seen, recent, leaseToken, ...value } = j;
   return { ...value, pendingMaps: queue.length, readMaps: seen.length, recent: recent.slice(-6) };
 }
+export type CrawlRuntime = {
+  runId: string;
+  startedAt: number;
+  completedAt?: number;
+  status: "running" | "complete" | "error";
+  jobs: number;
+  ticks: number;
+  errors: { jobId?: string; message: string }[];
+};
+async function crawlRuntime(db: D1Database): Promise<CrawlRuntime | null> {
+  const row = await db
+    .prepare("SELECT payload FROM records WHERE id='crawlRuntime:scheduled'")
+    .first<{ payload: string }>();
+  return row ? JSON.parse(row.payload) : null;
+}
 export async function listCrawlJobs(db: D1Database) {
   const rows = await db
     .prepare("SELECT payload FROM records WHERE kind='crawlJob' ORDER BY updated_at DESC LIMIT 30")
@@ -77,6 +92,7 @@ export async function listCrawlJobs(db: D1Database) {
   return {
     sources: crawlSources,
     jobs: rows.results.map((r) => jobSummary(JSON.parse(r.payload))),
+    runtime: await crawlRuntime(db),
   };
 }
 export async function startCrawlJob(db: D1Database, sourceId: string) {
@@ -479,24 +495,61 @@ const activeStatuses: Status[] = ["discovering", "importing", "waiting"];
 // each job's nextRunAt and the per-host lock, until the time budget runs out.
 export async function tickDueCrawlJobs(db: D1Database, budgetMs = 45000) {
   const deadline = Date.now() + budgetMs;
-  const rows = await db
-    .prepare(
-      "SELECT payload FROM records WHERE kind='crawlJob' AND json_extract(payload,'$.status') IN ('discovering','importing','waiting') AND coalesce(json_extract(payload,'$.pauseRequested'),0)=0 ORDER BY updated_at ASC LIMIT 10",
-    )
-    .all<{ payload: string }>();
-  let ticks = 0;
-  const pending = new Map(rows.results.map((r) => [(JSON.parse(r.payload) as CrawlJob).id, 0]));
-  while (pending.size && Date.now() < deadline) {
-    const [id, runAt] = [...pending].sort((a, b) => a[1] - b[1])[0];
-    const wait = runAt - Date.now();
-    if (wait > 0) {
-      if (Date.now() + wait >= deadline) break;
-      await new Promise((resolve) => setTimeout(resolve, wait));
+  const runtime: CrawlRuntime = {
+    runId: crypto.randomUUID(),
+    startedAt: Date.now(),
+    status: "running",
+    jobs: 0,
+    ticks: 0,
+    errors: [],
+  };
+  await put(db, "crawlRuntime", "scheduled", runtime).run();
+  try {
+    const rows = await db
+      .prepare(
+        "SELECT payload FROM records WHERE kind='crawlJob' AND json_extract(payload,'$.status') IN ('discovering','importing','waiting') AND coalesce(json_extract(payload,'$.pauseRequested'),0)=0 ORDER BY updated_at ASC LIMIT 10",
+      )
+      .all<{ payload: string }>();
+    runtime.jobs = rows.results.length;
+    const pending = new Map(
+      rows.results.map((r) => {
+        const job = JSON.parse(r.payload) as CrawlJob;
+        return [job.id, job.nextRunAt || 0];
+      }),
+    );
+    while (pending.size && Date.now() < deadline) {
+      const [id, runAt] = [...pending].sort((a, b) => a[1] - b[1])[0];
+      const wait = runAt - Date.now();
+      if (wait > 0) {
+        if (Date.now() + wait >= deadline) break;
+        await new Promise((resolve) => setTimeout(resolve, wait));
+      }
+      try {
+        const job = await tickCrawlJob(db, id);
+        runtime.ticks++;
+        if (!activeStatuses.includes(job.status as Status) || "busy" in job) pending.delete(id);
+        else pending.set(id, job.nextRunAt);
+      } catch (error) {
+        runtime.errors.push({
+          jobId: id,
+          message: error instanceof Error ? error.message : String(error),
+        });
+        pending.delete(id);
+      }
     }
-    const job = await tickCrawlJob(db, id);
-    ticks++;
-    if (!activeStatuses.includes(job.status as Status) || "busy" in job) pending.delete(id);
-    else pending.set(id, job.nextRunAt);
+  } catch (error) {
+    runtime.errors.push({ message: error instanceof Error ? error.message : String(error) });
+    throw error;
+  } finally {
+    runtime.completedAt = Date.now();
+    runtime.status = runtime.errors.length ? "error" : "complete";
+    // A late run must not replace the heartbeat of a newer invocation.
+    await db
+      .prepare(
+        "UPDATE records SET payload=?,updated_at=? WHERE id='crawlRuntime:scheduled' AND json_extract(payload,'$.runId')=?",
+      )
+      .bind(encode(runtime), Date.now(), runtime.runId)
+      .run();
   }
-  return { jobs: rows.results.length, ticks };
+  return { jobs: runtime.jobs, ticks: runtime.ticks, errors: runtime.errors.length };
 }

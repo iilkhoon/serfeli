@@ -31,7 +31,10 @@ const worker = {
     if (!env.DB) return;
     ctx.waitUntil(
       tickDueCrawlJobs(env.DB).then(
-        (r) => r.ticks && console.log("Cron idxal:", r),
+        (r) => {
+          if (r.errors) console.error("Cron idxal: iş xətaları", r);
+          else if (r.ticks) console.log("Cron idxal:", r);
+        },
         (e) => console.error("Cron idxal xətası:", e instanceof Error ? e.message : e),
       ),
     );

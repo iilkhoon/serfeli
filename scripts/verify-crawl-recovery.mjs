@@ -29,6 +29,7 @@ sqlite.exec(
 );
 sqlite.exec(fs.readFileSync("drizzle/0001_striped_electro.sql", "utf8"));
 let failNextBatch = false;
+let failJobRead = "";
 class Statement {
   constructor(sql, values = []) {
     this.sql = sql;
@@ -38,6 +39,10 @@ class Statement {
     return new Statement(this.sql, values);
   }
   first() {
+    if (failJobRead && this.values[0] === "crawlJob:" + failJobRead) {
+      failJobRead = "";
+      throw new Error("Simulated job read failure");
+    }
     return sqlite.prepare(this.sql).get(...this.values) || null;
   }
   all() {
@@ -183,6 +188,52 @@ assert.equal(
 const pausedJob = await crawlJobs.startCrawlJob(db, "baku");
 await crawlJobs.controlCrawlJob(db, pausedJob.id, "pause");
 assert.equal((await crawlJobs.tickDueCrawlJobs(db, 2000)).jobs, 0);
+const status = await crawlJobs.listCrawlJobs(db);
+assert.equal(status.runtime.status, "complete");
+assert.equal(status.runtime.jobs, 0);
+assert(status.runtime.completedAt >= status.runtime.startedAt);
+// A database read failure for one job must not stop another merchant's job.
+sqlite.exec(
+  "UPDATE records SET payload=json_set(payload,'$.status','complete') WHERE kind='crawlJob'",
+);
+sqlite.exec("DELETE FROM records WHERE kind='crawlLock'");
+const broken = await crawlJobs.startCrawlJob(db, "soliton");
+const healthy = await crawlJobs.startCrawlJob(db, "baku");
+failJobRead = broken.id;
+const isolated = await crawlJobs.tickDueCrawlJobs(db, 10000);
+assert.equal(isolated.errors, 1);
+assert.equal(
+  JSON.parse(
+    sqlite.prepare("SELECT payload FROM records WHERE id=?").get("crawlJob:" + healthy.id).payload,
+  ).status,
+  "complete",
+);
+const failedRuntime = (await crawlJobs.listCrawlJobs(db)).runtime;
+assert.equal(failedRuntime.status, "error");
+assert.equal(failedRuntime.errors[0].jobId, broken.id);
+await crawlJobs.controlCrawlJob(db, broken.id, "pause");
+const future = await crawlJobs.startCrawlJob(db, "baku");
+sqlite
+  .prepare("UPDATE records SET payload=json_set(payload,'$.nextRunAt',?) WHERE id=?")
+  .run(Date.now() + 120000, "crawlJob:" + future.id);
+const callsBeforeFuture = crawlJobs.callCount();
+assert.equal((await crawlJobs.tickDueCrawlJobs(db, 1000)).ticks, 0);
+assert.equal(crawlJobs.callCount(), callsBeforeFuture, "future jobs must not make network calls");
+ready(future.id);
+crawlJobs.configure("ok", () => {
+  sqlite
+    .prepare(
+      "UPDATE records SET payload=json_set(payload,'$.runId','newer-run','$.ticks',999) WHERE id='crawlRuntime:scheduled'",
+    )
+    .run();
+});
+await crawlJobs.tickDueCrawlJobs(db, 10000);
+assert.equal((await crawlJobs.listCrawlJobs(db)).runtime.runId, "newer-run");
+assert.equal(
+  (await crawlJobs.listCrawlJobs(db)).runtime.ticks,
+  999,
+  "a late driver must not overwrite a newer heartbeat",
+);
 console.log(
-  "PASS: 403 stops without advancing, Retry-After blocks network retry, D1 failure preserves cursor, atomic retry writes once, pause during request survives commit, stale worker cannot overwrite prices/cursor or release a newer lock, cron driver completes due jobs and skips paused ones. In-memory SQLite; no network.",
+  "PASS: 403/429 recovery, atomic D1 retry, pause and stale leases, background driver completion, paused/future job exclusion, per-job error isolation, persisted heartbeat and newer-run fencing. In-memory SQLite; no network.",
 );

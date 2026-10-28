@@ -244,7 +244,7 @@ export default function Admin({
         <h1>{session.needsSetup ? "Platformanı aktivləşdir" : "Admin icazən yoxdur"}</h1>
         <p>
           {session.needsSetup
-            ? "İlk aktivləşdirmə şəxsi yayımdakı sahib hesabını admin kimi saxlayır və nümunə kataloqu məlumat bazasına yazır. Bu əməliyyatdan sonra admin hesabı buradan dəyişdirilə bilməz."
+            ? "İlk aktivləşdirmə daxil olduğun hesabı platforma sahibi kimi saxlayır və ilkin kataloqu məlumat bazasına yazır. Öz sahib hesabınla daxil olduğunu yoxla. Bu əməliyyatdan sonra admin hesabı buradan dəyişdirilə bilməz."
             : "Bu panel yalnız əvvəlcədən təyin edilmiş platforma sahibinə açıqdır."}
         </p>
         {session.needsSetup && (
@@ -275,7 +275,7 @@ export default function Admin({
       <aside className="admin-sidebar">
         <span className="admin-label">İDARƏETMƏ MƏRKƏZİ</span>
         <div className="admin-person">
-          <span>Q</span>
+          <img src="/favicon.svg" alt="" width={36} height={36} />
           <div>
             <b>Qəpik Admin</b>
             <small>Platforma sahibi</small>

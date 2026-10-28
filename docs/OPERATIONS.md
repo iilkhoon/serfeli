@@ -74,3 +74,9 @@ Vitrin bütün kataloqu (~13 400 məhsul, ~13.6 MB) yükləmir. `GET /api/v1/cat
 ## Kataloqun səhifələnməsi
 
 Vitrin hər sorğuda 24 məhsul göstərir. İlk/son, əvvəlki/növbəti və səhifə nömrəsinə birbaşa keçid mövcuddur. Filtr və şəhər dəyişəndə ilk səhifəyə qayıdır. API: `/api/v1/catalog?path=/kataloq&limit=24&offset=960`. Cavabın `pageOffset`, `matchedTotal` və `matched` sahələri göstərilən aralığı müəyyən edir. Mənfi offset sıfıra, kataloqdan böyük offset son səhifəyə sıxılır. Məhsulların ümumi sayına 960 məhdudiyyəti tətbiq edilmir; `limit` bir cavabın ölçüsünü məhdudlaşdırır. Səhifə nömrəsi bu versiyada brauzer URL-ində saxlanmır.
+
+## Fon idxalının yoxlanması
+
+Cron konfiqurasiyası (`vite.config.ts`) və `scheduled` handler-i mövcuddur. Canlı trigger-in işləməsi konfiqurasiyadan çıxarılmır: hər həqiqi `tickDueCrawlJobs` icrası `crawlRuntime:scheduled` qeydini başlanma/bitmə vaxtı, iş və addım sayı, xətalar ilə saxlayır. `GET /api/v1/admin/jobs` bu qeydi yalnız adminə qaytarır. Panel 15 saniyədən bir oxuyur; qeyd yoxdursa təsdiqlənməmiş, 5 dəqiqədən köhnədirsə yeni siqnal gəlməmiş kimi göstərir. Bu, trigger-in hostinq tərəfindən qurulduğuna dair zəmanət deyil.
+
+Bir işin gözlənilməz xətası digər mağazaların həmin icrada işlənməsini dayandırmır. Vaxtı gəlməmiş və dayandırılmış işlər şəbəkəyə çıxmır. İcra nəticəsinin yazısı `runId` ilə qorunur; gec bitən əvvəlki icra yeni icranın qeydini əvəz edə bilmir. `scripts/verify-crawl-recovery.mjs` bunları in-memory SQLite ilə yoxlayır; production cron-un işlədiyini ayrıca müşahidə etmək lazımdır.
