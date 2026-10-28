@@ -70,3 +70,7 @@ Lokal Ali & Nino sınağında 48,449 məhsul URL-i 49 növbə hissəsində saxla
 ## Kataloqun brauzerə ötürülməsi
 
 Vitrin bütün kataloqu (~13 400 məhsul, ~13.6 MB) yükləmir. `GET /api/v1/catalog?path=/kataloq&limit=24&brand=&store=&min=&max=&sort=&real=1&city=&ids=&favorites=` serverdə (`lib/catalog-query.ts` → `catalogSlice`) süzür, sıralayır və yalnız görünən səhifəni (adətən 17–90 KB) qaytarır; `matchedTotal`, `brands` və mağaza sayları (`storeStats`) cavabla gəlir. SSR eyni funksiyanı işlədir. Tam birləşmiş kataloq yalnız admin üçün `GET /api/v1/admin/catalog` ünvanındadır. `lib/public-data.ts` birləşmiş kataloqu hər Worker izolyatında 60 saniyə saxlayır; API vasitəsilə edilən hər uğurlu yazı keşi dərhal təmizləyir, digər izolyatlar dəyişikliyi ən gec 60 saniyəyə görür.
+
+## Kataloqun səhifələnməsi
+
+Vitrin hər sorğuda 24 məhsul göstərir. İlk/son, əvvəlki/növbəti və səhifə nömrəsinə birbaşa keçid mövcuddur. Filtr və şəhər dəyişəndə ilk səhifəyə qayıdır. API: `/api/v1/catalog?path=/kataloq&limit=24&offset=960`. Cavabın `pageOffset`, `matchedTotal` və `matched` sahələri göstərilən aralığı müəyyən edir. Mənfi offset sıfıra, kataloqdan böyük offset son səhifəyə sıxılır. Məhsulların ümumi sayına 960 məhdudiyyəti tətbiq edilmir; `limit` bir cavabın ölçüsünü məhdudlaşdırır. Səhifə nömrəsi bu versiyada brauzer URL-ində saxlanmır.

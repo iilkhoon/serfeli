@@ -30,6 +30,23 @@ assert.equal(listing.matched.length, 24);
 assert(listing.matchedTotal > 1000, "kataloq total " + listing.matchedTotal);
 assert(listing.matched.every((id) => listing.products.some((p) => p.id === id)));
 assert(listing.products.length < 200, "slice products " + listing.products.length);
+const second = (await request("catalog?path=/kataloq&limit=24&offset=24", undefined, false)).data;
+assert.equal(second.pageOffset, 24);
+assert.equal(second.matched.length, 24);
+assert(!second.matched.some((id) => listing.matched.includes(id)), "adjacent pages overlap");
+const deep = (await request("catalog?path=/kataloq&limit=24&offset=960", undefined, false)).data;
+assert.equal(deep.pageOffset, 960);
+assert.equal(deep.matched.length, 24, "products beyond the old 960 limit are reachable");
+const lastOffset = Math.floor((listing.matchedTotal - 1) / 24) * 24;
+const last = (
+  await request(`catalog?path=/kataloq&limit=24&offset=${lastOffset}`, undefined, false)
+).data;
+assert.equal(last.pageOffset, lastOffset);
+assert.equal(last.matched.length, listing.matchedTotal - lastOffset);
+const beyond = (await request("catalog?path=/kataloq&offset=999999999", undefined, false)).data;
+assert.deepEqual(beyond.matched, last.matched, "out-of-range pages clamp to the final page");
+const negative = (await request("catalog?path=/kataloq&offset=-24", undefined, false)).data;
+assert.deepEqual(negative.matched, listing.matched, "negative offsets clamp to the first page");
 const cheap = (await request("catalog?path=/kataloq&sort=low&min=100&max=200", undefined, false))
   .data;
 assert(cheap.matched.length > 0);
@@ -146,5 +163,5 @@ assert.equal((await request("admin/delete", { kind: "product", id: "qa-product" 
 for (const kind of ["favorite", "alert"])
   await request("personal", { kind, productId: "iphone-13-pro", remove: true });
 console.log(
-  "PASS: 30 API checks: catalog slices, price filter, authentication, admin, CSRF (Origin + Sec-Fetch-Site), CRUD, domain binding, import, real history, private records, moderation, reference protection. Local database only.",
+  "PASS: API checks: bounded catalog pages (including after 960 and final page), offset bounds, price filter, authentication, admin, CSRF (Origin + Sec-Fetch-Site), CRUD, domain binding, import, real history, private records, moderation, reference protection. Local database only.",
 );

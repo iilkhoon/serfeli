@@ -48,13 +48,7 @@ import {
   type Catalog,
   type Offer,
 } from "../lib/catalog";
-import {
-  DEFAULT_CITY,
-  HERO_PRODUCT,
-  MAX_LIMIT,
-  PAGE_SIZE,
-  type CatalogSlice,
-} from "../lib/catalog-query";
+import { DEFAULT_CITY, HERO_PRODUCT, PAGE_SIZE, type CatalogSlice } from "../lib/catalog-query";
 import { api, errorMessage, Modal, Empty, CategoryIcon, StoreLogo } from "./ui";
 import type { Act, Personal, Session } from "./types";
 import Admin from "./admin";
@@ -78,6 +72,7 @@ export default function Platform({
           ...seedCatalog,
           matched: [],
           matchedTotal: 0,
+          pageOffset: 0,
           brands: [],
           storeStats: {},
           categoryStats: {},
@@ -97,8 +92,8 @@ export default function Platform({
     [menu, setMenu] = useState(false),
     [mobileFilters, setMobileFilters] = useState(false),
     [merchantQuery, setMerchantQuery] = useState(""),
-    [visibleLimit, setVisibleLimit] = useState(PAGE_SIZE);
-  const [filter, setFilter] = useState({
+    [pageOffset, setPageOffset] = useState(initialCatalog?.pageOffset || 0);
+  const [filter, updateFilter] = useState({
     brand: "",
     store: "",
     min: "",
@@ -106,8 +101,12 @@ export default function Platform({
     sort: "popular",
     real: false,
   });
+  const setFilter = (next: typeof filter) => {
+    setPageOffset(0);
+    updateFilter(next);
+  };
   const nav = (to: string) => {
-    setVisibleLimit(PAGE_SIZE);
+    setPageOffset(0);
     window.location.assign(to);
     setPath(to);
     setMenu(false);
@@ -208,7 +207,12 @@ export default function Platform({
   const storeId = page === "magazalar" ? parts[1] : "";
   // Filtering and sorting run on the server; this only says which slice the page needs.
   const sliceQuery = useMemo(() => {
-    const q = new URLSearchParams({ path, city, limit: String(visibleLimit) });
+    const q = new URLSearchParams({
+      path,
+      city,
+      limit: String(PAGE_SIZE),
+      offset: String(pageOffset),
+    });
     if (filter.brand) q.set("brand", filter.brand);
     if (filter.store) q.set("store", filter.store);
     if (filter.min) q.set("min", filter.min);
@@ -220,7 +224,7 @@ export default function Platform({
     if (page === "secilmisler")
       q.set("favorites", personal.favorites.map((f) => f.productId).join(","));
     return q.toString();
-  }, [path, city, visibleLimit, filter, comp, personal, page]);
+  }, [path, city, pageOffset, filter, comp, personal, page]);
   // The server already rendered the first slice; fetch only once something differs from it.
   const renderedQuery = useRef(sliceQuery);
   useEffect(() => {
@@ -247,6 +251,19 @@ export default function Platform({
     const byId = new Map(c.products.map((p) => [p.id, p]));
     return c.matched.flatMap((id) => byId.get(id) || []);
   }, [c]);
+  const listingTop = useRef<HTMLDivElement>(null);
+  const listingLoading = sliceQuery !== renderedQuery.current && !error;
+  const totalPages = Math.max(1, Math.ceil(c.matchedTotal / PAGE_SIZE));
+  const currentPage = Math.floor(c.pageOffset / PAGE_SIZE) + 1;
+  const goToPage = (offset: number) => {
+    setPageOffset(Math.max(0, offset));
+    listingTop.current?.scrollIntoView({
+      block: "start",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
+    });
+  };
   const reset = () =>
     setFilter({ brand: "", store: "", min: "", max: "", sort: "popular", real: false });
   const onSearch = (e: FormEvent) => {
@@ -533,7 +550,7 @@ export default function Platform({
       {error && (
         <div className="shell error-banner">
           <Info size={18} />
-          <span>Məlumat yüklənmədi: {error}. Hazırda nümunə kataloq göstərilir.</span>
+          <span>Məlumat yüklənmədi: {error}. Son yüklənmiş məlumat göstərilir.</span>
           <button onClick={refresh}>Yenidən yoxla</button>
         </div>
       )}
@@ -553,7 +570,7 @@ export default function Platform({
               <ChevronRight size={13} />
               <span>{storeId ? "Mağaza təklifləri" : title}</span>
             </div>
-            <div className="page-heading">
+            <div className="page-heading" ref={listingTop}>
               <div>
                 <span className="eyebrow">QIYMƏTİ BİL, AĞILLI SEÇ</span>
                 <h1>{storeId ? c.stores.find((s) => s.id === storeId)?.name : title}</h1>
@@ -586,7 +603,7 @@ export default function Platform({
             </div>
             <div className="catalog-layout">
               {Filter()}
-              <div>
+              <div aria-busy={listingLoading}>
                 <div className="data-notice">
                   <Info size={15} />
                   <span>
@@ -596,20 +613,80 @@ export default function Platform({
                 </div>
                 {products.length ? (
                   <>
+                    <p className="catalog-range" role="status" aria-live="polite">
+                      {listingLoading
+                        ? "Məhsullar yüklənir…"
+                        : `${c.pageOffset + 1}–${c.pageOffset + products.length} / ${c.matchedTotal} məhsul`}
+                    </p>
                     {cards(products)}
-                    {c.matchedTotal > products.length && products.length < MAX_LIMIT && (
-                      <div className="load-more">
-                        <button
-                          className="outline-button"
-                          disabled={visibleLimit > products.length}
-                          onClick={() => setVisibleLimit(visibleLimit + PAGE_SIZE)}
+                    {totalPages > 1 && (
+                      <nav className="catalog-pagination" aria-label="Məhsul səhifələri">
+                        <div className="catalog-page-actions">
+                          <button
+                            className="outline-button"
+                            disabled={listingLoading || currentPage === 1}
+                            onClick={() => goToPage(0)}
+                            aria-label="İlk məhsul səhifəsi"
+                          >
+                            «
+                          </button>
+                          <button
+                            className="outline-button"
+                            disabled={listingLoading || currentPage === 1}
+                            onClick={() => goToPage(c.pageOffset - PAGE_SIZE)}
+                          >
+                            Əvvəlki
+                          </button>
+                          <button
+                            className="dark-button"
+                            disabled={listingLoading || currentPage >= totalPages}
+                            onClick={() => goToPage(c.pageOffset + PAGE_SIZE)}
+                          >
+                            Növbəti <ArrowRight size={16} />
+                          </button>
+                          <button
+                            className="outline-button"
+                            disabled={listingLoading || currentPage >= totalPages}
+                            onClick={() => goToPage((totalPages - 1) * PAGE_SIZE)}
+                            aria-label="Son məhsul səhifəsi"
+                          >
+                            »
+                          </button>
+                        </div>
+                        <form
+                          key={currentPage}
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const input = e.currentTarget.elements.namedItem(
+                              "page",
+                            ) as HTMLInputElement;
+                            const value = Number(input.value);
+                            if (Number.isInteger(value) && value >= 1 && value <= totalPages)
+                              goToPage((value - 1) * PAGE_SIZE);
+                          }}
                         >
-                          {visibleLimit > products.length
-                            ? "Yüklənir…"
-                            : `Daha çox göstər · ${c.matchedTotal - products.length} məhsul qalıb`}{" "}
-                          <Plus size={16} />
-                        </button>
-                      </div>
+                          <label htmlFor="catalog-page">Səhifə</label>
+                          <input
+                            id="catalog-page"
+                            name="page"
+                            type="number"
+                            min={1}
+                            max={totalPages}
+                            step={1}
+                            defaultValue={currentPage}
+                            required
+                            disabled={listingLoading}
+                          />
+                          <span>/ {totalPages}</span>
+                          <button
+                            className="outline-button"
+                            type="submit"
+                            disabled={listingLoading}
+                          >
+                            Keç
+                          </button>
+                        </form>
+                      </nav>
                     )}
                   </>
                 ) : (
@@ -1075,6 +1152,7 @@ export default function Platform({
                   <button
                     key={v}
                     onClick={() => {
+                      setPageOffset(0);
                       setCity(v);
                       localStorage.setItem("qepik-city", v);
                       setModal(null);

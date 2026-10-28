@@ -21,6 +21,7 @@ export type CatalogQuery = {
   real?: boolean;
   city?: string;
   limit?: number;
+  offset?: number;
   // Products the page needs regardless of the listing: compare tray, price alerts.
   ids?: string[];
   // Product ids for /secilmisler; the server cannot read the viewer's favorites during SSR.
@@ -32,6 +33,7 @@ export type StoreStat = { count: number; real: boolean };
 export type CatalogSlice = Catalog & {
   matched: string[];
   matchedTotal: number;
+  pageOffset: number;
   brands: string[];
   storeStats: Record<string, StoreStat>;
   categoryStats: Record<string, { count: number; inStock: number; minPrice?: number }>;
@@ -190,6 +192,7 @@ export function parseCatalogQuery(params: URLSearchParams): CatalogQuery {
     real: params.get("real") === "1",
     city: params.get("city") || undefined,
     limit: num("limit"),
+    offset: num("offset"),
     ids: ids("ids"),
     favorites: ids("favorites"),
   };
@@ -261,7 +264,12 @@ export function catalogSlice(c: Catalog, q: CatalogQuery): CatalogSlice {
     ["kataloq", "kateqoriya", "axtaris", "endirimler", "secilmisler"].includes(page) ||
     (page === "magazalar" && !!parts[1]);
   const { sorted, brands } = isListing ? listing(c, x, q, page, parts) : { sorted: [], brands: [] };
-  const matched = sorted.slice(0, limit);
+  const requestedOffset = Number.isFinite(q.offset) ? Math.max(0, Math.floor(q.offset!)) : 0;
+  const pageOffset = Math.min(
+    requestedOffset,
+    Math.max(0, Math.ceil(sorted.length / PAGE_SIZE) - 1) * PAGE_SIZE,
+  );
+  const matched = sorted.slice(pageOffset, pageOffset + limit);
   const chosen = new Map(matched.map((p) => [p.id, p]));
   const add = (id: string | undefined) => {
     const p = id && x.byId.get(id);
@@ -290,6 +298,7 @@ export function catalogSlice(c: Catalog, q: CatalogQuery): CatalogSlice {
     totals: { products: x.active.length, stores: c.stores.filter((s) => s.active).length },
     matched: matched.map((p) => p.id),
     matchedTotal: sorted.length,
+    pageOffset,
     brands,
     storeStats: x.storeStats,
     categoryStats: x.categoryStats,

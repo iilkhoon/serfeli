@@ -2177,3 +2177,69 @@ footer .footer-main h4 {
     transform: none !important;
   }
 }
+
+/* Bounded catalog pages keep every product reachable without growing the DOM. */
+.page-heading {
+  scroll-margin-top: 24px;
+}
+.catalog-range {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.catalog-pagination {
+  margin: 30px 0 12px;
+  padding-top: 24px;
+  border-top: 1px solid #e6dfea;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.catalog-page-actions,
+.catalog-pagination form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.catalog-pagination button {
+  min-width: 44px;
+  padding: 10px 14px;
+}
+.catalog-pagination button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.catalog-pagination form {
+  font-size: 13px;
+  color: var(--muted);
+}
+.catalog-pagination input {
+  width: 76px;
+  min-height: 44px;
+  border: 1px solid #d9cde1;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: white;
+  font-size: 14px;
+  color: var(--ink);
+}
+.catalog-pagination input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (max-width: 760px) {
+  .catalog-pagination {
+    justify-content: center;
+  }
+  .catalog-page-actions {
+    width: 100%;
+    justify-content: center;
+    gap: 6px;
+  }
+  .catalog-pagination button {
+    padding: 10px;
+    font-size: 12px;
+  }
+}
