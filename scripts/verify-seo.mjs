@@ -1,1 +1,32 @@
-import assert from 'node:assert/strict';const base='http://127.0.0.1:5173';let r=await fetch(base+'/');const home=await r.text();assert.equal(r.status,200);assert(home.includes('rel="canonical"'));assert(home.includes('application/ld+json'));assert(home.includes('href="/mehsul/'));assert(home.includes('feed-section'));const product=await (await fetch(base+'/mehsul/iphone16-black')).text();assert(product.includes('AggregateOffer'));assert(product.includes('BreadcrumbList'));assert(product.includes('1789'));assert(product.includes('property="og:title"'));assert(!product.match(/<title>[^<]*Starter/));r=await fetch(base+'/mehsul/not-a-product');assert.equal(r.status,404);r=await fetch(base+'/robots.txt');assert.equal(r.status,200);assert((await r.text()).includes('Disallow: /admin'));r=await fetch(base+'/sitemap.xml');assert.equal(r.status,200);const sitemap=await r.text();assert(sitemap.includes('/mehsul/iphone16-black'));assert(sitemap.includes('/magazalar/technomania'));assert(!sitemap.includes('/admin'));const admin=await (await fetch(base+'/admin')).text();assert(admin.includes('noindex'));console.log('PASS: server-rendered product links/content, unique SEO metadata, canonical, Product/AggregateOffer, breadcrumbs, OpenGraph, 404, robots, sitemap, private-page noindex. Sitemap URLs: '+(sitemap.match(/<loc>/g)||[]).length);
+import assert from "node:assert/strict";
+const base = "http://127.0.0.1:5173";
+let r = await fetch(base + "/");
+const home = await r.text();
+assert.equal(r.status, 200);
+assert(home.includes('rel="canonical"'));
+assert(home.includes("application/ld+json"));
+assert(home.includes('href="/mehsul/'));
+assert(home.includes("feed-section"));
+const product = await (await fetch(base + "/mehsul/iphone16-black")).text();
+assert(product.includes("AggregateOffer"));
+assert(product.includes("BreadcrumbList"));
+assert(product.includes("1789"));
+assert(product.includes('property="og:title"'));
+assert(!product.match(/<title>[^<]*Starter/));
+r = await fetch(base + "/mehsul/not-a-product");
+assert.equal(r.status, 404);
+r = await fetch(base + "/robots.txt");
+assert.equal(r.status, 200);
+assert((await r.text()).includes("Disallow: /admin"));
+r = await fetch(base + "/sitemap.xml");
+assert.equal(r.status, 200);
+const sitemap = await r.text();
+assert(sitemap.includes("/mehsul/iphone16-black"));
+assert(sitemap.includes("/magazalar/technomania"));
+assert(!sitemap.includes("/admin"));
+const admin = await (await fetch(base + "/admin")).text();
+assert(admin.includes("noindex"));
+console.log(
+  "PASS: server-rendered product links/content, unique SEO metadata, canonical, Product/AggregateOffer, breadcrumbs, OpenGraph, 404, robots, sitemap, private-page noindex. Sitemap URLs: " +
+    (sitemap.match(/<loc>/g) || []).length,
+);

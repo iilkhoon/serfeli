@@ -5,9 +5,10 @@ import "./responsive.css";
 import "./commerce.css";
 
 export const metadata: Metadata = {
-  metadataBase:new URL('https://qepik-az.mythicfern36.chatgpt.site'),
+  metadataBase: new URL("https://qepik-az.mythicfern36.chatgpt.site"),
   title: "Qəpik — Qiyməti bil. Ağıllı seç.",
-  description: "Azərbaycan mağazalarının qiymətlərini, çatdırılma və ödəniş şərtlərini bir yerdə müqayisə edin.",
+  description:
+    "Azərbaycan mağazalarının qiymətlərini, çatdırılma və ödəniş şərtlərini bir yerdə müqayisə edin.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/favicon.svg",
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport = {width:'device-width',initialScale:1,themeColor:'#73518c'};
+export const viewport = { width: "device-width", initialScale: 1, themeColor: "#73518c" };
 
 export default function RootLayout({
   children,

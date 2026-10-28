@@ -1,8 +1,53 @@
-import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import {normalizeTechnomania} from '../lib/technomania.ts';
-const source={total:1,products:[{id:'sku-1',name:'Apple iPhone 16 128GB',slug:'apple-iphone-16-128gb',brand:'Apple',cash_price:'1789.00',credit_price_6:'1949.00',credit_price_12:'1949.00',credit_price_18:'1949.00',credit_12_monthly:'162.42',is_active:true,stock:100,category_name:'Apple iPhone',attributes:{Yaddaş:'128',price_credit:1949},image:'/storage/product.webp',colors:[{name:'Qara',stock:100,image:'/storage/black.webp'},{name:'Ağ',stock:0,image:'/storage/white.webp'}]}]};
-const r=normalizeTechnomania(source,'2026-10-27T16:00:00Z');assert.equal(r.variantCount,2);assert.equal(r.inStock,1);assert.equal(r.mapped,1);assert.equal(r.products[0].id,'iphone16-black');assert.notEqual(r.products[1].id,'iphone16-black');assert.equal(r.offers[0].price,1789);assert.equal(r.offers[1].stock,false);assert.equal(r.offers[0].shippingKnown,false);assert.equal(r.products[0].image,'https://technomania.az/storage/black.webp');assert.equal(r.offers[0].installmentOptions.find(c=>c.months===12).total,1949);assert.equal(r.offers[0].installmentOptions.find(c=>c.months===12).monthly,162.42);assert(!('price_credit' in r.products[0].specs));
-assert.throws(()=>normalizeTechnomania({total:2,products:source.products}));
-const snapshot=JSON.parse(fs.readFileSync('lib/technomania-seed.json','utf8'));assert.equal(snapshot.sourceCount,235);assert.equal(snapshot.variantCount,423);assert.equal(snapshot.warnings.length,0);assert.equal(snapshot.offers.filter(o=>o.stock).length,3);assert(snapshot.offers.every(o=>o.storeId==='technomania'&&o.demo===false&&o.price>0));
-console.log('PASS: Official feed completeness, exact black/white variant split, conservative matching, stock, image URLs, installment totals and source rounding; 235 products / 423 variants snapshot.');
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import { normalizeTechnomania } from "../lib/technomania.ts";
+const source = {
+  total: 1,
+  products: [
+    {
+      id: "sku-1",
+      name: "Apple iPhone 16 128GB",
+      slug: "apple-iphone-16-128gb",
+      brand: "Apple",
+      cash_price: "1789.00",
+      credit_price_6: "1949.00",
+      credit_price_12: "1949.00",
+      credit_price_18: "1949.00",
+      credit_12_monthly: "162.42",
+      is_active: true,
+      stock: 100,
+      category_name: "Apple iPhone",
+      attributes: { Yaddaş: "128", price_credit: 1949 },
+      image: "/storage/product.webp",
+      colors: [
+        { name: "Qara", stock: 100, image: "/storage/black.webp" },
+        { name: "Ağ", stock: 0, image: "/storage/white.webp" },
+      ],
+    },
+  ],
+};
+const r = normalizeTechnomania(source, "2026-10-27T16:00:00Z");
+assert.equal(r.variantCount, 2);
+assert.equal(r.inStock, 1);
+assert.equal(r.mapped, 1);
+assert.equal(r.products[0].id, "iphone16-black");
+assert.notEqual(r.products[1].id, "iphone16-black");
+assert.equal(r.offers[0].price, 1789);
+assert.equal(r.offers[1].stock, false);
+assert.equal(r.offers[0].shippingKnown, false);
+assert.equal(r.products[0].image, "https://technomania.az/storage/black.webp");
+assert.equal(r.offers[0].installmentOptions.find((c) => c.months === 12).total, 1949);
+assert.equal(r.offers[0].installmentOptions.find((c) => c.months === 12).monthly, 162.42);
+assert(!("price_credit" in r.products[0].specs));
+assert.throws(() => normalizeTechnomania({ total: 2, products: source.products }));
+const snapshot = JSON.parse(fs.readFileSync("lib/technomania-seed.json", "utf8"));
+assert.equal(snapshot.sourceCount, 235);
+assert.equal(snapshot.variantCount, 423);
+assert.equal(snapshot.warnings.length, 0);
+assert.equal(snapshot.offers.filter((o) => o.stock).length, 3);
+assert(
+  snapshot.offers.every((o) => o.storeId === "technomania" && o.demo === false && o.price > 0),
+);
+console.log(
+  "PASS: Official feed completeness, exact black/white variant split, conservative matching, stock, image URLs, installment totals and source rounding; 235 products / 423 variants snapshot.",
+);

@@ -18,6 +18,8 @@ const managedLinux = readExecutionProfile() === "managed-linux";
 const localBindingConfig = {
   main: "./worker/index.ts",
   compatibility_flags: ["nodejs_compat"],
+  // Drives lib/crawl-jobs.ts tickDueCrawlJobs from worker/index.ts.
+  triggers: { crons: ["* * * * *"] },
   d1_databases: d1
     ? [
         {

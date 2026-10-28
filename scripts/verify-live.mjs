@@ -1,6 +1,70 @@
-import fs from 'node:fs';
-const verified=JSON.parse(fs.readFileSync('docs/verified-products.json','utf8'));const base='http://127.0.0.1:5173';const s=await fetch(base+'/signin-with-chatgpt?return_to=/admin',{redirect:'manual'});const cookie=s.headers.get('set-cookie').split(';')[0];
-async function post(path,b){const r=await fetch(base+'/api/v1/'+path,{method:'POST',headers:{cookie,'content-type':'application/json',origin:base},body:JSON.stringify(b)});const d=await r.json();if(!r.ok)throw new Error(JSON.stringify(d));return d;}
-for(const o of verified.offers.filter(o=>o.storeId==='irshad'))await post('admin/save',{kind:'product',value:{id:o.id,name:o.id==='galaxy-s25-blue'?'Samsung Galaxy S25':o.id==='macbook-air-m5'?'Apple MacBook Air 13.6″ M5':o.id==='iphone17-pro-blue'?'Apple iPhone 17 Pro':o.id==='iphone16-black'?'Apple iPhone 16':o.name,brand:o.brand,category:o.id.startsWith('macbook')?'noutbuk':o.id.startsWith('airpods')?'audio':'telefon',variant:[o.capacity,o.color].filter(Boolean).join(' · '),image:o.localImage,specs:{Model:o.model,Rəng:o.color,...(o.capacity?{Yaddaş:o.capacity}:{})},description:'Mənbə səhifəsindən yoxlanmış real məhsul. Çatdırılma və zəmanət mağazada dəqiqləşdirilməlidir.',active:true,featured:true}});
-for(const o of verified.offers)await post('admin/save',{kind:'offer',value:{id:'live-'+o.id+'-'+o.storeId,productId:o.id==='galaxy-s25-blue-baku'?'galaxy-s25-blue':o.id,storeId:o.storeId,price:o.price,shipping:0,shippingKnown:false,months:0,installmentTotal:0,stock:true,warranty:'Mağazada dəqiqləşdirin',url:o.sourceUrl,demo:false,checkedAt:new Date().toISOString(),cities:['Bakı'],sponsored:false,sourceSku:o.sourceSku,sourceName:o.name}});
-const scan=await post('admin/scan',{url:verified.offers[0].sourceUrl});console.log('Live scanner:',JSON.stringify(scan));
+import fs from "node:fs";
+const verified = JSON.parse(fs.readFileSync("docs/verified-products.json", "utf8"));
+const base = "http://127.0.0.1:5173";
+const s = await fetch(base + "/signin-with-chatgpt?return_to=/admin", { redirect: "manual" });
+const cookie = s.headers.get("set-cookie").split(";")[0];
+async function post(path, b) {
+  const r = await fetch(base + "/api/v1/" + path, {
+    method: "POST",
+    headers: { cookie, "content-type": "application/json", origin: base },
+    body: JSON.stringify(b),
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(JSON.stringify(d));
+  return d;
+}
+for (const o of verified.offers.filter((o) => o.storeId === "irshad"))
+  await post("admin/save", {
+    kind: "product",
+    value: {
+      id: o.id,
+      name:
+        o.id === "galaxy-s25-blue"
+          ? "Samsung Galaxy S25"
+          : o.id === "macbook-air-m5"
+            ? "Apple MacBook Air 13.6″ M5"
+            : o.id === "iphone17-pro-blue"
+              ? "Apple iPhone 17 Pro"
+              : o.id === "iphone16-black"
+                ? "Apple iPhone 16"
+                : o.name,
+      brand: o.brand,
+      category: o.id.startsWith("macbook")
+        ? "noutbuk"
+        : o.id.startsWith("airpods")
+          ? "audio"
+          : "telefon",
+      variant: [o.capacity, o.color].filter(Boolean).join(" · "),
+      image: o.localImage,
+      specs: { Model: o.model, Rəng: o.color, ...(o.capacity ? { Yaddaş: o.capacity } : {}) },
+      description:
+        "Mənbə səhifəsindən yoxlanmış real məhsul. Çatdırılma və zəmanət mağazada dəqiqləşdirilməlidir.",
+      active: true,
+      featured: true,
+    },
+  });
+for (const o of verified.offers)
+  await post("admin/save", {
+    kind: "offer",
+    value: {
+      id: "live-" + o.id + "-" + o.storeId,
+      productId: o.id === "galaxy-s25-blue-baku" ? "galaxy-s25-blue" : o.id,
+      storeId: o.storeId,
+      price: o.price,
+      shipping: 0,
+      shippingKnown: false,
+      months: 0,
+      installmentTotal: 0,
+      stock: true,
+      warranty: "Mağazada dəqiqləşdirin",
+      url: o.sourceUrl,
+      demo: false,
+      checkedAt: new Date().toISOString(),
+      cities: ["Bakı"],
+      sponsored: false,
+      sourceSku: o.sourceSku,
+      sourceName: o.name,
+    },
+  });
+const scan = await post("admin/scan", { url: verified.offers[0].sourceUrl });
+console.log("Live scanner:", JSON.stringify(scan));

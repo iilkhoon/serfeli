@@ -1,8 +1,72 @@
-import fs from 'node:fs';
-import {politeText} from './polite-http.mjs';
-const sources=[{id:'baku',root:'https://bakuelectronics.az/sitemap.xml',test:u=>u.includes('/mehsul/')},{id:'mgstore',root:'https://mgstore.az/media/sitemap/sitemap_az.xml',provided:'https://mgstore.az/sitemap.xml',test:u=>!u.endsWith('/')&&!/\/(page|category)\//.test(u)},{id:'soliton',root:'https://soliton.az/sitemap.xml',test:u=>u.includes('/az/')&&u.endsWith('.html')&&!u.includes('/pages/')},{id:'bytelecom',root:'https://bytelecom.az/sitemap.xml',test:u=>/\/product\//.test(u)},{id:'alinino',root:'https://alinino.az/sitemap.xml',test:u=>u.includes('/product/')}];
-fs.mkdirSync('work/sitemap-urls',{recursive:true});const summary=[];
-for(const source of sources){const seen=new Set();const urls=new Set();const maps=[];const queue=[source.root];let failed=null;
- try{while(queue.length){const url=queue.shift();if(seen.has(url))continue;if(seen.size>=60)throw new Error('Sitemap sayı limitini keçir');seen.add(url);const result=await politeText(url);const xml=result.body;if(!/<(?:sitemapindex|urlset)[\s>]/.test(xml))throw new Error('XML sitemap deyil');if(/<!DOCTYPE|<!ENTITY/i.test(xml))throw new Error('XML entity rədd edildi');const locs=[...xml.matchAll(/<loc>\s*([^<]+)\s*<\/loc>/g)].map(m=>m[1].replace(/&amp;/g,'&'));maps.push({url,count:locs.length,checkedAt:result.checkedAt});for(const loc of locs){const u=new URL(loc);if(u.protocol!=='https:'||u.hostname!==new URL(source.root).hostname)continue;if(xml.includes('<sitemapindex'))queue.push(u.href);else urls.add(u.href);}}}catch(e){failed=e.message;}
- const products=[...urls].filter(source.test);fs.writeFileSync('work/sitemap-urls/'+source.id+'.json',JSON.stringify(products));const item={id:source.id,provided:source.provided||source.root,root:source.root,sitemaps:maps.length,allUrls:urls.size,productCandidates:products.length,complete:!failed,error:failed,maps,checkedAt:new Date().toISOString()};summary.push(item);console.log(JSON.stringify({...item,maps:undefined}));fs.writeFileSync('docs/sitemap-source-coverage.json',JSON.stringify(summary,null,2));
+import fs from "node:fs";
+import { politeText } from "./polite-http.mjs";
+const sources = [
+  {
+    id: "baku",
+    root: "https://bakuelectronics.az/sitemap.xml",
+    test: (u) => u.includes("/mehsul/"),
+  },
+  {
+    id: "mgstore",
+    root: "https://mgstore.az/media/sitemap/sitemap_az.xml",
+    provided: "https://mgstore.az/sitemap.xml",
+    test: (u) => !u.endsWith("/") && !/\/(page|category)\//.test(u),
+  },
+  {
+    id: "soliton",
+    root: "https://soliton.az/sitemap.xml",
+    test: (u) => u.includes("/az/") && u.endsWith(".html") && !u.includes("/pages/"),
+  },
+  { id: "bytelecom", root: "https://bytelecom.az/sitemap.xml", test: (u) => /\/product\//.test(u) },
+  { id: "alinino", root: "https://alinino.az/sitemap.xml", test: (u) => u.includes("/product/") },
+];
+fs.mkdirSync("work/sitemap-urls", { recursive: true });
+const summary = [];
+for (const source of sources) {
+  const seen = new Set();
+  const urls = new Set();
+  const maps = [];
+  const queue = [source.root];
+  let failed = null;
+  try {
+    while (queue.length) {
+      const url = queue.shift();
+      if (seen.has(url)) continue;
+      if (seen.size >= 60) throw new Error("Sitemap sayı limitini keçir");
+      seen.add(url);
+      const result = await politeText(url);
+      const xml = result.body;
+      if (!/<(?:sitemapindex|urlset)[\s>]/.test(xml)) throw new Error("XML sitemap deyil");
+      if (/<!DOCTYPE|<!ENTITY/i.test(xml)) throw new Error("XML entity rədd edildi");
+      const locs = [...xml.matchAll(/<loc>\s*([^<]+)\s*<\/loc>/g)].map((m) =>
+        m[1].replace(/&amp;/g, "&"),
+      );
+      maps.push({ url, count: locs.length, checkedAt: result.checkedAt });
+      for (const loc of locs) {
+        const u = new URL(loc);
+        if (u.protocol !== "https:" || u.hostname !== new URL(source.root).hostname) continue;
+        if (xml.includes("<sitemapindex")) queue.push(u.href);
+        else urls.add(u.href);
+      }
+    }
+  } catch (e) {
+    failed = e.message;
+  }
+  const products = [...urls].filter(source.test);
+  fs.writeFileSync("work/sitemap-urls/" + source.id + ".json", JSON.stringify(products));
+  const item = {
+    id: source.id,
+    provided: source.provided || source.root,
+    root: source.root,
+    sitemaps: maps.length,
+    allUrls: urls.size,
+    productCandidates: products.length,
+    complete: !failed,
+    error: failed,
+    maps,
+    checkedAt: new Date().toISOString(),
+  };
+  summary.push(item);
+  console.log(JSON.stringify({ ...item, maps: undefined }));
+  fs.writeFileSync("docs/sitemap-source-coverage.json", JSON.stringify(summary, null, 2));
 }

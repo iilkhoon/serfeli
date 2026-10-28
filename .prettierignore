@@ -1,0 +1,35 @@
+dist
+node_modules
+.wrangler
+.vinext
+components/ui
+hooks
+vendor
+drizzle
+docs
+lib/store-catalogs
+lib/*.json
+package-lock.json
+*.md
+public
+outputs
+work
+# Site-creator starter infrastructure, kept as shipped
+scripts/vite
+scripts/connector-preview
+scripts/install-ci.mjs
+scripts/npm-install.mjs
+scripts/pnpm-install.mjs
+scripts/run-framework.mjs
+scripts/tool-environment.mjs
+scripts/execution-profile.mjs
+scripts/sites-env.mjs
+app/chatgpt-auth.ts
+lib/connector-*
+worker/index.ts
+vite.config.ts
+tsconfig.json
+components/connector-error.tsx
+examples
+# Captured merchant responses used by verify-*.mjs; must stay byte-for-byte
+scripts/fixtures

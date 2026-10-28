@@ -2,7 +2,7 @@
 
 ## İlk giriş
 
-Sayt ilkin olaraq sahibə məxsus şəxsi yayımda saxlanır. `/admin` ünvanında hesaba daxil olub aktivləşdirmə düyməsini basın. İlk sahib identifikatoru D1 bazasında bir dəfə saxlanır; sonrakı istifadəçi bu yolla admin ola bilməz. İctimai yayımı açmazdan əvvəl bu addım tamamlanmalıdır. Yeni admin rol sistemi bu buraxılışda yoxdur.
+Sayt ilkin olaraq sahibə məxsus şəxsi yayımda saxlanır. `/admin` ünvanında hesaba daxil olub aktivləşdirmə düyməsini basın. İlk sahib identifikatoru D1 bazasında bir dəfə saxlanır; sonrakı istifadəçi bu yolla admin ola bilməz. İctimai yayımı açmazdan əvvəl bu addım tamamlanmalıdır. Yeni admin rol sistemi bu buraxılışda yoxdur. Əlavə qoruma üçün hostinqdə `OWNER_EMAIL` dəyişənini sahibin hesab e-poçtuna təyin edin: o zaman başqa hesab aktivləşdirmə düyməsini bassa belə 403 alır.
 
 ## Hazır imkanlar
 
@@ -20,7 +20,7 @@ Technomania.az mağaza, loqo və domen səviyyəsində əlavə edilib. Məhsul s
 
 ## Hazırda qoşulmayan xidmətlər
 
-Arxa planda daimi qiymət skanı, e-poçt/SMS/Telegram/push çatdırılması, mağaza billing sistemi və native mobil tətbiq qoşulmayıb. Bildiriş hədəfləri bazada saxlanır və sayt açıldıqda qiymətlə müqayisə edilir. “İndi yenilə” düyməsi real mənbələri manual yoxlayır; scheduler deyil.
+Arxa planda daimi qiymət skanı (cron yalnız sitemap idxal işlərini irəlilədir), e-poçt/SMS/Telegram/push çatdırılması, mağaza billing sistemi və native mobil tətbiq qoşulmayıb. Bildiriş hədəfləri bazada saxlanır və sayt açıldıqda qiymətlə müqayisə edilir. “İndi yenilə” düyməsi real mənbələri manual yoxlayır; scheduler deyil.
 
 ## Lokal işə salma
 
@@ -59,10 +59,14 @@ Tap.az ilk elektronika siyahısındakı 22 elan üçün detal səhifəsi yoxlan�
 ## D1 idxal növbəsi
 Mənbələr: Baku Electronics, MG Store-un robots.txt-də verdiyi Azərbaycan sitemap-i, Soliton, Bytelecom və Ali & Nino. İş `crawlJob`, min URL-lik hissələr `crawlChunk`, domen kilidi `crawlLock` qeydlərində saxlanır. İş nömrəsi və mövqeyi qalıcıdır. Məhsul/təklif/tarixçə və URL mövqeyi eyni D1 batch əməliyyatında yazılır. Çoxhissəli sitemap yazısı yarıda qalsa, həmin hissələrin sabit açarları təkrar yazılaraq bərpa edilir.
 Domen kilidi və iş lease-i paralel sorğuları saxlayır. 401/403 işi bloklayır, 429 Retry-After müddətini saxlayır, 5xx artan fasilə ilə maksimum beş dəfə yoxlanır. Məhsul/xəta sayları ayrı saxlanır. Keçmiş düzgün məlumat giriş xətasında silinmir. Xarici domenə yönləndirmə və XML entity qəbul edilmir. Robots wildcard/query və Allow qaydaları prioritetlə yoxlanır; bu, MG-də `/*?dir*` qaydasının səhvən bütün səhifələri bağlamasının qarşısını alır.
-Panelə qayıdıb davam etmək işləyir; panel bağlı ikən fon icrası yoxdur. Sitemap-in bitməsi mənbənin bütün inventarının orada olduğuna zəmanət deyil. Bytelecom sitemap-də kateqoriya linkləri üçün görünən məhsullar və açıq səhifələmə linkləri əlavə oxunur. Məhsulun adı/qiyməti/şəkli stokla birlikdə yoxlananda saxlanır; naməlum stok ayrıca qeyd edilir.
+Panelə qayıdıb davam etmək işləyir. Panel bağlı ikən `worker/index.ts`-dəki cron handler-i (`lib/crawl-jobs.ts` → `tickDueCrawlJobs`) aktiv işləri hər dəqiqə irəlilədir; lease və domen kilidi paneldən gələn sorğularla toqquşmanın qarşısını alır. Production-da cron-un həqiqətən işə düşdüyü Worker loglarında “Cron idxal” sətri ilə yoxlanmalıdır. Sitemap-in bitməsi mənbənin bütün inventarının orada olduğuna zəmanət deyil. Bytelecom sitemap-də kateqoriya linkləri üçün görünən məhsullar və açıq səhifələmə linkləri əlavə oxunur. Məhsulun adı/qiyməti/şəkli stokla birlikdə yoxlananda saxlanır; naməlum stok ayrıca qeyd edilir.
 Lokal sınaqda Baku sitemap indeksinin 8 sənədindən 32,223 məhsul URL-i D1 hissələrinə yazılıb və ilk məhsul 39.99 AZN ilə idxal edilib. Bu, production-da 32,223 qiymətin artıq yükləndiyi demək deyil. Soliton üzrə dayandırma/davam, paralel start və tick sınaqları keçib; dəqiq mənbə linki ilə mövcud məhsulun təkrar yaradılmadığı yoxlanıb.
 
 Ali & Nino adapteri əsas `data-main-form` formasının məhsul ID-sini page-config ilə, məhsul ünvanını canonical məhsul yolu ilə və valyutanı AZN konfiqurasiyası ilə tutuşdurur. Qiymət analitika üçün yuvarlaqlaşdırılmış rəqəmdən deyil, variantın dəqiq `price` sahəsindən götürülür. Rəng/variant ID-si, variant şəkli və stok ayrıca saxlanır. Çoxvariantlı səhifə sabit variant ID-ləri ilə hissələrə bölünür; URL mövqeyi yalnız bütün hissələr yazılandan sonra artır. Yarıda qalan hissələr təkrarlananda eyni ID-lərə yazılır. ISBN prefiksi 978/979 olduqda kitab kateqoriyası seçilir; kitab aksessuarları avtomatik kitab sayılmır.
 Lokal Ali & Nino sınağında 48,449 məhsul URL-i 49 növbə hissəsində saxlanıb, ilk məhsul 39.87 AZN və mənbədəki stok ilə idxal edilib. Bu rəqəm də production qiymətlərinin sayını ifadə etmir. Timeout/şəbəkə xətasında URL mövqeyi artırılmır. In-memory SQLite testi 403 dayanmasını, 429 gözləməsini, D1 yazı xətasından sonra atomik təkrarı və icra zamanı pause-un saxlanmasını yoxlayır.
 
 İş və domen kilidləri token ilə qorunur: vaxtı bitmiş köhnə icra daha yeni işi, qiyməti və ya domen kilidini dəyişə bilməz. Bu davranış SQLite sınağında ayrıca yoxlanır. Sitemap-in bağlayıcı XML elementi yoxdursa yarımçıq sənəd tamamlanmış sayılmır.
+
+## Kataloqun brauzerə ötürülməsi
+
+Vitrin bütün kataloqu (~13 400 məhsul, ~13.6 MB) yükləmir. `GET /api/v1/catalog?path=/kataloq&limit=24&brand=&store=&min=&max=&sort=&real=1&city=&ids=&favorites=` serverdə (`lib/catalog-query.ts` → `catalogSlice`) süzür, sıralayır və yalnız görünən səhifəni (adətən 17–90 KB) qaytarır; `matchedTotal`, `brands` və mağaza sayları (`storeStats`) cavabla gəlir. SSR eyni funksiyanı işlədir. Tam birləşmiş kataloq yalnız admin üçün `GET /api/v1/admin/catalog` ünvanındadır. `lib/public-data.ts` birləşmiş kataloqu hər Worker izolyatında 60 saniyə saxlayır; API vasitəsilə edilən hər uğurlu yazı keşi dərhal təmizləyir, digər izolyatlar dəyişikliyi ən gec 60 saniyəyə görür.

@@ -1,6 +1,7 @@
 import handler from "vinext/server/fetch-handler";
 import { runWithConnectorBinding } from "../lib/connector-context";
 import type { ConnectorBinding } from "../lib/connector-contract.mjs";
+import { tickDueCrawlJobs } from "../lib/crawl-jobs";
 
 const worker = {
   fetch(request: Request, env: Cloudflare.Env, ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>) {
@@ -24,6 +25,16 @@ const worker = {
       };
     }
     return runWithConnectorBinding(binding, () => handler.fetch(request, env, ctx));
+  },
+  // Cron trigger (see vite.config.ts): keeps sitemap import jobs moving without the admin panel open.
+  scheduled(_controller: ScheduledController, env: Cloudflare.Env, ctx: ExecutionContext) {
+    if (!env.DB) return;
+    ctx.waitUntil(
+      tickDueCrawlJobs(env.DB).then(
+        (r) => r.ticks && console.log("Cron idxal:", r),
+        (e) => console.error("Cron idxal xətası:", e instanceof Error ? e.message : e),
+      ),
+    );
   },
 };
 
