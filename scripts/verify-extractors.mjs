@@ -10,6 +10,10 @@ const aliCode = ts.transpileModule(fs.readFileSync("lib/alinino.ts", "utf8"), {
 const robotCode = ts.transpileModule(fs.readFileSync("lib/robots.ts", "utf8"), {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 }).outputText;
+const irshadCode = ts.transpileModule(fs.readFileSync("lib/irshad.ts", "utf8"), {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const irshadModule = "data:text/javascript;base64," + Buffer.from(irshadCode).toString("base64");
 const code = fs
   .readFileSync("lib/extractor.ts", "utf8")
   .replace(
@@ -28,6 +32,7 @@ const code = fs
       ";",
   );
 const resolved = code
+  .replace('from "./irshad";', () => `from "${irshadModule}";`)
   .replace('import { extractAlinino } from "./alinino";', () =>
     aliCode.replace("export function extractAlinino", "function extractAlinino"),
   )

@@ -1,4 +1,5 @@
 export const crawlSources = [
+  { id: "irshad", name: "İrşad", root: "https://irshad.az/sitemap.xml", intervalMs: 30000 },
   { id: "baku", name: "Baku Electronics", root: "https://bakuelectronics.az/sitemap.xml" },
   { id: "mgstore", name: "Music Gallery", root: "https://mgstore.az/media/sitemap/sitemap_az.xml" },
   { id: "soliton", name: "Soliton", root: "https://soliton.az/sitemap.xml" },
@@ -25,6 +26,7 @@ export function isProductCandidate(sourceId: string, raw: string) {
   const u = new URL(raw);
   if (u.search || !sourceUrlAllowed(sourceId, raw)) return false;
   const path = u.pathname;
+  if (sourceId === "irshad") return /^\/az\/mehsullar\/[^/]+\/?$/.test(path);
   if (sourceId === "baku") return path.startsWith("/mehsul/");
   if (sourceId === "alinino") return path.startsWith("/product/");
   if (sourceId === "soliton")

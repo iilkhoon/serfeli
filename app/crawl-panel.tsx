@@ -42,13 +42,16 @@ export default function CrawlPanel({
     [runningId, setRunningId] = useState<string | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [runtime, setRuntime] = useState<CrawlRuntime | null>(null);
+    [runtime, setRuntime] = useState<CrawlRuntime | null>(null),
+    // When runtime was received; render must not read the clock itself.
+    [runtimeSeenAt, setRuntimeSeenAt] = useState(0);
   const update = (j: Job) => setJobs((old) => [j, ...old.filter((x) => x.id !== j.id)]);
   const reload = async () => {
     const data = await api<JobsResponse>("admin/jobs");
     setSources(data.sources);
     setJobs(data.jobs);
     setRuntime(data.runtime);
+    setRuntimeSeenAt(Date.now());
   };
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +66,7 @@ export default function CrawlPanel({
             setSources(data.sources);
             setJobs(data.jobs);
             setRuntime(data.runtime);
+            setRuntimeSeenAt(Date.now());
             setError("");
           },
           (e) => !cancelled && setError(errorMessage(e)),
@@ -137,7 +141,7 @@ export default function CrawlPanel({
     setBusy(false);
   };
   const runtimeFresh =
-    runtime && Date.now() - (runtime.completedAt || runtime.startedAt) < 5 * 60000;
+    runtime && runtimeSeenAt - (runtime.completedAt || runtime.startedAt) < 5 * 60000;
   return (
     <article className="admin-panel crawl-panel">
       <div className="section-heading">

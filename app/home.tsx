@@ -17,7 +17,7 @@ import {
   Check,
   MoveUpRight,
 } from "lucide-react";
-import { categories, validOffers, priceOf, money, type Product } from "../lib/catalog";
+import { categories, validOffers, money, type Product } from "../lib/catalog";
 import { HOME_HERO_IDS, type CatalogSlice } from "../lib/catalog-query";
 import { CategoryIcon, StoreLogo } from "./ui";
 const tones = ["#eee6f4", "#f9e7db", "#e4efeb", "#f8edcd", "#e7ebf5", "#f4e4ec"];

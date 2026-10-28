@@ -11,12 +11,16 @@ export async function politeText(
     intervalMs = 1000,
     fetchImpl = fetch,
     cacheDir = "work/http-cache",
+    requestHeaders = {},
   } = {},
 ) {
   const target = new URL(url);
   if (target.protocol !== "https:" && target.hostname !== "127.0.0.1")
     throw new Error("HTTPS tələb olunur");
-  const key = createHash("sha256").update(target.href).digest("hex");
+  const headerKey = Object.entries(requestHeaders).sort(([a], [b]) => a.localeCompare(b));
+  const key = createHash("sha256")
+    .update(target.href + (headerKey.length ? "\n" + JSON.stringify(headerKey) : ""))
+    .digest("hex");
   await fs.mkdir(cacheDir, { recursive: true });
   const path = cacheDir + "/" + key + ".json";
   let cache;
@@ -36,6 +40,7 @@ export async function politeText(
           signal: AbortSignal.timeout(30000),
           redirect: "manual",
           headers: {
+            ...requestHeaders,
             Accept: "application/json,application/xml,text/xml,text/html;q=0.8",
             "User-Agent": "Qepik/1.0 PublicCatalog (+https://qepik-az.mythicfern36.chatgpt.site)",
             ...(cache?.headers?.etag ? { "If-None-Match": cache.headers.etag } : {}),

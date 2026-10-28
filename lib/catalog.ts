@@ -64,7 +64,16 @@ export type Review = {
 };
 export type Point = { id: string; productId: string; price: number; date: string; demo: boolean };
 export type Catalog = {
-  sourceCoverage?: { storeId: string; count: number; priced: number; checkedAt: string }[];
+  productAliases?: Record<string, string>;
+  sourceCoverage?: {
+    storeId: string;
+    count: number;
+    priced: number;
+    checkedAt: string;
+    sourceCount?: number;
+    complete?: boolean;
+    processed?: number;
+  }[];
   liveSource?: {
     name: string;
     checkedAt: string;
@@ -80,6 +89,13 @@ export type Catalog = {
   reviews: Review[];
   totals?: { products: number; stores: number };
 };
+export function canonicalProductId(c: Pick<Catalog, "productAliases">, id: string) {
+  return c.productAliases &&
+    Object.hasOwn(c.productAliases, id) &&
+    typeof c.productAliases[id] === "string"
+    ? c.productAliases[id]
+    : id;
+}
 export const categories = [
   { id: "telefon", name: "Telefonlar", icon: "phone" },
   { id: "noutbuk", name: "Noutbuklar", icon: "laptop" },

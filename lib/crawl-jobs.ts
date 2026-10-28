@@ -252,7 +252,8 @@ export async function tickCrawlJob(db: D1Database, id: string) {
     j.nextRunAt = Date.now() + 2000;
     return await saveJob(db, j);
   }
-  let nextDelay = 1500;
+  const minimumDelay = "intervalMs" in source ? source.intervalMs : 1500;
+  let nextDelay: number = minimumDelay;
   let stage: "fetch" | "persist" = "fetch";
   try {
     j.status = j.phase;
@@ -458,8 +459,8 @@ export async function tickCrawlJob(db: D1Database, id: string) {
       j.retryCount++;
       nextDelay =
         access?.status === 429
-          ? Math.max(1000, access.retryAfterMs)
-          : Math.min(60000, 2000 * 2 ** j.retryCount);
+          ? Math.max(minimumDelay, access.retryAfterMs)
+          : Math.max(minimumDelay, Math.min(60000, 2000 * 2 ** j.retryCount));
       j.status = j.retryCount >= 5 ? "blocked" : "waiting";
       j.nextRunAt = Date.now() + nextDelay;
     } else {

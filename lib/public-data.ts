@@ -1,5 +1,6 @@
 import { withLiveFeed } from "./live-feed";
-import { catalog } from "./api/records";
+import { catalog, list } from "./api/records";
+import { applyProductMatches, type ProductMatch } from "./product-matching";
 import { seedCatalog } from "./server-catalog";
 import { withStoreSnapshots } from "./store-snapshots";
 import type { Catalog } from "./catalog";
@@ -13,7 +14,8 @@ let cache: { expires: number; value: Promise<Catalog> } | undefined;
 
 async function build(): Promise<{ value: Catalog; fallback: boolean }> {
   try {
-    return { value: await withLiveFeed(await catalog()), fallback: false };
+    const [raw, matches] = await Promise.all([catalog(), list<ProductMatch>("productMatch")]);
+    return { value: applyProductMatches(await withLiveFeed(raw), matches), fallback: false };
   } catch (e) {
     console.error("Kataloq bazadan oxunmadı:", e instanceof Error ? e.message : e);
     return { value: await withLiveFeed(withStoreSnapshots(seedCatalog)), fallback: true };

@@ -3,6 +3,7 @@ import { merchantDomains } from "../lib/merchants";
 import { useState, useEffect, useEffectEvent } from "react";
 import FeedPanel from "./feed-panel";
 import CrawlPanel from "./crawl-panel";
+import MatchPanel from "./match-panel";
 import {
   LayoutDashboard,
   Package,
@@ -50,6 +51,7 @@ const modules = [
   ["offer", "Qiymət təklifləri", Tags],
   ["store", "Mağazalar", Store],
   ["sources", "Məlumat mənbələri", ScanLine],
+  ["matching", "Məhsul uyğunlaşdırma", Link],
   ["import", "Toplu idxal", Upload],
   ["review", "Rəylər", MessageSquare],
   ["application", "Müraciətlər", Users],
@@ -546,6 +548,13 @@ export default function Admin({
               )}
             </div>
           </>
+        )}
+        {view === "matching" && (
+          <MatchPanel
+            onCatalogRefresh={async () => {
+              await Promise.all([refresh(), reload()]);
+            }}
+          />
         )}
         {view === "sources" && (
           <>

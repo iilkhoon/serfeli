@@ -25,7 +25,6 @@ import {
   ArrowDownUp,
   LayoutGrid,
   TrendingDown,
-  Wallet,
   Store as StoreIcon,
   UserRound,
   Plus,
@@ -39,6 +38,7 @@ import {
 } from "lucide-react";
 import {
   categories,
+  canonicalProductId,
   seedCatalog,
   recordedOffersFor,
   validOffers,
@@ -48,7 +48,7 @@ import {
   type Catalog,
   type Offer,
 } from "../lib/catalog";
-import { DEFAULT_CITY, HERO_PRODUCT, PAGE_SIZE, type CatalogSlice } from "../lib/catalog-query";
+import { DEFAULT_CITY, PAGE_SIZE, type CatalogSlice } from "../lib/catalog-query";
 import { api, errorMessage, Modal, Empty, CategoryIcon, StoreLogo } from "./ui";
 import type { Act, Personal, Session } from "./types";
 import Admin from "./admin";
@@ -85,7 +85,7 @@ export default function Platform({
     [city, setCity] = useState(DEFAULT_CITY),
     [session, setSession] = useState<Session>({ user: null, admin: false, needsSetup: false }),
     [personal, setPersonal] = useState<Personal>({ favorites: [], alerts: [] }),
-    [comp, setComp] = useState<string[]>([]),
+    [compIds, setComp] = useState<string[]>([]),
     [toast, setToast] = useState(""),
     [modal, setModal] = useState<ModalState>(null),
     [busy, setBusy] = useState(false),
@@ -105,6 +105,11 @@ export default function Platform({
     setPageOffset(0);
     updateFilter(next);
   };
+  const aliases = c.productAliases;
+  const comp = useMemo(
+    () => [...new Set(compIds.map((id) => canonicalProductId({ productAliases: aliases }, id)))],
+    [compIds, aliases],
+  );
   const nav = (to: string) => {
     setPageOffset(0);
     window.location.assign(to);
@@ -199,7 +204,6 @@ export default function Platform({
     page = parts[0] || "home",
     selected = c.products.find((p) => p.id === parts[1]);
   const searchTerm = new URLSearchParams(path.split("?")[1] || "").get("q") || "";
-  const heroProduct = c.products.find((p) => p.id === HERO_PRODUCT) || c.products[0];
   const currentCategory = page === "kateqoriya" ? parts[1] : "";
   const isCatalog = ["kataloq", "kateqoriya", "axtaris", "endirimler", "secilmisler"].includes(
     page,
@@ -227,6 +231,8 @@ export default function Platform({
   }, [path, city, pageOffset, filter, comp, personal, page]);
   // The server already rendered the first slice; fetch only once something differs from it.
   const renderedQuery = useRef(sliceQuery);
+  // Mirrors renderedQuery for rendering; the ref alone would not re-render the loading state.
+  const [loadedQuery, setLoadedQuery] = useState(sliceQuery);
   useEffect(() => {
     if (version === 0 && sliceQuery === renderedQuery.current) return;
     let cancelled = false;
@@ -236,6 +242,7 @@ export default function Platform({
         (next) => {
           if (cancelled) return;
           renderedQuery.current = sliceQuery;
+          setLoadedQuery(sliceQuery);
           setC(next);
           setError("");
         },
@@ -252,7 +259,7 @@ export default function Platform({
     return c.matched.flatMap((id) => byId.get(id) || []);
   }, [c]);
   const listingTop = useRef<HTMLDivElement>(null);
-  const listingLoading = sliceQuery !== renderedQuery.current && !error;
+  const listingLoading = sliceQuery !== loadedQuery && !error;
   const totalPages = Math.max(1, Math.ceil(c.matchedTotal / PAGE_SIZE));
   const currentPage = Math.floor(c.pageOffset / PAGE_SIZE) + 1;
   const goToPage = (offset: number) => {

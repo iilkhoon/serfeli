@@ -1,8 +1,8 @@
 import { catalogSlice, DEFAULT_CITY } from "../../lib/catalog-query";
 import { publicCatalog } from "../../lib/public-data";
 import { pageSeo, structuredData } from "../../lib/seo";
-import { categories } from "../../lib/catalog";
-import { notFound } from "next/navigation";
+import { categories, canonicalProductId } from "../../lib/catalog";
+import { notFound, permanentRedirect } from "next/navigation";
 import Platform from "../platform";
 export const dynamic = "force-dynamic";
 type Props = {
@@ -23,6 +23,8 @@ export default async function Page(props: Props) {
   const path = await routePath(props),
     c = await publicCatalog(),
     parts = path.split("?")[0].split("/").filter(Boolean);
+  if (parts[0] === "mehsul" && canonicalProductId(c, parts[1]) !== parts[1])
+    permanentRedirect("/mehsul/" + canonicalProductId(c, parts[1]));
   if (parts[0] === "mehsul" && !c.products.some((p) => p.id === parts[1] && p.active)) notFound();
   if (parts[0] === "kateqoriya" && !categories.some((cat) => cat.id === parts[1])) notFound();
   if (parts[0] === "magazalar" && parts[1] && !c.stores.some((s) => s.id === parts[1] && s.active))

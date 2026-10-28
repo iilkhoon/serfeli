@@ -2,6 +2,7 @@
 // whole catalog, so filtering, sorting and the per-store counts are computed here.
 import {
   recordedOffersFor,
+  canonicalProductId,
   validOffers,
   priceOf,
   type Catalog,
@@ -272,6 +273,7 @@ export function catalogSlice(c: Catalog, q: CatalogQuery): CatalogSlice {
   const matched = sorted.slice(pageOffset, pageOffset + limit);
   const chosen = new Map(matched.map((p) => [p.id, p]));
   const add = (id: string | undefined) => {
+    if (id) id = canonicalProductId(c, id);
     const p = id && x.byId.get(id);
     if (p) chosen.set(p.id, p);
   };

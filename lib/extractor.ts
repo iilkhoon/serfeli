@@ -1,4 +1,5 @@
 import { extractAlinino } from "./alinino";
+import { extractIrshad as parseIrshad, extractIrshadVariants } from "./irshad";
 import { robotsAllowed } from "./robots";
 import { merchantDomains } from "./merchants";
 // Only known merchant hosts may be fetched. Never bypass access challenges.
@@ -25,19 +26,31 @@ export class SourceAccessError extends Error {
   }
 }
 const nextFetch = new Map<string, number>();
+const fetchQueues = new Map<string, Promise<unknown>>();
 async function sourceFetch(url: URL, timeoutMs = 12000) {
   const host = url.hostname.replace(/^www\./, "");
-  const wait = Math.max(0, (nextFetch.get(host) || 0) - Date.now());
-  if (wait) await new Promise((r) => setTimeout(r, wait));
-  nextFetch.set(host, Date.now() + 1000);
-  return fetch(url, {
-    redirect: "manual",
-    signal: AbortSignal.timeout(timeoutMs),
-    headers: {
-      "User-Agent": "QepikBot/1.0 (+https://qepik-az.mythicfern36.chatgpt.site)",
-      Accept: "text/html,text/plain;q=0.8",
-    },
-  });
+  const prior = fetchQueues.get(host) || Promise.resolve();
+  const task = prior
+    .catch(() => {})
+    .then(async () => {
+      const wait = Math.max(0, (nextFetch.get(host) || 0) - Date.now());
+      if (wait) await new Promise((r) => setTimeout(r, wait));
+      nextFetch.set(host, Date.now() + (host === "irshad.az" ? 30000 : 1000));
+      return fetch(url, {
+        redirect: "manual",
+        signal: AbortSignal.timeout(timeoutMs),
+        headers: {
+          "User-Agent": "QepikBot/1.0 (+https://qepik-az.mythicfern36.chatgpt.site)",
+          Accept: "text/html,text/plain;q=0.8",
+        },
+      });
+    });
+  fetchQueues.set(host, task);
+  try {
+    return await task;
+  } finally {
+    if (fetchQueues.get(host) === task) fetchQueues.delete(host);
+  }
 }
 async function sourceResponse(url: URL, timeoutMs = 12000) {
   let current = url;
@@ -261,46 +274,8 @@ export function extractProduct(html: string) {
     checkedAt: new Date().toISOString(),
   };
 }
-export function extractIrshad(html: string) {
-  const sections = Array.from(
-    html.matchAll(/<section\b([^>]*\bclass=["'][^"']*\bproduct-view\b[^"']*["'][^>]*)>/gi),
-  );
-  const active = sections.filter((m) => !/(?:\s|["'])d-none(?:\s|["'])/.test(m[1]));
-  if (active.length !== 1) throw new Error("Aktiv məhsul variantı dəqiq müəyyənləşmədi.");
-  const start = active[0].index!,
-    next = sections.find((m) => m.index! > start);
-  const section = html.slice(start, next?.index || html.length);
-  const clean = (s: string) =>
-    s
-      .replace(/<[^>]*>/g, " ")
-      .replace(/&quot;/g, '"')
-      .replace(/&#039;/g, "'")
-      .replace(/&amp;/g, "&")
-      .replace(/\s+/g, " ")
-      .trim();
-  const name = clean(section.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1] || "");
-  const priceText = clean(
-    section.match(/<p[^>]*class=["'][^"']*\bnew-price\b[^"']*["'][^>]*>([\s\S]*?)<\/p>/i)?.[1] ||
-      "",
-  );
-  const price = Number(priceText.replace(/\s/g, "").replace(/AZN|₼/gi, "").replace(",", "."));
-  if (!name || !price || !Number.isFinite(price) || !/(AZN|₼)/i.test(priceText))
-    throw new Error("Aktiv variantın AZN qiyməti oxunmadı.");
-  const sku =
-    section.match(/data-product-code=["']([^"']+)["']/)?.[1] ||
-    active[0][1].match(/id=["']productSection(\d+)/)?.[1] ||
-    "";
-  const labels = section.slice(0, 3500);
-  const stock = /Stokda\s+var/i.test(clean(labels));
-  return {
-    name,
-    sku,
-    price,
-    currency: "AZN",
-    stock,
-    stockKnown: stock || /stokda yoxdur|mövcud deyil/i.test(clean(labels)),
-    checkedAt: new Date().toISOString(),
-  };
+export function extractIrshad(html: string, requestedUrl?: string) {
+  return parseIrshad(html, requestedUrl);
 }
 const robotsCache = new Map<string, { text: string; at: number }>();
 export async function merchantPage(raw: string) {
@@ -329,10 +304,15 @@ export async function scanProduct(
       throw new Error("Bir neçə dəqiq variant var. Sitemap idxalından istifadə edin.");
     return { ...rows[0], variants: options.variants ? rows : undefined, url: url.href };
   }
+  if (url.hostname.replace(/^www\./, "") === "irshad.az") {
+    if (options.variants) {
+      const rows = extractIrshadVariants(html, url.href);
+      return { ...rows[0], variants: rows };
+    }
+    return extractIrshad(html, url.href);
+  }
   return {
-    ...(url.hostname.replace(/^www\./, "") === "irshad.az"
-      ? extractIrshad(html)
-      : extractProduct(html)),
+    ...extractProduct(html),
     url: url.href,
   };
 }

@@ -8,6 +8,15 @@ import sitemapCoverage from "../../../../docs/sitemap-source-coverage.json";
 import { catalogSlice, parseCatalogQuery } from "../../../../lib/catalog-query";
 import { invalidatePublicCatalog, publicCatalog } from "../../../../lib/public-data";
 import { fetchTechnomania } from "../../../../lib/technomania";
+import { withLiveFeed } from "../../../../lib/live-feed";
+import {
+  applyProductMatches,
+  prepareProductMatch,
+  productMatchCandidates,
+  type ProductMatch,
+} from "../../../../lib/product-matching";
+import { withProductMatchLock, MatchConflictError } from "../../../../lib/match-store";
+import { canonicalProductId } from "../../../../lib/catalog";
 import { env } from "cloudflare:workers";
 import { getChatGPTUser, type ChatGPTUser } from "../../../chatgpt-auth";
 import {
@@ -81,13 +90,20 @@ async function bootstrap(user: ChatGPTUser) {
 async function personalGet(user: ChatGPTUser | null) {
   if (!user) return json({ favorites: [], alerts: [] });
   const r = await db()
-    .prepare("SELECT kind,payload FROM personal WHERE user_id=?")
+    .prepare("SELECT kind,payload FROM personal WHERE user_id=? ORDER BY updated_at DESC")
     .bind(user.userId)
     .all<{ kind: string; payload: string }>();
-  return json({
-    favorites: r.results.filter((v) => v.kind === "favorite").map((v) => JSON.parse(v.payload)),
-    alerts: r.results.filter((v) => v.kind === "alert").map((v) => JSON.parse(v.payload)),
-  });
+  const aliases = (await publicCatalog()).productAliases || {};
+  const unique = (kind: string) => {
+    const found = new Map();
+    for (const row of r.results.filter((v) => v.kind === kind)) {
+      const value = JSON.parse(row.payload);
+      const productId = canonicalProductId({ productAliases: aliases }, value.productId);
+      if (!found.has(productId)) found.set(productId, { ...value, productId });
+    }
+    return [...found.values()];
+  };
+  return json({ favorites: unique("favorite"), alerts: unique("alert") });
 }
 
 async function personalPost(req: Request, user: ChatGPTUser) {
@@ -99,15 +115,25 @@ async function personalPost(req: Request, user: ChatGPTUser) {
       remove: z.boolean().optional(),
     })
     .parse(await req.json());
-  const c = await catalog();
+  const c = await publicCatalog();
+  b.productId = canonicalProductId(c, b.productId);
   if (!b.remove && !c.products.some((p) => p.id === b.productId && p.active))
     return json({ error: "Məhsul tapılmadı." }, 404);
   const key = `${user.userId}:${b.kind}:${b.productId}`;
   if (b.remove) {
-    await db()
-      .prepare("DELETE FROM personal WHERE id=? AND user_id=?")
-      .bind(key, user.userId)
-      .run();
+    const ids = [
+      b.productId,
+      ...Object.keys(c.productAliases || {}).filter(
+        (alias) => c.productAliases![alias] === b.productId,
+      ),
+    ];
+    await runBatched(
+      ids.map((pid) =>
+        db()
+          .prepare("DELETE FROM personal WHERE id=? AND user_id=?")
+          .bind(`${user.userId}:${b.kind}:${pid}`, user.userId),
+      ),
+    );
     return json({ ok: true });
   }
   if (b.kind === "alert" && !b.target) return json({ error: "Hədəf qiyməti daxil edin." }, 400);
@@ -352,9 +378,116 @@ async function adminDelete(req: Request, user: ChatGPTUser) {
   return json({ ok: true });
 }
 
+async function matchesGet(req: Request) {
+  const query = new URL(req.url).searchParams;
+  const c = await withLiveFeed(await catalog()),
+    matches = await list<ProductMatch>("productMatch");
+  const candidates = productMatchCandidates(c, matches, (query.get("q") || "").slice(0, 100));
+  const requested = Number(query.get("offset"));
+  const offset = Math.min(
+    Number.isFinite(requested) ? Math.max(0, Math.floor(requested / 24) * 24) : 0,
+    Math.max(0, Math.ceil(candidates.length / 24) - 1) * 24,
+  );
+  const aliases = applyProductMatches(c, matches).productAliases || {};
+  return json({
+    candidates: candidates.slice(offset, offset + 24),
+    total: candidates.length,
+    offset,
+    approved: matches
+      .filter((m) => m.active)
+      .map((m) => ({
+        id: m.id,
+        sourceId: m.sourceId,
+        targetId: m.targetId,
+        sourceName: c.products.find((p) => p.id === m.sourceId)?.name || m.sourceId,
+        targetName: c.products.find((p) => p.id === m.targetId)?.name || m.targetId,
+        approvedAt: m.approvedAt,
+        valid: aliases[m.sourceId] === m.targetId,
+      })),
+    stores: c.stores.map((s) => ({ id: s.id, name: s.name })),
+    offers: [
+      ...new Map(
+        candidates
+          .slice(offset, offset + 24)
+          .flatMap((pair) =>
+            c.offers.filter(
+              (o) => !o.demo && [pair.source.id, pair.target.id].includes(o.productId),
+            ),
+          )
+          .map((o) => [o.id, o]),
+      ).values(),
+    ],
+  });
+}
+async function matchesPost(req: Request, user: ChatGPTUser) {
+  const b = z
+    .discriminatedUnion("action", [
+      z.object({
+        action: z.literal("approve"),
+        sourceId: id,
+        targetId: id,
+        sourceSignature: z.string().max(20000),
+        targetSignature: z.string().max(20000),
+        confirmed: z.literal(true),
+      }),
+      z.object({ action: z.literal("revoke"), id }),
+    ])
+    .parse(await req.json());
+  try {
+    return await withProductMatchLock(db(), async (save) => {
+      const matches = await list<ProductMatch>("productMatch");
+      if (b.action === "revoke") {
+        const existing = matches.find((m) => m.id === b.id);
+        if (!existing) return json({ error: "Uyğunlaşdırma tapılmadı." }, 404);
+        if (existing.active)
+          await save([
+            { kind: "productMatch", id: existing.id, value: { ...existing, active: false } },
+            {
+              kind: "audit",
+              id: crypto.randomUUID(),
+              value: {
+                userId: user.userId,
+                action: "Məhsul uyğunlaşdırması geri alındı: " + b.id,
+                date: new Date().toISOString(),
+              },
+            },
+          ]);
+        return json({ ok: true });
+      }
+      const raw = await withLiveFeed(await catalog());
+      const match = prepareProductMatch(raw, b.sourceId, b.targetId, matches);
+      if (
+        match.sourceSignature !== b.sourceSignature ||
+        match.targetSignature !== b.targetSignature
+      )
+        return json({ error: "Məhsul məlumatı dəyişib. Siyahını yeniləyib yenidən yoxla." }, 409);
+      await save([
+        { kind: "productMatch", id: match.id, value: match },
+        {
+          kind: "audit",
+          id: crypto.randomUUID(),
+          value: {
+            userId: user.userId,
+            action: `Məhsullar uyğunlaşdırıldı: ${b.sourceId} → ${b.targetId}`,
+            date: match.approvedAt,
+          },
+        },
+      ]);
+      return json({ ok: true });
+    });
+  } catch (error) {
+    if (error instanceof MatchConflictError) return json({ error: error.message }, 409);
+    throw error;
+  }
+}
+
 async function admin(req: Request, path: string, user: ChatGPTUser) {
   const route = `${req.method} ${path}`;
   switch (route) {
+    case "GET admin/matches":
+      return matchesGet(req);
+    case "POST admin/matches":
+      return matchesPost(req, user);
     case "GET admin/jobs":
       return json(await listCrawlJobs(db()));
     case "POST admin/jobs/start": {
@@ -370,7 +503,7 @@ async function admin(req: Request, path: string, user: ChatGPTUser) {
       return json(await controlCrawlJob(db(), b.id, b.action));
     }
     case "GET admin/catalog":
-      return json(await publicCatalog());
+      return json(await withLiveFeed(await catalog()));
     case "GET admin/data":
       return adminData();
     case "POST admin/feed-preview":

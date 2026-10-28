@@ -1,11 +1,13 @@
-import { categories, type Catalog } from "./catalog";
+import { categories, canonicalProductId, type Catalog } from "./catalog";
 export const SITE_URL = "https://qepik-az.mythicfern36.chatgpt.site";
 export function pageSeo(path: string, c: Catalog) {
   const [route, qs] = path.split("?"),
     parts = route.split("/").filter(Boolean),
     page = parts[0] || "home";
   const product =
-    page === "mehsul" ? c.products.find((p) => p.id === parts[1] && p.active) : undefined;
+    page === "mehsul"
+      ? c.products.find((p) => p.id === canonicalProductId(c, parts[1]) && p.active)
+      : undefined;
   const category = categories.find((x) => x.id === parts[1]);
   const store =
     page === "magazalar" ? c.stores.find((s) => s.id === parts[1] && s.active) : undefined;
@@ -45,7 +47,7 @@ export function pageSeo(path: string, c: Catalog) {
   const pageNo = new URLSearchParams(qs || "").get("page");
   const canonical =
     SITE_URL +
-    (route === "/" ? "" : route) +
+    (product ? "/mehsul/" + product.id : route === "/" ? "" : route) +
     (pageNo && Number(pageNo) > 1 ? "?page=" + pageNo : "");
   return {
     title: title + " | Qəpik",
@@ -81,7 +83,7 @@ export function pageSeo(path: string, c: Catalog) {
 }
 export function structuredData(path: string, c: Catalog) {
   const parts = path.split("?")[0].split("/").filter(Boolean),
-    p = c.products.find((p) => p.id === parts[1] && p.active);
+    p = c.products.find((p) => p.id === canonicalProductId(c, parts[1]) && p.active);
   const data: Record<string, unknown>[] = [
     {
       "@context": "https://schema.org",
