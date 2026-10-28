@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport = {width:'device-width',initialScale:1,themeColor:'#233a32'};
+export const viewport = {width:'device-width',initialScale:1,themeColor:'#73518c'};
 
 export default function RootLayout({
   children,
