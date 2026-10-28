@@ -1,3 +1,4 @@
+import {listCrawlJobs,startCrawlJob,tickCrawlJob,controlCrawlJob} from '../../../../lib/crawl-jobs';
 import sitemapCoverage from '../../../../docs/sitemap-source-coverage.json';
 import {withStoreSnapshots} from '../../../../lib/store-snapshots';
 import {withLiveFeed} from '../../../../lib/live-feed';
@@ -10,7 +11,7 @@ import { scanProduct,safeMerchantUrl,allowedHosts } from '../../../../lib/extrac
 import { z } from 'zod';
 export const dynamic='force-dynamic';
 const id=z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/);
-const product=z.object({id,name:z.string().min(2).max(180),brand:z.string().min(1).max(80),category:z.enum(['telefon','noutbuk','audio','planset','ev','saat','oyun','aksesuar','foto','gozellik','tv','mebel','idman','oyuncaq','market','avto']),variant:z.string().min(1).max(180),image:z.string().refine(v=>v.startsWith('https://')||(v.startsWith('/')&&!v.startsWith('//'))),specs:z.record(z.string().max(200)),description:z.string().max(3000),active:z.boolean(),featured:z.boolean(),familyId:z.string().max(100).optional()});
+const product=z.object({id,name:z.string().min(2).max(180),brand:z.string().min(1).max(80),category:z.enum(['telefon','noutbuk','audio','planset','ev','saat','oyun','aksesuar','foto','gozellik','tv','mebel','idman','oyuncaq','market','avto','kitab']),variant:z.string().min(1).max(180),image:z.string().refine(v=>v.startsWith('https://')||(v.startsWith('/')&&!v.startsWith('//'))),specs:z.record(z.string().max(200)),description:z.string().max(3000),active:z.boolean(),featured:z.boolean(),familyId:z.string().max(100).optional()});
 const store=z.object({id,name:z.string().min(2).max(100),domain:z.string().refine(d=>allowedHosts.includes(d),'Domen yoxlanmış mağaza siyahısında olmalıdır'),color:z.string().regex(/^#[0-9a-fA-F]{6}$/),active:z.boolean(),description:z.string().max(2000),logo:z.string().max(500).optional(),logoBackground:z.string().optional(),sourceStatus:z.string().optional()});
 const offer=z.object({stockKnown:z.boolean().optional(),condition:z.enum(['new','used','unknown']).optional(),id,productId:id,storeId:id,price:z.number().positive().max(10000000),shipping:z.number().min(0).max(100000),months:z.number().int().min(0).max(60),installmentTotal:z.number().min(0).max(10000000),stock:z.boolean(),warranty:z.string().max(200),url:z.string().url(),demo:z.boolean(),checkedAt:z.string().datetime(),cities:z.array(z.string().max(60)).max(30),sponsored:z.boolean(),sourceSku:z.string().max(200).optional(),sourceName:z.string().max(300).optional(),shippingKnown:z.boolean().optional(),installmentOptions:z.array(z.object({months:z.number().int().positive(),total:z.number().positive(),monthly:z.number().min(0)})).max(6).optional(),feedProductId:z.string().max(100).optional(),feedVariantIndex:z.number().int().min(0).optional(),feedUpdatedAt:z.string().nullable().optional()});
 const json=(v:any,status=200)=>Response.json(v,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
@@ -39,6 +40,10 @@ async function handle(req:Request){try{
  if(path==='click'&&method==='POST'){const b=z.object({offerId:id}).parse(await req.json());const c=await catalog();const o=c.offers.find(o=>o.id===b.offerId);if(!o||o.demo)return json({error:'Nümunə təklifdən alış edilmir.'},400);safeMerchantUrl(o.url);await statement('click',{id:crypto.randomUUID(),offerId:o.id,storeId:o.storeId,date:new Date().toISOString()}).run();return json({url:o.url});}
  if(!path.startsWith('admin/'))return json({error:'Ünvan tapılmadı.'},404);
  const o=await owner();if(!user||!o||JSON.parse(o.payload).userId!==user.userId)return json({error:'Admin icazəsi tələb olunur.'},403);
+ if(path==='admin/jobs'&&method==='GET')return json(await listCrawlJobs(db()));
+ if(path==='admin/jobs/start'&&method==='POST'){const b=z.object({sourceId:z.string().max(50)}).parse(await req.json());const job=await startCrawlJob(db(),b.sourceId);await audit(user.userId,'Mənbə idxalı hazırlandı: '+b.sourceId);return json(job);}
+ if(path==='admin/jobs/tick'&&method==='POST'){const b=z.object({id}).parse(await req.json());return json(await tickCrawlJob(db(),b.id));}
+ if(path==='admin/jobs/control'&&method==='POST'){const b=z.object({id,action:z.enum(['pause','resume'])}).parse(await req.json());return json(await controlCrawlJob(db(),b.id,b.action));}
  if(path==='admin/data'&&method==='GET'){const kinds=['product','store','offer','history','review','application','audit','click','feed'];const all=await Promise.all(kinds.map(list));const c=await catalog();return json({...Object.fromEntries(kinds.map((k,i)=>[k,all[i]])),product:c.products,offer:c.offers,store:c.stores,sourceCoverage:c.sourceCoverage,sitemapCoverage});}
  if(path==='admin/feed-preview'&&method==='POST')return json(await fetchTechnomania());
  if(path==='admin/feed-sync'&&method==='POST'){

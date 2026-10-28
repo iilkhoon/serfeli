@@ -1,3 +1,4 @@
+import {seedProducts as initialProducts,seedOffers as initialOffers} from './server-catalog';
 import soliton from './store-catalogs/soliton.json';
 import tap from './store-catalogs/tap-shops.json';
 // Public source snapshots stay in the server build; they are not imported by client components.
@@ -16,3 +17,9 @@ export function withStoreSnapshots(c:Catalog):Catalog{
  const connected=new Set(snapshots.map(s=>s.storeId));
  return {...c,products:[...products.values()],offers:[...offers.values()],stores:[...stores.values()].map(s=>connected.has(s.id)?{...s,sourceStatus:'public_catalog',description:s.description+' Açıq mağaza kataloqundan məhsullar yoxlanma vaxtı ilə göstərilir.'}:s),sourceCoverage:storeCatalogCoverage};
 }
+
+function normalizedSourceUrl(raw:string){try{const u=new URL(raw);u.hostname=u.hostname.replace(/^www\./,'');u.hash='';u.pathname=u.pathname.replace(/\/$/,'');return u.href;}catch{return raw;}}
+const snapshotProducts=new Map([...initialProducts,...snapshots.flatMap(s=>s.products),...tap.products].map(p=>[p.id,p]));
+const snapshotOffers=[...initialOffers,...snapshots.flatMap(s=>s.offers),...tap.offers as Offer[]];
+const sourceLookup=new Map(snapshotOffers.map(o=>[o.storeId+' '+normalizedSourceUrl(o.url),o]));
+export function knownSourceProduct(sourceId:string,url:string){const offer=sourceLookup.get(sourceId+' '+normalizedSourceUrl(url));return offer?{product:snapshotProducts.get(offer.productId),offer}:undefined;}
