@@ -58,6 +58,7 @@ import {
 import { api, errorMessage, Modal, Empty, CategoryIcon, StoreLogo } from "./ui";
 import type { Act, Personal, Session } from "./types";
 import Admin from "./admin";
+import Home from "./home";
 type ModalState =
   | { type: "login" }
   | { type: "city" }
@@ -79,6 +80,7 @@ export default function Platform({
           matchedTotal: 0,
           brands: [],
           storeStats: {},
+          categoryStats: {},
         },
     ),
     [version, setVersion] = useState(0),
@@ -353,7 +355,7 @@ export default function Platform({
             </button>
           </div>
           <a className="card-button" href={"/mehsul/" + p.id}>
-            Qiymətləri müqayisə et <ArrowUpRight size={16} />
+            Qiymətlərə bax <ArrowUpRight size={16} />
           </a>
         </div>
       </article>
@@ -454,9 +456,7 @@ export default function Platform({
       <header className="header">
         <div className="shell header-main">
           <a className="logo" aria-label="Qəpik ana səhifə" href={"/"}>
-            <span className="logo-symbol">
-              q<span />
-            </span>
+            <img className="brand-mark" src="/favicon.svg" alt="" width={42} height={42} />
             qəpik<span className="logo-dot">.</span>
           </a>
           <form className="search-bar" action="/axtaris" method="get" onSubmit={onSearch}>
@@ -539,367 +539,12 @@ export default function Platform({
       )}
       <main className="shell main-content">
         {page === "home" && (
-          <>
-            <div className="market-ticker">
-              <span>
-                <i /> QİYMƏT RADARI
-              </span>
-              <b>{c.stores.filter((s) => s.active).length} mağaza</b>
-              <span>
-                {c.liveSource?.state === "fresh"
-                  ? "Rəsmi feed · " +
-                    new Date(c.liveSource.checkedAt).toLocaleTimeString("az-AZ", {
-                      timeZone: "Asia/Baku",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "Son saxlanmış qiymətlər"}
-              </span>
-              <a href="/magazalar">
-                Bütün mənbələr <ArrowUpRight size={13} />
-              </a>
-            </div>
-            <div className="home-hero">
-              <aside className="category-sidebar">
-                {categories.slice(0, 8).map((cat) => (
-                  <a key={cat.id} href={"/kateqoriya/" + cat.id}>
-                    <CategoryIcon name={cat.icon} size={20} />
-                    {cat.name}
-                    <ChevronRight size={13} />
-                  </a>
-                ))}
-                <a className="all-categories" href={"/kataloq"}>
-                  Bütün məhsullar <ArrowRight size={15} />
-                </a>
-              </aside>
-              <section className="hero-main">
-                <div className="hero-no">AZƏRBAYCANIN QİYMƏT RADARI</div>
-                <h1>
-                  Almadan əvvəl
-                  <br />
-                  qiymətə bax.
-                  <br />
-                  <span>Fərqi gör.</span>
-                </h1>
-                <p>
-                  Mağaza-mağaza axtarma.
-                  <br />
-                  Qiymətləri bir yerdə gör, sərfəlisini seç.
-                </p>
-                <a className="dark-button" href={"/kataloq"}>
-                  Qiymətləri kəşf et <ArrowUpRight size={19} />
-                </a>
-                <div className="hero-visual">
-                  <div className="orbit orbit1" />
-                  <div className="orbit orbit2" />
-                  <span className="hero-star">✳</span>
-                  <img
-                    src={heroProduct?.image}
-                    alt={heroProduct?.name}
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
-                  />
-                  <div className="floating-price">
-                    <span>
-                      <i />
-                      Ən sərfəli seçim
-                    </span>
-                    <strong>{money(priceOf(c, heroProduct?.id))}</strong>
-                    <small>
-                      {validOffers(c, heroProduct?.id).every((o) => o.demo)
-                        ? "Nümunə qiymət"
-                        : "Mənbədən yoxlanıb"}
-                    </small>
-                  </div>
-                  <div className="floating-save">
-                    <TrendingDown size={17} />
-                    <span>
-                      Əvvəl müqayisə et.
-                      <br />
-                      <b>Sonra qərar ver.</b>
-                    </span>
-                  </div>
-                </div>
-                <div className="hero-bottom">
-                  <span className="slide-line active" />
-                  <span className="slide-line" />
-                  <span className="slide-line" />
-                  <span>01 / 01</span>
-                </div>
-              </section>
-              <aside className="hero-side">
-                <div className="daily-label">
-                  <span className="badge dark">QƏPİK MƏSLƏHƏTİ</span>
-                  <Bell size={21} />
-                </div>
-                <h2>
-                  Yaxşı qiymət
-                  <br />
-                  gözləməyə dəyər.
-                </h2>
-                <p>
-                  Hədəf qiymətini seç.
-                  <br />
-                  Qiymət düşəndə saytda gör.
-                </p>
-                <div className="mini-chart">
-                  <span>Qiymət tarixçəsi</span>
-                  <svg viewBox="0 0 240 72" aria-hidden="true">
-                    <path
-                      d="M0 18H32V30H65V20H95V42H125V35H160V54H200V65H240"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                    />
-                    <circle cx="230" cy="65" r="5" fill="currentColor" />
-                  </svg>
-                  <small>İzləmək qərarı asanlaşdırır.</small>
-                </div>
-                <button onClick={() => alert(heroProduct)}>
-                  Qiymət bildirişi qur <ArrowUpRight size={18} />
-                </button>
-              </aside>
-            </div>
-            <div className="trust-row">
-              <div>
-                <Scale size={23} />
-                <span>
-                  <b>
-                    {c.totals?.products || c.products.filter((p) => p.active).length} məhsul, bir
-                    baxışda
-                  </b>
-                  <small>Kataloq böyüməyə hazırdır</small>
-                </span>
-              </div>
-              <div>
-                <StoreIcon size={23} />
-                <span>
-                  <b>{c.stores.filter((s) => s.active).length} yerli mağaza</b>
-                  <small>Mağazalar arasında müqayisə</small>
-                </span>
-              </div>
-              <div>
-                <Wallet size={23} />
-                <span>
-                  <b>Son qiyməti müqayisə et</b>
-                  <small>Çatdırılma və taksit ayrıca</small>
-                </span>
-              </div>
-              <div>
-                <ShieldCheck size={23} />
-                <span>
-                  <b>Şəffaf məlumat</b>
-                  <small>Mənbə və yoxlanma tarixi ilə</small>
-                </span>
-              </div>
-            </div>
-            <div className="section-heading">
-              <div>
-                <span className="eyebrow">AZ XƏRCLƏ, DÜZGÜN SEÇ</span>
-                <h2>Bu gün nə axtarırsan?</h2>
-              </div>
-              <a className="text-link" href={"/kataloq"}>
-                Bütün kateqoriyalar <ArrowRight size={17} />
-              </a>
-            </div>
-            <div className="category-tiles">
-              {categories.slice(0, 8).map((cat, i) => (
-                <a key={cat.id} href={"/kateqoriya/" + cat.id}>
-                  <div className={"category-tile-icon tile-" + i}>
-                    <CategoryIcon name={cat.icon} size={30} />
-                  </div>
-                  <span>{cat.name}</span>
-                </a>
-              ))}
-            </div>
-            <div className="section-heading products-heading">
-              <div>
-                <span className="eyebrow">
-                  <span className="live-dot" /> DAHA SƏRFƏLİ ALIŞ-VERİŞ
-                </span>
-                <h2>
-                  Baxmağa dəyən qiymətlər<span className="heading-spark">✳</span>
-                </h2>
-              </div>
-              <a className="text-link" href={"/endirimler"}>
-                Hamısına bax <ArrowRight size={17} />
-              </a>
-            </div>
-            <div className="data-notice">
-              <Info size={15} />
-              <span>
-                Yoxlanmış qiymətlər. Stok və son yenilənmə hər təklifdə ayrıca göstərilir.
-              </span>
-              <button onClick={() => setModal({ type: "info", topic: "Məlumatın mənbəyi" })}>
-                Ətraflı
-              </button>
-            </div>
-            {cards(c.products.filter((p) => p.active && p.featured).slice(0, 6))}
-            <div className="home-feed">
-              {[
-                "telefon",
-                "audio",
-                "ev",
-                "tv",
-                "noutbuk",
-                "oyun",
-                "saat",
-                "foto",
-                "gozellik",
-                "mebel",
-                "idman",
-                "aksesuar",
-              ].map((id, index) => {
-                const cat = categories.find((x) => x.id === id)!;
-                const items = c.products
-                  .filter(
-                    (p) =>
-                      p.active && p.category === id && validOffers(c, p.id).some((o) => !o.demo),
-                  )
-                  .slice(0, 6);
-                if (!items.length) return null;
-                return (
-                  <section className="feed-section" key={id}>
-                    <div className="feed-heading">
-                      <div>
-                        <span className="feed-index">{String(index + 1).padStart(2, "0")}</span>
-                        <div>
-                          <h2>{cat.name}</h2>
-                          <p>
-                            {id === "telefon"
-                              ? "Model, yaddaş və rəngi eyni olan təklifləri müqayisə et."
-                              : id === "ev"
-                                ? "Evin üçün seçimlər: son qiyməti yoxlamadan qərar vermə."
-                                : "Mənbədən yoxlanmış, stokda olan məhsullar."}
-                          </p>
-                        </div>
-                      </div>
-                      <a href={"/kateqoriya/" + id}>
-                        Bütün məhsullar <ArrowRight size={16} />
-                      </a>
-                    </div>
-                    {cards(items)}
-                  </section>
-                );
-              })}
-            </div>
-            <section className="seo-editorial">
-              <h2>Azərbaycanda qiymət müqayisəsi: bir məhsul, bir neçə mağaza</h2>
-              <p>
-                Qəpik telefon, noutbuk, televizor, qulaqlıq və ev texnikası axtarışını bir yerdə
-                toplayır. Eyni modelin yaddaşını və rəngini seç, mağazaların nağd qiymətlərini və
-                stok vəziyyətini yanaşı gör. Çatdırılma məlum olduqda yekuna əlavə edilir; məlumat
-                yoxdursa ayrıca qeyd olunur.
-              </p>
-              <div>
-                <article>
-                  <h3>Nağd və taksit qiymətləri</h3>
-                  <p>
-                    Aylıq ödənişlə yanaşı 6, 12 və 18 ay üzrə tam yekuna bax. Mağazanın göstərdiyi
-                    yuvarlaqlaşdırılmış aylıq rəqəm və ümumi məbləğ ayrıca saxlanılır.
-                  </p>
-                </article>
-                <article>
-                  <h3>Mənbə və yenilənmə vaxtı</h3>
-                  <p>
-                    Technomania feed-i, Techbar, Casio, Eurolux, SeeHome, Allstar açıq kataloqları
-                    və İrşad/Baku Electronics səhifələrindən toplanan məlumatlar yoxlanma vaxtı ilə
-                    göstərilir. Digər mağazalar kataloqda ayrıca statusla görünür.
-                  </p>
-                </article>
-                <article>
-                  <h3>Qiymət tarixçəsi və bildiriş</h3>
-                  <p>
-                    Toplanmış qiymət qeydlərinə bax, hədəf qiymətini saxla və saytdaxili bildiriş
-                    bölməsində nəticəni yoxla. Alış seçdiyin mağazanın saytında tamamlanır.
-                  </p>
-                </article>
-              </div>
-              <a href="/rehber">
-                Alış-veriş bələdçisini oxu <ArrowUpRight size={15} />
-              </a>
-            </section>
-            <section className="savings-banner">
-              <div className="banner-symbol">
-                ₼<span>↘</span>
-              </div>
-              <div>
-                <span className="eyebrow">QIYMƏT ETİKETİNDƏN DAHA ÇOXU</span>
-                <h2>Ucuz görünən həmişə sərfəli olmur.</h2>
-                <p>Nağd qiyməti, çatdırılmanı və taksit yekununu yanaşı gör.</p>
-              </div>
-              <a className="dark-button" href={"/rehber"}>
-                Alış-veriş bələdçisi <ArrowUpRight size={19} />
-              </a>
-            </section>
-            <div className="section-heading">
-              <div>
-                <span className="eyebrow">TANIDIĞIN ÜNVANLAR, BİR SƏHİFƏDƏ</span>
-                <h2>Mağazaları kəşf et</h2>
-              </div>
-              <a className="text-link" href={"/magazalar"}>
-                Bütün mağazalar <ArrowRight size={17} />
-              </a>
-            </div>
-            <div className="store-logo-row">
-              {c.stores
-                .filter((s) => s.active)
-                .sort(
-                  (a, b) =>
-                    [
-                      "kontakt",
-                      "irshad",
-                      "baku",
-                      "ispace",
-                      "soliton",
-                      "technomania",
-                      "birmarket",
-                    ].indexOf(b.id) -
-                    [
-                      "kontakt",
-                      "irshad",
-                      "baku",
-                      "ispace",
-                      "soliton",
-                      "technomania",
-                      "birmarket",
-                    ].indexOf(a.id),
-                )
-                .slice(0, 7)
-                .map((s) => (
-                  <a key={s.id} style={{ color: s.color }} href={"/magazalar/" + s.id}>
-                    <StoreLogo store={s} />
-                    <ArrowUpRight size={16} />
-                  </a>
-                ))}
-            </div>
-            <p className="muted micro store-disclaimer">
-              Mağazanın kataloqda olması canlı qiymət bağlantısının aktiv olduğunu bildirmir.
-              Təklifin mənbəsini və yoxlanma vaxtını yoxla.
-            </p>
-            <section className="how-section">
-              <div>
-                <span className="eyebrow">CƏMİ ÜÇ ADDIM</span>
-                <h2>
-                  Qənaət etmək
-                  <br />
-                  bu qədər sadədir.
-                </h2>
-              </div>
-              {[
-                ["01", "Axtardığını tap", "Modeli, brendi və ya kateqoriyanı seç."],
-                ["02", "Qiymətləri müqayisə et", "Eyni məhsulun bütün şərtlərini yanaşı gör."],
-                ["03", "Mağazada tamamla", "Seçdiyin mağazanın səhifəsinə keç."],
-              ].map((v) => (
-                <div className="how-step" key={v[0]}>
-                  <span>{v[0]}</span>
-                  <h3>{v[1]}</h3>
-                  <p>{v[2]}</p>
-                </div>
-              ))}
-            </section>
-          </>
+          <Home
+            catalog={c}
+            cards={cards}
+            onAlert={alert}
+            onInfo={(topic) => setModal({ type: "info", topic })}
+          />
         )}
         {(isCatalog || storeId) && (
           <>
@@ -1286,9 +931,7 @@ export default function Platform({
         <div className="shell footer-main">
           <div>
             <a className="logo" href={"/"}>
-              <span className="logo-symbol">
-                q<span />
-              </span>
+              <img className="brand-mark" src="/favicon.svg" alt="" width={38} height={38} />
               qəpik<span className="logo-dot">.</span>
             </a>
             <p>

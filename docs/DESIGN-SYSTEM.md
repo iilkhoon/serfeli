@@ -1,38 +1,40 @@
 # Qəpik dizayn sistemi
 
-İstiqamət: qiymət araşdırması üçün redaksiya səliqəsi, məhsul şəkilləri və aydın rəqəmlər. Süni intellekt şablonlarında tez-tez görünən bənövşəyi gradient, parıltı və boş statistika istifadə edilmir.
+İstiqamət: isti fon, aydın qiymətlər, iri başlıqlar və məhsul fotoqrafiyası. Brend işarəsi bütün ölçülərdə `public/favicon.svg` faylıdır; başlıq və altlıq eyni işarədən istifadə edir.
 
-## Rənglər və məqsəd
+## Rənglər
 
 | Token | Rəng | İstifadə |
 |---|---|---|
-| paper | #FAFAF6 | İsti, neytral əsas fon |
-| ink | #233A32 | Başlıq, mətn, əsas hərəkət düyməsi |
-| lime | #DDEB66 | Brend işarəsi, aktiv mobil naviqasiya |
-| sage | #E9EFE2 | Kateqoriya və köməkçi sahələr |
-| green | #3E785A | Qiymət fərqi və yoxlanmış məlumat |
-| line | #E6E8DF | Cədvəl, kart və bölmə sərhədi |
+| paper | #FAF8F5 | Səhifə fonu |
+| ink | #352640 | Əsas mətn və başlıqlar |
+| accent | #73518C | Düymələr, aktiv seçimlər |
+| peach | #FFC49D | Loqo və məhdud vurğu |
+| lilac | #EEE6F4 | Ana səhifənin əsas paneli |
+| muted | #75667D | Köməkçi mətn |
 
-Yaşıl qənaət və rahat seçim mövzusu üçün, limon rəngi diqqəti məhdud sahədə toplamaq üçün seçilib. Bunlar dizayn niyyətidir; davranışa universal psixoloji təsir iddiası deyil.
+İsti şaftalı tonu və yumşaq bənövşəyi platformaya tanınan alış-veriş xarakteri verir. Bu, dizayn niyyətidir; universal psixoloji təsir iddiası deyil. Mağazaların orijinal loqo rəngləri saxlanır.
 
-## Tipoqrafiya
+## Tipoqrafiya və düzüm
 
-Onest — interfeys, formalar və oxunaqlı Azərbaycan dili mətni. Bricolage Grotesque — brend, başlıqlar və qiymət rəqəmləri. Əsas başlıq masaüstündə 42 px, telefonda 34 px; kart başlığı telefonda 13 px. Rəqəmlər Azərbaycan formatında: 1 799,99 ₼.
+Onest interfeys və Azərbaycan dili mətni, Bricolage Grotesque başlıqlar və qiymətlər üçündür. Əsas mətn 15 px, məhsul başlığı masaüstündə 14 px, telefonda 13 px-dir. Kart başlıqları iki sətirdə eyni hündürlükdə, qiymət və hərəkətlər eyni səviyyədə yerləşir. Qiymətlər Azərbaycan formatındadır: 1 799,99 ₼.
+
+## Ana səhifə
+
+İki hissəli əsas panel, həqiqi məhsullarla idarə olunan karusel, tam kataloqdan hesablanan kateqoriya sayları, kateqoriya seçimləri, təsdiqlənmiş eyni variant üzrə çoxmağazalı müqayisə, mağazalar, məhsul lentləri və sual-cavab bölməsi. Mağaza profili sayı canlı qiyməti olan mağaza sayı kimi təqdim edilmir.
+
+## Hərəkət
+
+Məhsul karuseli 6,5 saniyədən bir dəyişir; fokus, hover və gizli pəncərədə dayanır. İstifadəçi keçidləri dayandıra və əl ilə seçə bilər. Bölmələr ekrana daxil olduqda yumşaq görünür; kartlar və düymələr toxunuşa reaksiya verir. `prefers-reduced-motion` animasiyaları və avtomatik keçidləri dayandırır. Serverdə yaradılmış məzmun JavaScript olmadan da görünür.
 
 ## Mobil davranış
 
-- 760 px-dən aşağı ayrıca kompozisiya, 360 px-dən aşağı əlavə düzəliş.
-- İki sütun məhsul kartı, dörd sütun kateqoriya.
-- Əsas toxunma sahələri 44 px; alt naviqasiya və aktiv səhifə vurğusu.
-- Filtrlər düymə ilə açılır, əlavə yer tutmur.
-- Dialoqlar telefonda aşağıdan açılan panelə çevrilir. Fokus saxlanır, Escape ilə bağlanır.
-- Mağaza təklifləri telefonda şaquli kartlara çevrilir. Admin bölmələri üfüqi menyudadır; yalnız məlumat cədvəli öz daxilində sürüşür.
-- Safe-area nəzərə alınır, reduced-motion seçimi qorunur.
+760 px altında ayrıca kompozisiya, iki sütun məhsul və kateqoriya kartları, sürüşən seçimlər və alt naviqasiya. Əsas paneldə mətn və məhsul şəkli ayrı sahələrdədir. Dialoqlar telefonda aşağı panelə çevrilir; fokus və Escape dəstəyi saxlanır. Safe-area nəzərə alınır. 320 və 390 px ölçülərdə səhifənin üfüqi daşması yoxlanılır.
 
-## Komponentlər və mənbələr
+## Fayllar
 
-`app/design.css`: tokenlər və ümumi komponentlər. `app/pages.css`: səhifə düzümü. `app/responsive.css`: planşet, telefon və loqolar. `app/ui.tsx`: modal, boş vəziyyət, API köməkçisi və mağaza loqosu. `lib/merchants.ts`: mağaza işarələrinin xəritəsi. Loqoların mənbəsi `merchant-assets.json` faylında saxlanır.
+`app/design.css`, `app/pages.css`, `app/responsive.css`, `app/commerce.css` mövcud ümumi üslublardır. Son yüklənən `app/home.css` cari brend, tipoqrafiya və ana səhifə komponentlərini tənzimləyir. `app/home.tsx` ana səhifədir; `lib/catalog-query.ts` tam kataloqdan yığcam səhifə məlumatı və saylar hazırlayır. `app/ui.tsx` ümumi komponentlər və mağaza loqolarıdır.
 
 ## Mobil tətbiqə hazırlıq
 
-Məhsul, mağaza və təklifin ayrı ID-ləri, `/api/v1` server marşrutları, hesabdan asılı məlumat və vahid dizayn tokenləri mövcuddur. Web manifest əlavə olunub. Native iOS/Android tətbiqi, offline rejim və mobil push bu buraxılışda yaradılmayıb.
+Ayrı məhsul, mağaza və təklif ID-ləri, `/api/v1` marşrutları, hesabdan asılı məlumat və web manifest mövcuddur. Native iOS/Android tətbiqi, offline rejim və mobil push bu buraxılışa daxil deyil.

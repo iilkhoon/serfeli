@@ -3,6 +3,7 @@ import "./design.css";
 import "./pages.css";
 import "./responsive.css";
 import "./commerce.css";
+import "./home.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://qepik-az.mythicfern36.chatgpt.site"),

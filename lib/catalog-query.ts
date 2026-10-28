@@ -34,6 +34,7 @@ export type CatalogSlice = Catalog & {
   matchedTotal: number;
   brands: string[];
   storeStats: Record<string, StoreStat>;
+  categoryStats: Record<string, { count: number; inStock: number; minPrice?: number }>;
 };
 
 export const PAGE_SIZE = 24;
@@ -54,6 +55,7 @@ const HOME_CATEGORIES = [
   "aksesuar",
 ];
 export const HERO_PRODUCT = "iphone17-pro-blue";
+export const HOME_HERO_IDS = [HERO_PRODUCT, "iphone16-black", "macbook-air-m5"];
 // The storefront's city before the viewer picks one; SSR must use the same value to hydrate cleanly.
 export const DEFAULT_CITY = "Bakı";
 
@@ -66,6 +68,7 @@ type Index = {
   reviews: Map<string, Review[]>;
   storeProducts: Map<string, Set<string>>;
   storeStats: Record<string, StoreStat>;
+  categoryStats: Record<string, { count: number; inStock: number; minPrice?: number }>;
   home: Product[];
 };
 
@@ -102,15 +105,47 @@ function indexOf(c: Catalog): Index {
     const real = c.offers.filter((o) => o.storeId === s.id && !o.demo).length;
     storeStats[s.id] = { count: sourced.get(s.id)?.length || real, real: real > 0 };
   }
+  const categoryStats: Index["categoryStats"] = {};
+  for (const p of active) {
+    const value = categoryStats[p.category] || { count: 0, inStock: 0 };
+    value.count++;
+    const available = validOffers(c, p.id).filter((o) => !o.demo);
+    if (available.length) {
+      value.inStock++;
+      const min = Math.min(...available.map((o) => o.price));
+      value.minPrice = value.minPrice === undefined ? min : Math.min(value.minPrice, min);
+    }
+    categoryStats[p.category] = value;
+  }
   const home = new Map(
     active
       .filter((p) => p.featured)
       .slice(0, 6)
       .map((p) => [p.id, p]),
   );
+  for (const id of HOME_HERO_IDS) {
+    const product = active.find((p) => p.id === id);
+    if (product) home.set(product.id, product);
+  }
   const perCategory = new Map<string, number>();
   for (const p of active) {
     if (!HOME_CATEGORIES.includes(p.category) || (perCategory.get(p.category) || 0) >= 6) continue;
+    // Merchant laptop categories also contain bags and peripherals. Lead the homepage with computers.
+    if (
+      p.category === "noutbuk" &&
+      (/\b(backpack|sleeve|bag|case|adapter|keyboard|mouse|hub|cover)\b|çanta|klaviatura|siçan/i.test(
+        p.name,
+      ) ||
+        !/noutbuk|notebook|laptop|macbook|imac|thinkpad|ideapad|vivobook|zenbook|expertbook|latitude|inspiron/i.test(
+          p.name,
+        ))
+    )
+      continue;
+    if (
+      p.category === "telefon" &&
+      /dashcam|videoqeydiyyat|\b(case|cover|adapter)\b|qabı/i.test(p.name)
+    )
+      continue;
     if (!validOffers(c, p.id).some((o) => !o.demo)) continue;
     home.set(p.id, p);
     perCategory.set(p.category, (perCategory.get(p.category) || 0) + 1);
@@ -126,6 +161,7 @@ function indexOf(c: Catalog): Index {
     reviews: group(c.reviews, (r) => r.productId),
     storeProducts,
     storeStats,
+    categoryStats,
     home: [...home.values()],
   };
   indexes.set(c, index);
@@ -231,7 +267,10 @@ export function catalogSlice(c: Catalog, q: CatalogQuery): CatalogSlice {
     const p = id && x.byId.get(id);
     if (p) chosen.set(p.id, p);
   };
-  if (page === "home") for (const p of x.home) chosen.set(p.id, p);
+  if (page === "home") {
+    for (const p of x.home) chosen.set(p.id, p);
+    for (const id of HOME_HERO_IDS) add(id);
+  }
   add(HERO_PRODUCT);
   if (page === "mehsul") {
     const selected = x.byId.get(parts[1]);
@@ -253,5 +292,6 @@ export function catalogSlice(c: Catalog, q: CatalogQuery): CatalogSlice {
     matchedTotal: sorted.length,
     brands,
     storeStats: x.storeStats,
+    categoryStats: x.categoryStats,
   };
 }
