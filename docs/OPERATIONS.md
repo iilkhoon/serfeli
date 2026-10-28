@@ -41,3 +41,8 @@ Ana səhifədə 7 məhsul bölməsi və əlavə 24 mənbədə yoxlanmış stok m
 SEO: səhifəyə aid title/description, canonical, OpenGraph/Twitter şəkli, Product/AggregateOffer və BreadcrumbList JSON-LD, sitemap.xml, robots.txt, həqiqi404, şəxsi səhifələrdə noindex. Məhsul və kateqoriya naviqasiyası crawl edilən href linkləridir. `scripts/verify-seo.mjs` lokal yoxlamadan keçib; ilkin sitemap505 URL verir. Sayt sahibə məxsus şəxsi yayımdadır; axtarış indekslənməsi üçün sonradan ictimai giriş və seçilən domen üzrə Search Console sazlanmalıdır.
 
 Dizaynın son istiqaməti `app/commerce.css` faylındadır: qrafit, ağ və kobalt mavi; Archivo başlıq şrifti; sıx alış-veriş vitrini. Əvvəlki pastel təqdimat üslubu dəyişdirilib.
+
+
+## 28 oktyabr — ziyarət zamanı canlı feed
+SSR, sitemap və ictimai kataloq API-si Technomania rəsmi feed-ini oxuyur. Proses daxilində 5 dəqiqəlik keş və paralel sorğuların birləşdirilməsi var. Xətada son uğurlu məlumat saxlanır, 1 dəqiqədən sonra yenidən yoxlanır və köhnə status göstərilir. Bu, fon scheduler-i deyil. D1-ə tarixçə yazılması admin feed sinxronizasiyası ilə ayrıca aparılır. Feed-dən çıxan variantlar deaktiv edilir; yoxa çıxan təklif stokda kimi saxlanmır. İrşad/Baku təklifləri bu bağlantı ilə yenilənmir.
+`node scripts/verify-live-catalog.mjs` cari feed-dəki hər variantı API ilə tutuşdurur, bütün unikal şəkil URL-lərinin HTTP və content-type cavabını yoxlayır; nəticə `docs/live-catalog-audit.json` faylındadır.

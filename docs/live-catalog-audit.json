@@ -1,0 +1,1935 @@
+{
+  "checkedAt": "2026-10-28T10:31:01.085Z",
+  "sourceCount": 235,
+  "variants": 423,
+  "inStock": 3,
+  "uniqueImages": 385,
+  "failed": [],
+  "checks": [
+    {
+      "url": "https://technomania.az/storage/products/img_1789715855868_83f1e66b.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789715728392_15d3723b.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789715491755_85f95266.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789715972933_5ceb2a9e.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789716662670_c3f3d602.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789716296235_cf42d86a.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789719848691_6f1fc034.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789719576154_0e2807df.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789727540812_d5374e2b.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789716347820_be1707e1.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789719586403_3b668eab.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789716361368_b0313b48.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789728942467_0c849366.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789722068164_09c91e06.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789727996461_83acdc3c.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789718689820_43f5b2f9.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789718446173_8ce8e1d0.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789725206953_afa1c015.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789722342550_afcd3c2a.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789722692887_2d353560.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789722723735_a9dd0933.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789722523595_08dfa755.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789722723470_8246bfce.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789726043088_fd436fb6.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789727763046_b563bd1e.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789728301392_2818ab23.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789733050565_1e64acfd.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789731049975_f4e144e9.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789731569686_73d5a63e.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789731315483_b5644b58.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789729377934_ebb7b4b4.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789720236449_436484b7.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789313398849_f0f2641e.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789313681724_c5eb0926.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789313404403_99f7439a.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789313417423_4e7207ba.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789313412837_7ea767bf.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789370847220_b6757202.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789369205743_8a3c65c1.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789369832355_26f7d37f.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789370733301_e203d2d7.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789313872098_51d1b376.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789313878983_321e441c.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789313888872_91fbfcfa.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789313885471_a28ab9f5.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789370577228_2d93aeac.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789370051301_bcd1c175.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789313787769_e03c0389.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789370419483_e1debce0.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789369479227_1f7380ee.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789313796969_e8e1aa71.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789371373472_ee0b1eb0.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789313802883_c7c30913.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789371120268_59afe1e1.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789370950288_bc49224a.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373469382_a0d9929a.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373089886_acea9984.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373603072_292cba5a.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373132539_4866ca17.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373216775_6077b747.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789372639400_299680a8.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789299953141_54921c1d.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789372546262_53c3a13e.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789299982708_10017564.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789299827131_31b4e040.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789312670153_9734d21a.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789313227832_5931705d.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789313247766_6f764454.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789311956648_de02affa.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789300244786_b9225de1.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789311671407_ef741ceb.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789303152567_3c6c1ee3.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373688881_66469c05.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789311698918_ed9361d8.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789311320375_48accafb.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373735998_026089ca.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373779803_027787f4.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789311327755_2c130fc3.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789374047914_968d784d.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789311332853_7638c20d.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789371773517_bc3b509a.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789374062358_c5e71aae.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789371850261_7434f6fd.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789371958232_b385c896.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789310660697_256e48ed.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789372318689_f2f93ffc.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789372143399_d9d3d212.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789372826610_ff97ccde.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789372867702_7f4b1eef.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789310252010_706c6f06.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789372898113_f4731680.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789306857966_b66537a5.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789310264499_173203f1.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789306865958_5b336e7b.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789306925884_37e0b274.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789375012267_8cd1dd32.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373084620_476c3569.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373077455_74a30a54.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789375042613_5eee3577.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789310687015_ea5253a3.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789376253398_5e1739eb.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789310711486_6521116b.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789380454281_dc209eb3.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789380483275_16a433ed.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789380334277_609918eb.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789383575209_a23f2972.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789380341131_7ad1f1f8.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789380149653_c04caf79.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789376309310_304a2556.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373585592_b53cfca5.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789376401593_d07f76dd.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789376443803_727f1f46.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373592017_e0589e63.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789376346218_81bc2ad1.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373596808_e9a35ffc.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789381460985_5f23952e.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789374692151_320100e0.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373601616_c5307301.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373691074_7f123434.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789375435960_8b318ff2.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789382881532_0c372154.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373906165_80012eef.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789374454981_56ababba.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789385013615_ceb195b3.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789379442121_8048999f.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789379550579_011b0f47.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789385356016_2f08aff3.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789385226336_2f7ac0b4.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789379235101_456446e3.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789386378167_0d09a50c.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789379294425_98baf4d0.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789374170215_20d67715.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789377270349_7251482e.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789380695170_79e8da58.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789383336026_efe24f1b.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789377306960_59b84a64.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789376941806_e4cffe9b.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789383314828_f1366323.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789376938764_b730f1bd.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789732118194_30ebc56b.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789374306722_ac7b78d0.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789376989614_5a660f32.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789380858452_5f51edc7.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789374345787_c0958fcc.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373214979_4ecd95ba.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373228694_dd072df9.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373233750_b709c761.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789110084304_cc7552ad.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789373241896_b527e516.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789199348841_ed536b1b.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789110100961_94c7155f.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789199960486_eb711471.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789050084759_e5595484.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789114143601_a1a731c4.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789110605090_89c27c40.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789386785887_4baa630f.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789117145671_f8252d81.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789113750531_56267e4d.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789386595814_2d25342b.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789117430744_12dfe800.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789113139633_652f6073.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789110908693_bfabb9b6.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789386908058_ac59b2c5.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789051196655_b968e3f3.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789114679097_2e0c8de5.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789051173159_44dbe726.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789386977156_e8fdac90.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789112316327_e2578c24.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789196139175_c0126d8a.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789199196151_280a12f8.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789387047608_b1fcc9c2.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789050877737_c15186fa.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789111956318_34ae6fcd.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789387114382_dd981f88.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789386521712_3990fd3d.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789112954813_f4e0d6ef.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789117847764_c9ace017.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789387177244_31cbdf6f.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789390113563_de7fa714.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789386716609_066f8292.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789206762187_8da22764.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789390122308_839aab87.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789390130049_808272ea.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789206873268_58eeba2c.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789206805081_d6fed675.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789206820924_48a59149.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789202427514_24cc4a67.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789202064567_847f8aed.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789732254031_01989f9e.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389509307_8c10951c.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389516658_294d1a7f.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389554800_f6c293ad.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789209190960_cb866726.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789209245940_94b696ef.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789214186363_f36e0cd0.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789214224343_d89d363d.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789214270589_71575be6.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789118170747_9983be21.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789208591832_bb0418b2.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789223711255_9c41c8c0.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789214309389_abe5d518.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789223731976_a77b7036.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789732453026_f5ca312c.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789223204147_c6702813.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789223770486_446a45a2.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789732461258_45663aa6.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789223481266_c57f8d41.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789390912205_5eb94eb7.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789204420508_abc5109b.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789223522629_70a36042.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789223547208_559004f5.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789204888598_e6f171bb.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789204544723_78177b94.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789390253534_1be2de24.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789206199864_02f97dc3.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789390279605_8d521146.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789390286092_3c43eb21.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789206257859_f992b6b5.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789201576908_6c716002.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789206227547_ef4ab887.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789206303588_2faa92c5.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789201602324_99132fd4.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789201611744_95c84d7d.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789207366800_a082e3bf.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389632419_5ce8c7f6.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389639109_67179af3.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/apple_watch_ultra.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/apple_watch_sport.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389645804_bc3c9213.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789122323881_b708b017.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789122669746_50336e9c.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789122678662_c1f8e909.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789201857823_82769fe3.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789127383031_1a14a197.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789127402687_1ccc987f.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789384016029_d087e744.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789127395068_664247ca.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789052415824_bad0a11c.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789052421608_118aa6cc.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789052427909_ba232642.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789120656019_1e387575.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789121055904_cf8c5eb5.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789121082501_10eed3e8.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789112700148_cfbdf2e9.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789212494064_438d6a09.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789212507294_7af9f7ca.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789212591924_ed266971.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789201978913_e1efddad.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789212550749_1399bf64.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789204154782_a1be0e81.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789201970254_cc110eaf.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789388064477_6ef29c12.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789204164239_ab946c27.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789204169427_a5e25320.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789394599649_29f74d68.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789388091109_db6679e2.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789388101190_0b47a6f6.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789223036734_79bf62f2.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789394605466_309c3199.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389375803_0cfe6c7f.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789732794326_b4610800.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789394635854_05b3f9d9.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389380314_aa2e38ba.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789388902739_b2601fc5.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789201356543_febc0b12.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789127010175_1c15bb61.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789127023022_e517174e.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789201364290_885b58be.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789127034708_5fd35475.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789125596300_8b495bdf.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789211958426_a6787ded.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389282190_09d3d473.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789211970798_82673148.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789732490291_f036b746.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789212001928_729498ed.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789211665102_c0210a41.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789211691772_dab4d2f3.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789200709255_938a4d7e.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789203649086_c818d19b.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789211717863_925032ee.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789201085545_115ff09b.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789203809538_a6737b6f.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789388623205_aa7c547d.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789203836613_55a81c06.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789390997611_8193df3f.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789388634265_4549fe31.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789391010014_bffb887d.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789391003643_925e45c8.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789125385701_b69792f5.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789121759164_5a4778ac.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789391024117_1517d647.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789121774144_43651e69.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789127678808_a90496ba.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789121796259_e96c0438.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789211397018_b57cb8ee.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789127759987_1569ad48.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789212849963_78cc6243.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789127768313_eb7c64dc.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789211402813_2a7c33f4.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789212878285_f097d57a.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789387444291_3e7386b8.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789221667626_80359c31.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789212910881_6041ecc7.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789221686379_660ada48.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789221731558_323a3cbc.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789124736965_95dd7c43.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789205176355_b8faa3e7.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789393925031_c39f8659.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789205212844_94d3d7cc.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789205227816_cb79c074.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789387523052_d92b23f4.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789387619108_05251e60.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789207733859_0e2285d4.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789387674810_6fd9e7f1.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789387652202_6f2abf1f.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789387697327_fcdbbe83.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789207749503_43617f6c.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789208526411_8d9df2b5.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789207777298_38635884.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389793501_bb35f259.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389802010_224ecdaa.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389819743_136a2262.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389837975_f5fc6583.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789388248340_2dd680da.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389851685_1962fd15.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789388257015_2797f073.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789733773991_146a36ca.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789388347358_c9cc6ccb.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789388395371_bc5f9128.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789210580132_4ce0c7c4.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789733807886_5b92320a.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789125962928_e6a8be2a.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389931119_87112787.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789125978103_7239b485.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789129793262_5983c4b5.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789390454003_ce739177.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789129815059_3a1b25ca.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789129838382_96a59229.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789390462829_6b93e06a.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789390481718_392f89fa.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789208188713_c7434039.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789390501504_171fd1b8.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789208194431_6c58a5fb.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789208236016_a410182b.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789390606375_ef81f00f.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789206835129_ede3c398.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789207484113_61314592.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789207496947_bcda6a4e.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789384618942_6cde70bc.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789732022746_fd57e809.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789207575074_600a064b.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789732069400_819aae21.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789203093326_fbf0ba8d.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789732096613_c0a1d1d9.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789196444303_a988b6ca.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789208835957_b87eb187.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789196478397_c5ecc8ec.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789196519031_e83fa853.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789383020446_805d82a8.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789390051601_2ceb74a0.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789208234525_d73faf1a.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789388847553_6d893e31.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789394153265_bf7301c8.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789380557030_6a7e8c60.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789394161861_51c2ce83.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789394263044_9e592d4e.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789394305146_63fe54dc.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789380571872_1515d00d.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789380578859_875bac72.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789123703899_b27c75a8.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789206637882_3a218445.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789123717376_e8c87b31.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789123723835_d111ce57.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389116500_4601336b.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789206642895_8f4667b2.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389126897_12b57601.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789206645979_4c3bdfda.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389142284_d8d32b8b.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789389155535_daa70844.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789388491618_8828e1ef.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789732955971_ab9ab2d8.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789126712492_5f60006d.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789204754195_ac43a61c.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789204765227_e5231ba5.webp",
+      "status": 200,
+      "type": "image/webp"
+    },
+    {
+      "url": "https://technomania.az/storage/products/img_1789204768501_e3f9b164.webp",
+      "status": 200,
+      "type": "image/webp"
+    }
+  ]
+}

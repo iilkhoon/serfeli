@@ -1,4 +1,7 @@
+import {withLiveFeed} from './live-feed';
 import {env} from 'cloudflare:workers';
 import {seedCatalog} from './server-catalog';
 import type {Catalog} from './catalog';
-export async function publicCatalog():Promise<Catalog>{try{if(!env.DB)return seedCatalog;const initialized=await env.DB.prepare("SELECT id FROM records WHERE id='system:seed'").first();if(!initialized)return seedCatalog;const kinds=['product','store','offer','history','settings','review'];const lists=await Promise.all(kinds.map(async kind=>{const rows=await env.DB!.prepare('SELECT payload FROM records WHERE kind=? ORDER BY updated_at DESC').bind(kind).all<{payload:string}>();return rows.results.map(r=>JSON.parse(r.payload));}));return{products:lists[0],stores:lists[1],offers:lists[2],history:lists[3],settings:lists[4][0]||seedCatalog.settings,reviews:lists[5].filter(r=>r.status==='approved')};}catch{return seedCatalog;}}
+async function storedCatalog():Promise<Catalog>{try{if(!env.DB)return seedCatalog;const initialized=await env.DB.prepare("SELECT id FROM records WHERE id='system:seed'").first();if(!initialized)return seedCatalog;const kinds=['product','store','offer','history','settings','review'];const lists=await Promise.all(kinds.map(async kind=>{const rows=await env.DB!.prepare('SELECT payload FROM records WHERE kind=? ORDER BY updated_at DESC').bind(kind).all<{payload:string}>();return rows.results.map(r=>JSON.parse(r.payload));}));return{products:lists[0],stores:lists[1],offers:lists[2],history:lists[3],settings:lists[4][0]||seedCatalog.settings,reviews:lists[5].filter(r=>r.status==='approved')};}catch{return seedCatalog;}}
+
+export async function publicCatalog():Promise<Catalog>{return withLiveFeed(await storedCatalog());}

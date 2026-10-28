@@ -1,3 +1,4 @@
+import {withLiveFeed} from '../../../../lib/live-feed';
 import {fetchTechnomania} from '../../../../lib/technomania';
 import { env } from 'cloudflare:workers';
 import { getChatGPTUser } from '../../../chatgpt-auth';
@@ -20,7 +21,7 @@ async function owner(){return db().prepare("SELECT payload FROM records WHERE id
 async function handle(req:Request){try{
  const url=new URL(req.url),path=url.pathname.replace('/api/v1/','');const method=req.method;const user=await getChatGPTUser();
  if(method!=='GET'){const origin=req.headers.get('origin');if(origin&&origin!==url.origin)return json({error:'Sorğunun mənbəyi uyğun deyil.'},403);if(!user)return json({error:'Bu əməliyyat üçün hesabınıza daxil olun.'},401);if(Number(req.headers.get('content-length')||0)>500000)return json({error:'Məlumat 500 KB limitini keçir.'},413);}
- if(path==='catalog'&&method==='GET')return json(await catalog());
+ if(path==='catalog'&&method==='GET')return json(await withLiveFeed(await catalog()));
  if(path==='session'&&method==='GET'){const o=await owner();return json({user:user?{id:user.userId,name:user.displayName}:null,admin:!!user&&!!o&&JSON.parse(o.payload).userId===user.userId,needsSetup:!o});}
  if(path==='bootstrap'&&method==='POST'){
   // This first-owner action is exposed ONLY on the initially owner-private Site.
