@@ -38,3 +38,5 @@ footer{background:#f0eaf2;color:#4f3c58}.footer-main p,.footer-main>div>:is(butt
 
 /* Merchant assets retain their own brand colors on a neutral surface. */
 .merchant-logo>img{filter:none!important;mix-blend-mode:normal;opacity:1}.header-actions .profile-button{background:#f1e9f4}.logo-symbol{box-shadow:inset 0 0 0 1px #f0ac8190}.logo{color:#352640}.logo-dot{color:#a16caa}.product-card .favorite:hover{background:#f8edf4;color:#a26b91}
+
+.source-product-link{margin-bottom:17px}.admin-panel .summary-line{flex-wrap:wrap;gap:8px}.admin-panel .summary-line small{font-size:10px;color:var(--muted)}

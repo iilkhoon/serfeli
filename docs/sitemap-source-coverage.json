@@ -1,0 +1,277 @@
+[
+  {
+    "id": "baku",
+    "provided": "https://bakuelectronics.az/sitemap.xml",
+    "root": "https://bakuelectronics.az/sitemap.xml",
+    "sitemaps": 8,
+    "allUrls": 32852,
+    "productCandidates": 32223,
+    "complete": true,
+    "error": null,
+    "maps": [
+      {
+        "url": "https://bakuelectronics.az/sitemap.xml",
+        "count": 7,
+        "checkedAt": "2026-10-28T10:45:45.757Z"
+      },
+      {
+        "url": "https://bakuelectronics.az/sitemap-0.xml",
+        "count": 5000,
+        "checkedAt": "2026-10-28T10:45:46.422Z"
+      },
+      {
+        "url": "https://bakuelectronics.az/sitemap-1.xml",
+        "count": 5000,
+        "checkedAt": "2026-10-28T10:45:48.238Z"
+      },
+      {
+        "url": "https://bakuelectronics.az/sitemap-2.xml",
+        "count": 5000,
+        "checkedAt": "2026-10-28T10:45:50.116Z"
+      },
+      {
+        "url": "https://bakuelectronics.az/sitemap-3.xml",
+        "count": 5000,
+        "checkedAt": "2026-10-28T10:45:52.036Z"
+      },
+      {
+        "url": "https://bakuelectronics.az/sitemap-4.xml",
+        "count": 5000,
+        "checkedAt": "2026-10-28T10:45:53.841Z"
+      },
+      {
+        "url": "https://bakuelectronics.az/sitemap-5.xml",
+        "count": 5000,
+        "checkedAt": "2026-10-28T10:45:55.644Z"
+      },
+      {
+        "url": "https://bakuelectronics.az/sitemap-6.xml",
+        "count": 2855,
+        "checkedAt": "2026-10-28T10:45:57.485Z"
+      }
+    ],
+    "checkedAt": "2026-10-28T10:45:57.974Z"
+  },
+  {
+    "id": "mgstore",
+    "provided": "https://mgstore.az/sitemap.xml",
+    "root": "https://mgstore.az/media/sitemap/sitemap_az.xml",
+    "sitemaps": 26,
+    "allUrls": 95200,
+    "productCandidates": 95190,
+    "complete": true,
+    "error": null,
+    "maps": [
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az.xml",
+        "count": 25,
+        "checkedAt": "2026-10-28T10:45:58.360Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-1.xml",
+        "count": 5500,
+        "checkedAt": "2026-10-28T10:45:59.092Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-2.xml",
+        "count": 4147,
+        "checkedAt": "2026-10-28T10:46:02.741Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-3.xml",
+        "count": 4267,
+        "checkedAt": "2026-10-28T10:46:12.427Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-4.xml",
+        "count": 3596,
+        "checkedAt": "2026-10-28T10:46:21.964Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-5.xml",
+        "count": 3358,
+        "checkedAt": "2026-10-28T10:46:29.638Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-6.xml",
+        "count": 3140,
+        "checkedAt": "2026-10-28T10:46:37.284Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-7.xml",
+        "count": 3507,
+        "checkedAt": "2026-10-28T10:46:44.325Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-8.xml",
+        "count": 3645,
+        "checkedAt": "2026-10-28T10:46:51.730Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-9.xml",
+        "count": 3508,
+        "checkedAt": "2026-10-28T10:46:59.556Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-10.xml",
+        "count": 2927,
+        "checkedAt": "2026-10-28T10:47:07.023Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-11.xml",
+        "count": 2962,
+        "checkedAt": "2026-10-28T10:47:13.614Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-12.xml",
+        "count": 3290,
+        "checkedAt": "2026-10-28T10:47:20.336Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-13.xml",
+        "count": 3982,
+        "checkedAt": "2026-10-28T10:47:27.394Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-14.xml",
+        "count": 4041,
+        "checkedAt": "2026-10-28T10:47:35.895Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-15.xml",
+        "count": 4971,
+        "checkedAt": "2026-10-28T10:47:44.514Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-16.xml",
+        "count": 4388,
+        "checkedAt": "2026-10-28T10:47:55.159Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-17.xml",
+        "count": 4680,
+        "checkedAt": "2026-10-28T10:48:04.320Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-18.xml",
+        "count": 4249,
+        "checkedAt": "2026-10-28T10:48:13.593Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-19.xml",
+        "count": 4056,
+        "checkedAt": "2026-10-28T10:48:22.085Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-20.xml",
+        "count": 3543,
+        "checkedAt": "2026-10-28T10:48:30.540Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-21.xml",
+        "count": 3838,
+        "checkedAt": "2026-10-28T10:48:37.869Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-22.xml",
+        "count": 3537,
+        "checkedAt": "2026-10-28T10:48:45.707Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-23.xml",
+        "count": 3480,
+        "checkedAt": "2026-10-28T10:48:52.955Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-24.xml",
+        "count": 3537,
+        "checkedAt": "2026-10-28T10:48:59.946Z"
+      },
+      {
+        "url": "https://mgstore.az/media/sitemap/sitemap_az-2-25.xml",
+        "count": 3089,
+        "checkedAt": "2026-10-28T10:49:07.596Z"
+      }
+    ],
+    "checkedAt": "2026-10-28T10:49:12.192Z"
+  },
+  {
+    "id": "soliton",
+    "provided": "https://soliton.az/sitemap.xml",
+    "root": "https://soliton.az/sitemap.xml",
+    "sitemaps": 1,
+    "allUrls": 281,
+    "productCandidates": 56,
+    "complete": true,
+    "error": null,
+    "maps": [
+      {
+        "url": "https://soliton.az/sitemap.xml",
+        "count": 282,
+        "checkedAt": "2026-10-28T10:49:12.683Z"
+      }
+    ],
+    "checkedAt": "2026-10-28T10:49:12.692Z"
+  },
+  {
+    "id": "bytelecom",
+    "provided": "https://bytelecom.az/sitemap.xml",
+    "root": "https://bytelecom.az/sitemap.xml",
+    "sitemaps": 6,
+    "allUrls": 135,
+    "productCandidates": 0,
+    "complete": true,
+    "error": null,
+    "maps": [
+      {
+        "url": "https://bytelecom.az/sitemap.xml",
+        "count": 5,
+        "checkedAt": "2026-10-28T10:49:12.812Z"
+      },
+      {
+        "url": "https://bytelecom.az/blog-sitemap.xml",
+        "count": 1,
+        "checkedAt": "2026-10-28T10:49:13.534Z"
+      },
+      {
+        "url": "https://bytelecom.az/brand-sitemap.xml",
+        "count": 3,
+        "checkedAt": "2026-10-28T10:49:14.349Z"
+      },
+      {
+        "url": "https://bytelecom.az/campaign-sitemap.xml",
+        "count": 7,
+        "checkedAt": "2026-10-28T10:49:15.157Z"
+      },
+      {
+        "url": "https://bytelecom.az/category-sitemap.xml",
+        "count": 117,
+        "checkedAt": "2026-10-28T10:49:15.976Z"
+      },
+      {
+        "url": "https://bytelecom.az/page-sitemap.xml",
+        "count": 8,
+        "checkedAt": "2026-10-28T10:49:16.780Z"
+      }
+    ],
+    "checkedAt": "2026-10-28T10:49:16.784Z"
+  },
+  {
+    "id": "alinino",
+    "provided": "https://alinino.az/sitemap.xml",
+    "root": "https://alinino.az/sitemap.xml",
+    "sitemaps": 1,
+    "allUrls": 50000,
+    "productCandidates": 48449,
+    "complete": true,
+    "error": null,
+    "maps": [
+      {
+        "url": "https://alinino.az/sitemap.xml",
+        "count": 50000,
+        "checkedAt": "2026-10-28T10:49:30.719Z"
+      }
+    ],
+    "checkedAt": "2026-10-28T10:51:49.733Z"
+  }
+]

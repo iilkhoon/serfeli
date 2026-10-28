@@ -11,6 +11,7 @@ const product={id:'qa-product',name:'QA Product',brand:'QA',category:'telefon',v
 assert.equal((await request('admin/save',{kind:'product',value:product})).status,200);
 const offer={id:'qa-offer',productId:'qa-product',storeId:'kontakt',price:999,shipping:5,months:12,installmentTotal:1200,stock:true,warranty:'QA',url:'https://kontakt.az/qa-product',demo:false,checkedAt:new Date().toISOString(),cities:['Bakı'],sponsored:false};
 assert.equal((await request('admin/save',{kind:'offer',value:offer})).status,200);
+assert.equal((await request('click',{offerId:'qa-offer'},false)).status,200);
 let catalog=(await request('catalog')).data;assert(catalog.products.some(p=>p.id==='qa-product'));assert(catalog.history.some(p=>p.productId==='qa-product'&&!p.demo));
 assert.equal((await request('admin/save',{kind:'offer',value:{...offer,url:'https://irshad.az/wrong'}})).status,400);
 assert.equal((await request('admin/import',{offers:[{...offer,id:'qa-bulk',price:950}]})).status,200);
@@ -25,4 +26,4 @@ assert.equal((await request('admin/delete',{kind:'product',id:'qa-product'})).st
 for(const id of ['qa-offer','qa-bulk'])assert.equal((await request('admin/delete',{kind:'offer',id})).status,200);
 assert.equal((await request('admin/delete',{kind:'product',id:'qa-product'})).status,200);
 for(const kind of ['favorite','alert'])await request('personal',{kind,productId:'iphone-13-pro',remove:true});
-console.log('PASS: 22 API checks: authentication, admin, CSRF, CRUD, domain binding, import, real history, private records, moderation, reference protection. Local database only.');
+console.log('PASS: 23 API checks: authentication, admin, CSRF, CRUD, domain binding, import, real history, private records, moderation, reference protection. Local database only.');

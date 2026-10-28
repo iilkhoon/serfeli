@@ -1,0 +1,67 @@
+[
+  {
+    "id": "techbar",
+    "source": "https://techbar.az/wp-json/wc/store/v1/products",
+    "total": 8221,
+    "products": 8220,
+    "offers": 7312,
+    "inStock": 2788,
+    "unpriced": 908,
+    "warnings": [
+      {
+        "id": 9959,
+        "reason": "Məhsul ID/ad yoxdur"
+      }
+    ],
+    "checkedAt": "2026-10-28T10:37:59.972Z",
+    "pages": 83
+  },
+  {
+    "id": "casio",
+    "source": "https://casio.az/wp-json/wc/store/v1/products",
+    "total": 1413,
+    "products": 1413,
+    "offers": 1413,
+    "inStock": 954,
+    "unpriced": 0,
+    "warnings": [],
+    "checkedAt": "2026-10-28T10:38:12.425Z",
+    "pages": 15
+  },
+  {
+    "id": "eurolux",
+    "source": "https://eurolux.az/wp-json/wc/store/v1/products",
+    "total": 907,
+    "products": 907,
+    "offers": 904,
+    "inStock": 687,
+    "unpriced": 3,
+    "warnings": [],
+    "checkedAt": "2026-10-28T10:38:32.685Z",
+    "pages": 10
+  },
+  {
+    "id": "seehome",
+    "source": "https://seehome.az/wp-json/wc/store/v1/products",
+    "total": 1368,
+    "products": 1368,
+    "offers": 1368,
+    "inStock": 1076,
+    "unpriced": 0,
+    "warnings": [],
+    "checkedAt": "2026-10-28T10:38:50.278Z",
+    "pages": 14
+  },
+  {
+    "id": "allstar",
+    "source": "https://allstar.az/wp-json/wc/store/v1/products",
+    "total": 988,
+    "products": 988,
+    "offers": 0,
+    "inStock": 0,
+    "unpriced": 988,
+    "warnings": [],
+    "checkedAt": "2026-10-28T10:39:00.145Z",
+    "pages": 10
+  }
+]

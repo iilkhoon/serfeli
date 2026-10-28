@@ -1,0 +1,174 @@
+[
+  {
+    "id": "barkod",
+    "status": 404,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "almali",
+    "status": 401,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "bestel",
+    "status": 404,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "digitalhome",
+    "status": 404,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "elitoptimal",
+    "status": 404,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "eraelectronics",
+    "status": 404,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "bytelecom",
+    "status": 200,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "mobifon",
+    "status": 404,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "eurotek",
+    "status": 403,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "minorstore",
+    "status": 200,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "eurolux",
+    "status": 200,
+    "total": "907",
+    "supported": true,
+    "sample": {
+      "id": 34917,
+      "name": "Eurolux EU-WM1437S-7BLDW Paltaryuyan Maşın",
+      "prices": {
+        "price": "599",
+        "regular_price": "899",
+        "sale_price": "599",
+        "price_range": null,
+        "currency_code": "AZN",
+        "currency_symbol": "₼",
+        "currency_minor_unit": 0,
+        "currency_decimal_separator": ".",
+        "currency_thousand_separator": "",
+        "currency_prefix": "",
+        "currency_suffix": "₼"
+      }
+    }
+  },
+  {
+    "id": "myshops",
+    "status": 200,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "smartelectronics",
+    "status": 404,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "smarton",
+    "status": 404,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "technolife",
+    "status": 404,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "seehome",
+    "status": 200,
+    "total": "1368",
+    "supported": true,
+    "sample": {
+      "id": 9751,
+      "name": "Samovar Haley HY-8962",
+      "prices": {
+        "price": "9999",
+        "regular_price": "11999",
+        "sale_price": "9999",
+        "price_range": null,
+        "currency_code": "AZN",
+        "currency_symbol": "₼",
+        "currency_minor_unit": 2,
+        "currency_decimal_separator": ".",
+        "currency_thousand_separator": "",
+        "currency_prefix": "",
+        "currency_suffix": " ₼"
+      }
+    }
+  },
+  {
+    "id": "telehome",
+    "status": 404,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "texnohome",
+    "status": 404,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "ultrastore",
+    "status": 404,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "okim",
+    "status": 404,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "xiaomi-store",
+    "status": 404,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "mgstore",
+    "status": 404,
+    "total": null,
+    "supported": false
+  },
+  {
+    "id": "worldtelecom",
+    "status": 200,
+    "total": null,
+    "supported": false
+  }
+]
