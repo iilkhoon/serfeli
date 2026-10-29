@@ -754,6 +754,63 @@ assert(
     )
     .reasons.includes("Başlıqdakı model kodu fərqlidir."),
 );
+// AirPods as four stores write them: the part number in the title, bare, or in the SKU field;
+// noise cancelling in English or Azerbaijani; one store files them as accessories. The ANC model
+// becomes one product, the plain model (another part number) stays apart.
+const pods = (id, name, extra = {}) =>
+  product(id, {
+    name,
+    brand: "Apple",
+    category: "audio",
+    variant: "Mənbədəki model",
+    specs: {},
+    ...extra,
+  });
+const podsFolded = m.mergeDuplicateProducts({
+  ...catalog(),
+  products: [
+    pods("baku-anc", "Simsiz qulaqlıq Apple AirPods 4 with Active Noise Cancellation (MXP93ZE/A)"),
+    pods("ispace-anc", "Qulaqlıqlar APPLE AirPods 4 aktiv səsboğma ilə, Ağ", {
+      brand: "APPLE",
+      specs: { "Mənbə SKU": "MXP93ZE/A" },
+    }),
+    pods("soliton-anc", "Qulaqlıq Apple Airpods 4 ANC / MXP93ZE/A", { category: "aksesuar" }),
+    pods("baku-plain", "Simsiz qulaqlıq Apple AirPods 4 White (MXP63ZE/A)"),
+    pods("irshad-5", "Apple AirPods 5 MKFW4ZE/A"),
+    pods("baku-5", "Simsiz qulaqlıq Apple AirPods 5 (MKFW4ZE/A)"),
+  ],
+  offers: [
+    offer("baku-anc", "one"),
+    offer("ispace-anc", "two"),
+    offer("soliton-anc", "three"),
+    offer("baku-plain", "one"),
+    offer("irshad-5", "two"),
+    offer("baku-5", "one"),
+  ],
+});
+assert.deepEqual(
+  podsFolded.products
+    .filter((p) => p.active)
+    .map((p) => p.id)
+    .sort(),
+  ["baku-5", "baku-anc", "baku-plain"],
+);
+assert.equal(podsFolded.productAliases["ispace-anc"], "baku-anc");
+assert.equal(podsFolded.productAliases["soliton-anc"], "baku-anc");
+assert.equal(podsFolded.productAliases["irshad-5"], "baku-5");
+// A store's own brand field does not split two copies of one model title.
+const titled = m.mergeDuplicateProducts({
+  ...catalog(),
+  products: [
+    named("dell-1", "Dell Vostro 3030 MT (210-BKVT)", "Grandstream", { category: "aksesuar" }),
+    named("dell-2", "Dell Vostro 3030 MT (210-BKVT)", "DELL", { category: "aksesuar" }),
+  ],
+  offers: [
+    offer("dell-1", "one", { stock: false }),
+    offer("dell-2", "one", { id: "offer-dell-2b" }),
+  ],
+});
+assert.equal(titled.products.filter((p) => p.active).length, 1);
 console.log(
   "PASS: matching identity/variant/condition guards, valid identifier checks, merchant SKU exclusion, reversible aliases/history, duplicate-store/chain rejection, stale identity invalidation, RSC-compatible aliases, serialized fenced mutations and atomic rollback, cross-store model keys (storage, RAM, colour, retailer brand), automatic duplicate merge (same store and across stores). In-memory SQLite; no network.",
 );

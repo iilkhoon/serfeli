@@ -100,7 +100,13 @@ for (const s of [...snapshots, tap]) {
     assert(products.has(p.id) || products.has(c.productAliases[p.id]), p.id);
   for (const o of s.offers) {
     const served = offers.get(o.id);
-    // A store's second copy of a listing is hidden together with its offer.
+    // A store's two copies of one listing become one product that shows the store's better offer.
+    const canonical = c.productAliases[o.productId] || o.productId;
+    if (
+      !served &&
+      c.offers.some((x) => x.productId === canonical && x.storeId === o.storeId && !x.demo)
+    )
+      continue;
     if (!served && c.productAliases[o.productId]) continue;
     assert(served, o.id);
     // A scheduled sync stores a newer check in D1, which replaces the bundled snapshot.

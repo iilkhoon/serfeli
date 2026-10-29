@@ -152,6 +152,9 @@ function computeModelKey(p: Product) {
   const text = (p.name + " " + (generic(p.variant) ? "" : p.variant))
     .replace(/\([^)]*\)/g, " ")
     .toLowerCase()
+    // Part numbers are compared separately; one feature has one word in every language.
+    .replace(/(^|\s)[a-z0-9]{4,7}\/a(?=$|[\s,])/g, " ")
+    .replace(/active noise cancell?ation|aktiv səs\s*boğma|aktiv səs.?küy\S*\s+boğ\S*/gu, " anc ")
     .replace(/(\d+(?:[.,]\d+)?)\s*(?:gb|гб)?\s*\/\s*(\d+(?:[.,]\d+)?)\s*(tb|gb|тб|гб)?/giu, " ")
     .replace(/(\d+(?:[.,]\d+)?)\s*(tb|gb|тб|гб)\b/giu, " ");
   const colour = new Map(colors(p).map((c) => [c, true]));
@@ -212,6 +215,28 @@ function titledModelCodes(p: Product) {
     )
     .map(matchText);
 }
+// Manufacturer part numbers wherever a store writes them: "(MXP93ZE/A)" in the title, a bare
+// "MKFW4ZE/A", or the source SKU field when it holds a code rather than the shop's own number.
+// Short codes such as "(Gen.4)" or "(S948)" name a family, not one trade item.
+function partNumbers(p: Product) {
+  const codes = [
+    ...titledModelCodes(p),
+    ...[...p.name.matchAll(/(?:^|[\s,(])([A-Z0-9]{4,7}\/A)(?=$|[\s,)])/g)].map((m) => m[1]),
+  ];
+  for (const [key, value] of Object.entries(p.specs))
+    if (/^(mənbə sku|sku)$/i.test(key.trim()) && /[a-z]/i.test(value)) codes.push(value);
+  return [
+    ...new Set(
+      codes
+        .map(matchText)
+        .filter((v) => v.length >= 8 || (v.length >= 6 && (v.match(/\d/g) || []).length >= 2)),
+    ),
+  ];
+}
+function samePartNumber(a: Product, b: Product) {
+  const right = partNumbers(b);
+  return partNumbers(a).some((code) => right.includes(code));
+}
 function ancStates(p: Product) {
   const states = new Set<number>();
   const title = p.name + " " + (generic(p.variant) ? "" : p.variant);
@@ -240,6 +265,7 @@ function evidence(a: Product, b: Product) {
       right = identifiers(b, keys, keys === gtinKeys);
     if (left.some((v) => v.length >= 5 && right.includes(v))) result.push(label);
   }
+  if (!result.length && samePartNumber(a, b)) result.push("Eyni istehsalçı kodu");
   if (matchText(a.name) === matchText(b.name) && matchText(a.name).length >= 10)
     result.push("Eyni məhsul adı");
   else if (modelKey(a) && modelKey(a) === modelKey(b)) result.push("Eyni model, yaddaş və rəng");
@@ -291,8 +317,8 @@ export function checkProductPair(c: Catalog, sourceId: string, targetId: string)
     if (a.length && b.length && !a.some((v) => b.includes(v)))
       reasons.push(keys === gtinKeys ? "Barkod / ISBN fərqlidir." : "İstehsalçı kodu fərqlidir.");
   }
-  const sourceCodes = titledModelCodes(source),
-    targetCodes = titledModelCodes(target);
+  const sourceCodes = partNumbers(source),
+    targetCodes = partNumbers(target);
   if (
     sourceCodes.length &&
     targetCodes.length &&
@@ -439,6 +465,7 @@ export function productMatchCandidates(c: Catalog, matches: ProductMatch[], sear
     const keys = [
       "name:" + matchText(p.name),
       ...(model ? ["model:" + model] : []),
+      ...partNumbers(p).map((v) => "part:" + v),
       ...identifiers(p, gtinKeys, true).map((v) => "gtin:" + v),
       ...identifiers(p, mpnKeys).map((v) => "mpn:" + v),
     ];
@@ -539,18 +566,37 @@ function exactColor(p: Product) {
   return [...new Set(result)].sort().join(",");
 }
 function sameTradeItem(a: Product, b: Product) {
-  return [gtinKeys, mpnKeys].some((keys) => {
-    const right = identifiers(b, keys, keys === gtinKeys);
-    return identifiers(a, keys, keys === gtinKeys).some((value) => right.includes(value));
-  });
+  return (
+    samePartNumber(a, b) ||
+    [gtinKeys, mpnKeys].some((keys) => {
+      const right = identifiers(b, keys, keys === gtinKeys);
+      return identifiers(a, keys, keys === gtinKeys).some((value) => right.includes(value));
+    })
+  );
+}
+// Title and variant as a store wrote them, minus WooCommerce's "(Copy)" marker on duplicated posts.
+const sameTitleKey = (p: Product) =>
+  matchText(p.name.replace(/\(copy\)/gi, "") + " " + (generic(p.variant) ? "" : p.variant));
+// The same full title with a model number in it.
+function sameModelTitle(a: Product, b: Product) {
+  const title = sameTitleKey(a);
+  return title.length >= 10 && /\d/.test(title) && title === sameTitleKey(b);
+}
+// Reasons an automatic fold may set aside: a store's second copy of its own listing, and a
+// store's own brand or category field when the part number or the full model title proves the
+// same trade item (stores file a Dell PC under "Grandstream", AirPods under accessories).
+function blockingReasons(reasons: string[], a: Product, b: Product, sameStore: boolean) {
+  return reasons.filter(
+    (reason) =>
+      !(sameStore && reason === "Eyni mağazanın iki qeydi bu yolla birləşdirilmir.") &&
+      !(reason === "Kateqoriyalar uyğun deyil." && (sameTradeItem(a, b) || sameModelTitle(a, b))) &&
+      !(reason === "Brendlər uyğun deyil." && sameModelTitle(a, b)),
+  );
 }
 function automaticPair(c: Catalog, a: Product, b: Product, sameStore: boolean) {
   // Pair checks remain useful for manual review, but an automatic decision needs more evidence.
   const result = checkProductPair(c, a.id, b.id);
-  const reasons = result.reasons.filter(
-    (reason) => !(sameStore && reason === "Eyni mağazanın iki qeydi bu yolla birləşdirilmir."),
-  );
-  if (reasons.length) return false;
+  if (blockingReasons(result.reasons, a, b, sameStore).length) return false;
   const left = c.offers.filter((o) => o.productId === a.id && !o.demo),
     right = c.offers.filter((o) => o.productId === b.id && !o.demo);
   const condition = (items: typeof left) =>
@@ -558,13 +604,21 @@ function automaticPair(c: Catalog, a: Product, b: Product, sameStore: boolean) {
   const state = condition(left);
   if (state !== condition(right) || state === "unknown" || state.includes(",")) return false;
   const strong = sameTradeItem(a, b);
-  if (!strong && !ancStates(a).length !== !ancStates(b).length) return false;
+  // A title names noise cancelling when the product has it; silence means none.
+  if (!strong && ancStates(a).includes(1) !== ancStates(b).includes(1)) return false;
   const aColor = exactColor(a),
     bColor = exactColor(b);
   if (aColor && bColor && aColor !== bColor) return false;
   const x = memory(a),
     y = memory(b);
   const memoryProduct = ["telefon", "noutbuk", "planset"].includes(a.category);
+  // The same full title with a model number in it: within one store that is the store listing one
+  // item twice (outlet units included); across stores it names the same item when neither listing
+  // has a colour or memory size that could tell variants apart (watches, trimmers, consoles).
+  if (sameModelTitle(a, b)) {
+    if (sameStore && x.storage === y.storage) return true;
+    if (!aColor && !bColor && !memoryProduct) return true;
+  }
   const fullVariant = !!(
     aColor &&
     bColor &&
@@ -648,10 +702,11 @@ export function mergeDuplicateProducts(c: Catalog, matches: ProductMatch[] = [])
   const buckets = new Map<string, Product[]>();
   for (const p of candidates) {
     const model = modelKey(p);
-    const name = matchText(p.name);
+    const name = sameTitleKey(p);
     for (const key of [
       ...(name.length >= 10 ? ["name:" + name] : []),
       ...(model ? ["model:" + model] : []),
+      ...partNumbers(p).map((v) => "part:" + v),
       ...identifiers(p, gtinKeys, true).map((v) => "gtin:" + v),
       ...identifiers(p, mpnKeys).map((v) => "mpn:" + v),
     ])
@@ -715,20 +770,42 @@ export function mergeDuplicateProducts(c: Catalog, matches: ProductMatch[] = [])
             )
           )
             continue;
-          // A~B and B~C is insufficient: every original member must agree with every incoming one.
+          // A~B and B~C is insufficient on its own: one pair across the two groups must be proven
+          // the same item, and no member may contradict any other (colour, memory, ANC, codes).
+          const pairs = cluster(source).flatMap((x) => cluster(target).map((y) => [x, y]));
+          const proven = pairs.some(([x, y]) => {
+            const a = byId.get(x)!,
+              b = byId.get(y)!;
+            return automaticPair(
+              { ...c, products: [a, b], offers: [...offers.get(x)!, ...offers.get(y)!] },
+              a,
+              b,
+              sameStore,
+            );
+          });
           if (
-            !cluster(source).every((x) =>
-              cluster(target).every((y) => {
-                const a = byId.get(x)!,
-                  b = byId.get(y)!;
-                return automaticPair(
-                  { ...c, products: [a, b], offers: [...offers.get(x)!, ...offers.get(y)!] },
-                  a,
-                  b,
-                  sameStore,
-                );
-              }),
-            )
+            !proven ||
+            !pairs.every(([x, y]) => {
+              const a = byId.get(x)!,
+                b = byId.get(y)!;
+              const pair = checkProductPair(
+                { ...c, products: [a, b], offers: [...offers.get(x)!, ...offers.get(y)!] },
+                x,
+                y,
+              );
+              const ca = exactColor(a),
+                cb = exactColor(b);
+              return (
+                // The proven pair settles identity; a store's own category does not contradict it.
+                blockingReasons(pair.reasons, a, b, sameStore).every(
+                  (r) =>
+                    r === "Eyni ad, barkod və ya istehsalçı kodu ilə sübut yoxdur." ||
+                    r === "Kateqoriyalar uyğun deyil.",
+                ) &&
+                !(ca && cb && ca !== cb) &&
+                ancStates(a).includes(1) === ancStates(b).includes(1)
+              );
+            })
           )
             continue;
           // Previously approved aliases can carry known attributes absent from their representative.
@@ -745,9 +822,15 @@ export function mergeDuplicateProducts(c: Catalog, matches: ProductMatch[] = [])
                   x.product.id,
                   y.product.id,
                 );
-                const reasons = pair.reasons.filter(
-                  (reason) =>
-                    !(sameStore && reason === "Eyni mağazanın iki qeydi bu yolla birləşdirilmir."),
+                const reasons = blockingReasons(
+                  pair.reasons,
+                  x.product,
+                  y.product,
+                  sameStore,
+                ).filter(
+                  (r) =>
+                    r !== "Eyni ad, barkod və ya istehsalçı kodu ilə sübut yoxdur." &&
+                    r !== "Kateqoriyalar uyğun deyil.",
                 );
                 const a = exactColor(x.product),
                   b = exactColor(y.product);
