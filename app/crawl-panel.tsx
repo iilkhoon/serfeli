@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useEffectEvent, useState } from "react";
-import { Play, Pause, RefreshCw, Database, ArrowUpRight } from "lucide-react";
+import { Play, Pause, RefreshCw, Database, ArrowUpRight, X } from "lucide-react";
 import { api, errorMessage } from "./ui";
 import type { CrawlRuntime } from "../lib/crawl-jobs";
 type Job = {
@@ -126,10 +126,10 @@ export default function CrawlPanel({
     }
     setBusy(false);
   };
-  const control = async (job: Job, action: "pause" | "resume") => {
+  const control = async (job: Job, action: "pause" | "resume" | "cancel") => {
     setBusy(true);
     setError("");
-    if (action === "pause") setRunningId(null);
+    if (action !== "resume") setRunningId(null);
     try {
       const next = await api<Job>("admin/jobs/control", { id: job.id, action });
       update(next);
@@ -301,6 +301,16 @@ export default function CrawlPanel({
                   {job.status === "blocked" ? "Mənbəni yenidən yoxla" : "Qaldığı yerdən davam et"}
                 </button>
               ))}
+            {job.status !== "complete" && runningId !== job.id && (
+              <button
+                className="outline-button"
+                disabled={busy}
+                onClick={() => control(job, "cancel")}
+              >
+                <X size={15} />
+                Ləğv et
+              </button>
+            )}
             <button
               className="outline-button"
               disabled={busy}

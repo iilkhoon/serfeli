@@ -39,13 +39,22 @@ function category(raw: StoreApiRow, storeId: string) {
     .toLocaleLowerCase("az");
   if (storeId === "casio") return "saat";
   if (storeId === "allstar") return /kamera|camera|video/.test(n) ? "foto" : "audio";
+  // Checked before the device rules: "avtomobil" contains "mobil", and PC liquid coolers are
+  // "maye soyuducu", not fridges.
+  if (/avtomobil|avto|auto|dashcam|videoqeydiyyat/.test(n)) return "avto";
+  if (
+    /anaplata|prosessor|cpu|ram|ssd|hdd|videokart|qida-blok|keysl|maye-soyuducu|kuler|cooler/.test(
+      n,
+    )
+  )
+    return "aksesuar";
   if (/qulaq|headphone|audio|dinamik|speaker|mikrofon/.test(n)) return "audio";
   if (/saat|watch/.test(n)) return "saat";
   if (/noutbuk|notebook|laptop|macbook/.test(n)) return "noutbuk";
   if (/planşet|planset|tablet|ipad/.test(n)) return "planset";
   if (/televiz|televizor|television|smart-tv/.test(n)) return "tv";
   if (/oyun|gaming|playstation|konsol/.test(n)) return "oyun";
-  if (/telefon|smartfon|smartphone|mobil/.test(n))
+  if (/telefon|smartfon|smartphone|mobil/.test(n))
     return /akses|access|kabro|case|qoruyucu|şarj/.test(n) ? "aksesuar" : "telefon";
   if (/kamera|camera|foto/.test(n)) return "foto";
   if (/fen|saç|sac-|hair|beauty|gozellik|gözəllik/.test(n)) return "gozellik";

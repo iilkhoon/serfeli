@@ -499,7 +499,9 @@ async function admin(req: Request, path: string, user: ChatGPTUser) {
     case "POST admin/jobs/tick":
       return json(await tickCrawlJob(db(), z.object({ id }).parse(await req.json()).id));
     case "POST admin/jobs/control": {
-      const b = z.object({ id, action: z.enum(["pause", "resume"]) }).parse(await req.json());
+      const b = z
+        .object({ id, action: z.enum(["pause", "resume", "cancel"]) })
+        .parse(await req.json());
       return json(await controlCrawlJob(db(), b.id, b.action));
     }
     case "GET admin/catalog":

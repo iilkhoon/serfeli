@@ -67,19 +67,11 @@ export default function Home({
       ? Math.max(...comparisonOffers.map((o) => o.price)) -
         Math.min(...comparisonOffers.map((o) => o.price))
       : 0;
-  const storeIds = [
-    "techbar",
-    "casio",
-    "eurolux",
-    "seehome",
-    "technomania",
-    "irshad",
-    "baku",
-    "soliton",
-  ];
-  const stores = storeIds
-    .map((id) => c.stores.find((s) => s.id === id && s.active))
-    .filter((s): s is NonNullable<typeof s> => !!s);
+  // Only stores whose prices are connected, largest catalogs first.
+  const stores = c.stores
+    .filter((s) => s.active && (c.storeStats[s.id]?.count || 0) > 0 && !s.id.startsWith("tap-"))
+    .sort((a, b) => (c.storeStats[b.id]?.count || 0) - (c.storeStats[a.id]?.count || 0))
+    .slice(0, 8);
   useEffect(() => {
     const el = root.current;
     if (!el) return;

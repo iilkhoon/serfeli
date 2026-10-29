@@ -1,11 +1,79 @@
-export const crawlSources = [
-  { id: "irshad", name: "İrşad", root: "https://irshad.az/sitemap.xml", intervalMs: 30000 },
-  { id: "baku", name: "Baku Electronics", root: "https://bakuelectronics.az/sitemap.xml" },
-  { id: "mgstore", name: "Music Gallery", root: "https://mgstore.az/media/sitemap/sitemap_az.xml" },
-  { id: "soliton", name: "Soliton", root: "https://soliton.az/sitemap.xml" },
-  { id: "bytelecom", name: "Bytelecom", root: "https://bytelecom.az/sitemap.xml" },
-  { id: "alinino", name: "Ali & Nino", root: "https://alinino.az/sitemap.xml" },
-] as const;
+// refreshHours: the cron driver starts a new run once the last finished run is this old.
+// listing: products are read from category pages (see lib/listing-sources.ts), not one per URL.
+export const storeApiFields =
+  "id,name,permalink,sku,type,variation,prices,images,categories,brands,attributes,is_in_stock,has_options,is_purchasable";
+export const crawlSources: {
+  id: string;
+  name: string;
+  root: string;
+  intervalMs?: number;
+  refreshHours: number;
+  listing?: boolean;
+  // First category page for listing sources that do not expose categories in their sitemap.
+  listingStart?: string;
+  // The listing pages are the HTML fragments the store's own "load more" button requests.
+  listingFragment?: boolean;
+  // The listing pages are WooCommerce Store API JSON.
+  listingJson?: boolean;
+}[] = [
+  // robots.txt asks for Crawl-delay: 30.
+  {
+    id: "irshad",
+    name: "İrşad",
+    root: "https://irshad.az/sitemap.xml",
+    intervalMs: 30000,
+    refreshHours: 24,
+    listing: true,
+    listingStart: "https://irshad.az/az/products/list?q=&direction=asc&sort=id",
+    listingFragment: true,
+  },
+  {
+    id: "baku",
+    name: "Baku Electronics",
+    root: "https://bakuelectronics.az/sitemap.xml",
+    refreshHours: 24,
+    listing: true,
+  },
+  { id: "ispace", name: "iSpace", root: "https://ispace.az/sitemap.xml", refreshHours: 24 },
+  {
+    id: "mgstore",
+    name: "Music Gallery",
+    root: "https://mgstore.az/media/sitemap/sitemap_az.xml",
+    refreshHours: 72,
+  },
+  { id: "soliton", name: "Soliton", root: "https://soliton.az/sitemap.xml", refreshHours: 72 },
+  {
+    id: "bytelecom",
+    name: "Bytelecom",
+    root: "https://bytelecom.az/sitemap.xml",
+    refreshHours: 72,
+  },
+  { id: "alinino", name: "Ali & Nino", root: "https://alinino.az/sitemap.xml", refreshHours: 168 },
+  // Public WooCommerce Store API catalogs, 100 products per request. Same stores as
+  // storeApiSources in lib/woocommerce.ts (kept dependency-free; verify-listing checks they agree).
+  ...[
+    { id: "techbar", origin: "https://techbar.az", name: "Techbar" },
+    { id: "casio", origin: "https://casio.az", name: "Casio Azərbaycan" },
+    { id: "eurolux", origin: "https://eurolux.az", name: "Eurolux" },
+    { id: "seehome", origin: "https://seehome.az", name: "SeeHome" },
+    { id: "allstar", origin: "https://allstar.az", name: "Allstar" },
+  ].map((s) => ({
+    id: s.id,
+    name: s.name,
+    root: s.origin + "/sitemap.xml",
+    refreshHours: 24,
+    listing: true,
+    listingJson: true,
+    // techbar.az and eurolux.az disallow per_page= and orderby= in robots.txt, so they are read
+    // with the API defaults (10 per page).
+    listingStart:
+      s.origin +
+      "/wp-json/wc/store/v1/products?" +
+      (["techbar", "eurolux"].includes(s.id) ? "" : "per_page=100&orderby=id&order=asc&") +
+      "page=1&_fields=" +
+      storeApiFields,
+  })),
+];
 export function sourceUrlAllowed(sourceId: string, raw: string) {
   const source = crawlSources.find((s) => s.id === sourceId);
   if (!source) return false;
@@ -32,6 +100,7 @@ export function isProductCandidate(sourceId: string, raw: string) {
   if (sourceId === "soliton")
     return path.startsWith("/az/") && path.endsWith(".html") && !path.includes("/pages/");
   if (sourceId === "bytelecom") return path.startsWith("/az/products/");
+  if (sourceId === "ispace") return /^\/product\/[^/]+$/.test(path);
   return (
     !path.startsWith("/catalog/") &&
     !path.startsWith("/customer/") &&

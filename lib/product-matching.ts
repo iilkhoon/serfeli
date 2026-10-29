@@ -46,11 +46,12 @@ function details(p: Product) {
   );
 }
 function colors(p: Product) {
-  const text = details(p).toLocaleLowerCase("az");
+  // Both foldings: "WHITE" must read as "white", "QIRMIZI" as "qırmızı".
+  const text = details(p).toLowerCase() + " " + details(p).toLocaleLowerCase("az");
   const groups = [
     "black|qara|черный|чёрный",
     "white|ağ|beyaz|белый",
-    "silver|gümüşü|серебристый",
+    "silver|gümüşü|gümüş|серебристый",
     "blue|göy|mavi|синий",
     "red|qırmızı|красный",
     "green|yaşıl|зеленый",
@@ -65,16 +66,83 @@ function colors(p: Product) {
     new RegExp("(^|[^\\p{L}])(" + group + ")(?=$|[^\\p{L}])", "u").test(text) ? [String(i)] : [],
   );
 }
+// Stores write memory as "12GB/256GB", "8GB/256", "6/128GB" or "256 GB". Storage is the largest
+// figure; RAM is the smaller one when a pair is given, so a store that omits RAM still compares.
 function memory(p: Product) {
-  return [
-    ...new Set(
-      [...details(p).matchAll(/(\d+(?:[.,]\d+)?)\s*(TB|GB|ТБ|ГБ)\b/gi)].map(
-        (m) => Number(m[1].replace(",", ".")) * (/TB|ТБ/i.test(m[2]) ? 1024 : 1),
-      ),
-    ),
-  ]
-    .sort((a, b) => a - b)
-    .join(",");
+  const text = details(p);
+  const gb = (n: string, unit = "GB") =>
+    Number(n.replace(",", ".")) * (/TB|ТБ/i.test(unit) ? 1024 : 1);
+  const values: number[] = [];
+  let ram = 0;
+  for (const m of text.matchAll(
+    /(\d+(?:[.,]\d+)?)\s*(?:GB|ГБ)?\s*\/\s*(\d+(?:[.,]\d+)?)\s*(TB|GB|ТБ|ГБ)?(?![\p{L}\d])/giu,
+  )) {
+    const a = gb(m[1]),
+      b = gb(m[2], m[3]);
+    if (!m[3] && !/GB|ГБ/i.test(m[0])) continue;
+    values.push(a, b);
+    ram = Math.min(a, b);
+  }
+  for (const m of text.matchAll(/(\d+(?:[.,]\d+)?)\s*(TB|GB|ТБ|ГБ)\b/gi))
+    values.push(gb(m[1], m[2]));
+  return { storage: values.length ? Math.max(...values) : 0, ram };
+}
+// Words that name the product type or connectivity rather than the model.
+const typeWords = new Set(
+  (
+    "smartfon smartfonu mobil telefon telefonu noutbuk notebook laptop planşet planset tablet " +
+    "televizor qulaqlıq qulaqliq simsiz ağıllı saat saatı nfc lte dual sim ds global version " +
+    "yeni new for with ilə və and the"
+  ).split(" "),
+);
+const brandAliases: [RegExp, string][] = [
+  [/\b(iphone|ipad|macbook|imac|airpods|apple)\b/i, "apple"],
+  [/\b(galaxy|samsung)\b/i, "samsung"],
+  [/\b(redmi|poco|xiaomi)\b/i, "xiaomi"],
+  [/\bhonor\b/i, "honor"],
+  [/\bhuawei\b/i, "huawei"],
+  [/\b(pixel|google)\b/i, "google"],
+];
+// The maker, not the retailer: some stores put their own name in the brand field.
+export function canonicalBrand(p: Product) {
+  const own = matchText(p.brand);
+  for (const [pattern, brand] of brandAliases)
+    if (
+      pattern.test(own) ||
+      (pattern.test(p.name) &&
+        (!own ||
+          own === matchText(p.sourceStoreId || "") ||
+          /^(digər|unknown|generic|ispace)$/.test(own)))
+    )
+      return brand;
+  return own;
+}
+// Order-insensitive model identity: brand, model words, storage and colour. Two listings with the
+// same key name the same model in the same configuration, whatever each store's wording.
+export function modelKey(p: Product) {
+  const brand = canonicalBrand(p);
+  if (!brand || /^(digər|unknown|generic)$/.test(brand)) return "";
+  const text = (p.name + " " + (generic(p.variant) ? "" : p.variant))
+    .replace(/\([^)]*\)/g, " ")
+    .toLowerCase()
+    .replace(/(\d+(?:[.,]\d+)?)\s*(?:gb|гб)?\s*\/\s*(\d+(?:[.,]\d+)?)\s*(tb|gb|тб|гб)?/giu, " ")
+    .replace(/(\d+(?:[.,]\d+)?)\s*(tb|gb|тб|гб)\b/giu, " ");
+  const colour = new Map(colors(p).map((c) => [c, true]));
+  const tokens = new Set<string>();
+  for (const raw of text.split(/[^\p{L}\p{N}]+/u)) {
+    const t = matchText(raw);
+    if (!t || typeWords.has(t) || t === brand) continue;
+    if (brandAliases.some(([pattern, b]) => b === brand && pattern.test(t) && t === b)) continue;
+    tokens.add(t);
+  }
+  // Colour words are compared as colour groups ("qara" = "black"), the rest stay literal.
+  const colourWords = new Set(
+    [...tokens].filter((t) => colors({ ...p, name: t, variant: "", specs: {} }).length > 0),
+  );
+  const model = [...tokens].filter((t) => !colourWords.has(t)).sort();
+  if (model.length < 2 || !model.some((t) => /\d/.test(t))) return "";
+  const { storage } = memory(p);
+  return [brand, model.join(" "), storage || "", [...colour.keys()].sort().join(",")].join("|");
 }
 function barcode(value: string) {
   const code = value.replace(/[\s-]/g, "");
@@ -117,6 +185,7 @@ function evidence(a: Product, b: Product) {
   }
   if (matchText(a.name) === matchText(b.name) && matchText(a.name).length >= 10)
     result.push("Eyni məhsul adı");
+  else if (modelKey(a) && modelKey(a) === modelKey(b)) result.push("Eyni model, yaddaş və rəng");
   return result;
 }
 export function checkProductPair(c: Catalog, sourceId: string, targetId: string) {
@@ -131,9 +200,9 @@ export function checkProductPair(c: Catalog, sourceId: string, targetId: string)
   if (source.marketplace || target.marketplace)
     reasons.push("Mağaza elanları bu modulda birləşdirilmir.");
   if (
-    !matchText(source.brand) ||
-    /^(digər|unknown|generic)$/i.test(source.brand) ||
-    matchText(source.brand) !== matchText(target.brand)
+    !canonicalBrand(source) ||
+    /^(digər|unknown|generic)$/i.test(canonicalBrand(source)) ||
+    canonicalBrand(source) !== canonicalBrand(target)
   )
     reasons.push("Brendlər uyğun deyil.");
   if (source.category !== target.category) reasons.push("Kateqoriyalar uyğun deyil.");
@@ -172,9 +241,15 @@ export function checkProductPair(c: Catalog, sourceId: string, targetId: string)
     warnings.push("Mənbələrdən ən az birində rəng dəqiq göstərilməyib; əl ilə yoxla.");
   const aMemory = memory(source),
     bMemory = memory(target);
-  if (aMemory && bMemory && aMemory !== bMemory) reasons.push("Yaddaş / RAM uyğun deyil.");
-  if ((aMemory && !bMemory) || (!aMemory && bMemory))
+  if (
+    (aMemory.storage && bMemory.storage && aMemory.storage !== bMemory.storage) ||
+    (aMemory.ram && bMemory.ram && aMemory.ram !== bMemory.ram)
+  )
+    reasons.push("Yaddaş / RAM uyğun deyil.");
+  if (!aMemory.storage !== !bMemory.storage)
     warnings.push("Yaddaş məlumatı bir mənbədə çatışmır; əl ilə yoxla.");
+  else if (!aMemory.ram !== !bMemory.ram)
+    warnings.push("RAM yalnız bir mənbədə göstərilib; əl ilə yoxla.");
   const specKeys =
     /memory|yaddaş|ram|rəng|color|size|ölçü|capacity|edition|format|isbn|gtin|ean|mpn/i;
   const targetSpecs = new Map(
@@ -282,8 +357,10 @@ export function productMatchCandidates(c: Catalog, matches: ProductMatch[], sear
   const realIds = new Set(c.offers.filter((o) => !o.demo).map((o) => o.productId));
   for (const p of c.products) {
     if (!p.active || p.marketplace || linked.has(p.id) || !realIds.has(p.id)) continue;
+    const model = modelKey(p);
     const keys = [
       "name:" + matchText(p.name),
+      ...(model ? ["model:" + model] : []),
       ...identifiers(p, gtinKeys, true).map((v) => "gtin:" + v),
       ...identifiers(p, mpnKeys).map((v) => "mpn:" + v),
     ];

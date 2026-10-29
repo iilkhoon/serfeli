@@ -75,6 +75,15 @@ type Index = {
   home: Product[];
 };
 
+// Search folding: Azerbaijani lower case, but dotless ı and dotted i compare equal, so "GLACIER"
+// (stored as "glacıer") is found by "glacier" and "qirmizi" by "qırmızı".
+export const searchFold = (s: string) =>
+  s.toLocaleLowerCase("az").replace(/ı/g, "i").replace(/̇/g, "");
+const searchWords = (s: string) =>
+  searchFold(s)
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
+
 // Built once per catalog object; the public catalog is cached, so requests reuse it.
 const indexes = new WeakMap<Catalog, Index>();
 
@@ -157,7 +166,7 @@ function indexOf(c: Catalog): Index {
     active,
     byId: new Map(c.products.map((p) => [p.id, p])),
     haystack: new Map(
-      active.map((p) => [p.id, (p.name + " " + p.variant + " " + p.brand).toLocaleLowerCase("az")]),
+      active.map((p) => [p.id, searchFold(p.name + " " + p.variant + " " + p.brand)]),
     ),
     offers: group(c.offers, (o) => o.productId),
     history: group(c.history, (h) => h.productId),
@@ -206,10 +215,9 @@ function listing(c: Catalog, x: Index, q: CatalogQuery, page: string, parts: str
   const storeId = page === "magazalar" ? parts[1] : "";
   let p = x.active;
   if (category) p = p.filter((p) => p.category === category);
-  if (search) {
-    const t = search.toLocaleLowerCase("az");
-    p = p.filter((p) => x.haystack.get(p.id)!.includes(t));
-  }
+  // Every word of the query must appear, in any order.
+  const words = searchWords(search);
+  if (words.length) p = p.filter((p) => words.every((w) => x.haystack.get(p.id)!.includes(w)));
   if (page === "secilmisler") {
     const fav = new Set(q.favorites || []);
     p = p.filter((p) => fav.has(p.id));
@@ -244,7 +252,18 @@ function listing(c: Catalog, x: Index, q: CatalogQuery, page: string, parts: str
   if (sort === "low" || sort === "high") for (const v of p) key.set(v.id, priceFor(v.id));
   if (sort === "saving") for (const v of p) key.set(v.id, savings(v.id));
   const inStock = new Map(p.map((v) => [v.id, validOffers(c, v.id, q.city).length > 0 ? 1 : 0]));
+  // With a search and the default order, the products themselves come before their accessories,
+  // then titles with fewer words beyond the query.
+  const relevance = new Map<string, number>();
+  if (words.length && (!sort || sort === "popular"))
+    for (const v of p)
+      relevance.set(
+        v.id,
+        (v.category === "aksesuar" ? 1000 : 0) +
+          searchWords(v.name).filter((w) => !words.some((q) => w.includes(q))).length,
+      );
   const order = (a: Product, b: Product) => {
+    if (relevance.size) return relevance.get(a.id)! - relevance.get(b.id)!;
     if (sort === "low") return (key.get(a.id) as number) - (key.get(b.id) as number);
     if (sort === "high" || sort === "saving")
       return (key.get(b.id) as number) - (key.get(a.id) as number);

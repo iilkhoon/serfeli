@@ -696,6 +696,17 @@ export default function Platform({
                       </nav>
                     )}
                   </>
+                ) : storeId && !c.storeStats[storeId]?.count ? (
+                  <Empty
+                    icon={StoreIcon}
+                    title="Bu mağazanın qiymətləri hələ qoşulmayıb"
+                    text="Mağaza açıq kataloq və ya rəsmi məhsul feed-i təqdim etdikdə məhsullar burada görünəcək. Hələlik qiyməti mağazanın öz saytında yoxla."
+                    action={
+                      <a className="dark-button" href={"/magazalar"}>
+                        Qoşulmuş mağazalara bax
+                      </a>
+                    }
+                  />
                 ) : (
                   <Empty
                     icon={Search}
@@ -776,14 +787,23 @@ export default function Platform({
                       .toLocaleLowerCase("az")
                       .includes(merchantQuery.toLocaleLowerCase("az")),
                 )
-                .sort((a, b) => a.name.localeCompare(b.name, "az"))
+                // Stores with connected prices first; the rest are listed as not yet connected.
+                .sort(
+                  (a, b) =>
+                    Number(!!c.storeStats[b.id]?.count) - Number(!!c.storeStats[a.id]?.count) ||
+                    a.name.localeCompare(b.name, "az"),
+                )
                 .map((s) => (
                   <article key={s.id} className="store-card">
                     <div className="store-wordmark" style={{ color: s.color }}>
                       <StoreLogo store={s} />
                     </div>
                     <p>{s.description}</p>
-                    <span className="badge neutral">{c.storeStats[s.id]?.count || 0} məhsul</span>
+                    <span className={"badge " + (c.storeStats[s.id]?.count ? "neutral" : "red")}>
+                      {c.storeStats[s.id]?.count
+                        ? c.storeStats[s.id].count.toLocaleString("az-AZ") + " məhsul"
+                        : "Qiymətlər hələ qoşulmayıb"}
+                    </span>
                     <p className="micro muted">
                       {s.domain} ·{" "}
                       {s.sourceStatus === "marketplace_shop"

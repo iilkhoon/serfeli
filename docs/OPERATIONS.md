@@ -80,3 +80,18 @@ Vitrin hər sorğuda 24 məhsul göstərir. İlk/son, əvvəlki/növbəti və s�
 Cron konfiqurasiyası (`vite.config.ts`) və `scheduled` handler-i mövcuddur. Canlı trigger-in işləməsi konfiqurasiyadan çıxarılmır: hər həqiqi `tickDueCrawlJobs` icrası `crawlRuntime:scheduled` qeydini başlanma/bitmə vaxtı, iş və addım sayı, xətalar ilə saxlayır. `GET /api/v1/admin/jobs` bu qeydi yalnız adminə qaytarır. Panel 15 saniyədən bir oxuyur; qeyd yoxdursa təsdiqlənməmiş, 5 dəqiqədən köhnədirsə yeni siqnal gəlməmiş kimi göstərir. Bu, trigger-in hostinq tərəfindən qurulduğuna dair zəmanət deyil.
 
 Bir işin gözlənilməz xətası digər mağazaların həmin icrada işlənməsini dayandırmır. Vaxtı gəlməmiş və dayandırılmış işlər şəbəkəyə çıxmır. İcra nəticəsinin yazısı `runId` ilə qorunur; gec bitən əvvəlki icra yeni icranın qeydini əvəz edə bilmir. `scripts/verify-crawl-recovery.mjs` bunları in-memory SQLite ilə yoxlayır; production cron-un işlədiyini ayrıca müşahidə etmək lazımdır.
+
+## Mağaza mənbələri və avtomatik yenilənmə
+
+`lib/crawl-sources.ts` hər mənbə üçün `refreshHours` saxlayır. Cron (`tickDueCrawlJobs`) hər dəqiqə əvvəlcə `startDueRefreshes` çağırır: son işi bitmiş və müddəti keçmiş mənbə üçün yeni iş başlayır. Dayandırılmış və ya bloklanmış işlərə toxunulmur; admin paneldəki “Ləğv et” yarımçıq işi bağlayır.
+
+- **Kateqoriya/siyahı rejimi** (`listing: true`, `lib/listing-sources.ts`): bir sorğu bütöv məhsul səhifəsini gətirir.
+  - Baku Electronics: sitemap-dəki son səviyyəli kateqoriyalar, Next.js `__NEXT_DATA__` (18 məhsul/səhifə, endirimli qiymət, stok sayı). Kateqoriya mağazanın öz ağacından (`bakuCategory`) təyin olunur, xəritədə olmayanlar addan təxmin edilir.
+  - İrşad: `/az/products/list` fraqmenti, saytın “Daha çoxuna bax” düyməsinin göndərdiyi `X-Requested-With` başlığı ilə; robots.txt-dəki `Crawl-delay: 30` saxlanılır.
+  - Techbar, Casio, Eurolux, SeeHome, Allstar: WooCommerce Store API (JSON). Techbar və Eurolux robots.txt-də `per_page=` və `orderby=` qadağan etdiyi üçün standart 10 məhsullu səhifələrlə oxunur. Yazılar paketdəki snapshot ID-lərini saxlayır, ona görə D1-dəki qiymət snapshot-u əvəz edir.
+- **Məhsul səhifəsi rejimi**: iSpace (JSON-LD), Music Gallery, Soliton, Bytelecom, Ali & Nino.
+- **Qoşulmayanlar**: Kontakt (Cloudflare “Just a moment” yoxlaması) və Birmarket (robots.txt-də belə 403) botları bloklayır; bu yoxlamalar keçilmir. Bu mağazalar üçün rəsmi XML/YML feed və ya razılaşma lazımdır. Datası olmayan mağazalar saytda “Qiymətlər hələ qoşulmayıb” kimi göstərilir.
+
+Mağazalar arası uyğunlaşdırma namizədləri `modelKey` ilə tapılır: brend (mağazanın öz adı brend yazılıbsa, addan çıxarılır), model sözləri, daxili yaddaş və rəng qrupu. RAM yalnız hər iki mənbədə göstərildikdə müqayisə olunur. Hər namizədi admin “Məhsul uyğunlaşdırma” panelində mənbə səhifələrini yoxlayıb təsdiqləyir.
+
+Vitrin axtarışı (`lib/catalog-query.ts`) sorğunun bütün sözlərini istənilən sırada axtarır; `ı`/`i` fərqi nəzərə alınmır (“GLACIER” = “glacier”). Seçilmiş sıralamada əvvəl məhsulun özü, sonra aksesuarları, daha sonra adında əlavə sözü az olanlar gəlir.

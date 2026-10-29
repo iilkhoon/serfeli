@@ -96,8 +96,12 @@ const products = new Map(c.products.map((p) => [p.id, p])),
 for (const s of [...snapshots, tap]) {
   for (const p of s.products) assert(products.has(p.id), p.id);
   for (const o of s.offers) {
-    assert.equal(offers.get(o.id)?.price, o.price, o.id);
-    assert.equal(offers.get(o.id)?.stock, o.stock, o.id);
+    const served = offers.get(o.id);
+    assert(served, o.id);
+    // A scheduled sync stores a newer check in D1, which replaces the bundled snapshot.
+    if (Date.parse(served.checkedAt) > Date.parse(o.checkedAt)) continue;
+    assert.equal(served.price, o.price, o.id);
+    assert.equal(served.stock, o.stock, o.id);
   }
 }
 console.log(

@@ -27,7 +27,7 @@ export class SourceAccessError extends Error {
 }
 const nextFetch = new Map<string, number>();
 const fetchQueues = new Map<string, Promise<unknown>>();
-async function sourceFetch(url: URL, timeoutMs = 12000) {
+async function sourceFetch(url: URL, timeoutMs = 12000, extraHeaders: Record<string, string> = {}) {
   const host = url.hostname.replace(/^www\./, "");
   const prior = fetchQueues.get(host) || Promise.resolve();
   const task = prior
@@ -42,6 +42,7 @@ async function sourceFetch(url: URL, timeoutMs = 12000) {
         headers: {
           "User-Agent": "QepikBot/1.0 (+https://qepik-az.mythicfern36.chatgpt.site)",
           Accept: "text/html,text/plain;q=0.8",
+          ...extraHeaders,
         },
       });
     });
@@ -52,10 +53,14 @@ async function sourceFetch(url: URL, timeoutMs = 12000) {
     if (fetchQueues.get(host) === task) fetchQueues.delete(host);
   }
 }
-async function sourceResponse(url: URL, timeoutMs = 12000) {
+async function sourceResponse(
+  url: URL,
+  timeoutMs = 12000,
+  extraHeaders: Record<string, string> = {},
+) {
   let current = url;
   for (let i = 0; i < 4; i++) {
-    const r = await sourceFetch(current, timeoutMs);
+    const r = await sourceFetch(current, timeoutMs, extraHeaders);
     if (r.status >= 300 && r.status < 400) {
       const location = r.headers.get("location");
       if (!location) throw new Error("Yönləndirmə ünvanı yoxdur.");
@@ -69,10 +74,11 @@ async function sourceResponse(url: URL, timeoutMs = 12000) {
   }
   throw new Error("Yönləndirmə limiti keçildi.");
 }
-async function readPage(url: URL) {
-  const response = await sourceResponse(url);
-  if (!response.headers.get("content-type")?.includes("text/html") && response.ok)
-    throw new Error("Mənbə HTML səhifəsi deyil.");
+async function readPage(url: URL, extraHeaders: Record<string, string> = {}, json = false) {
+  const response = await sourceResponse(url, 12000, extraHeaders);
+  const type = response.headers.get("content-type") || "";
+  if (response.ok && !(json ? type.includes("application/json") : type.includes("text/html")))
+    throw new Error(json ? "Mənbə JSON cavabı vermədi." : "Mənbə HTML səhifəsi deyil.");
   return limitedText(response);
 }
 async function limitedText(r: Response) {
@@ -278,7 +284,13 @@ export function extractIrshad(html: string, requestedUrl?: string) {
   return parseIrshad(html, requestedUrl);
 }
 const robotsCache = new Map<string, { text: string; at: number }>();
-export async function merchantPage(raw: string) {
+// fragment: request the HTML fragment a store's own "load more" button fetches (X-Requested-With),
+// for list endpoints that redirect plain page requests. json: a public JSON catalog endpoint.
+// robots.txt still decides.
+export async function merchantPage(
+  raw: string,
+  options: { fragment?: boolean; json?: boolean } = {},
+) {
   const url = safeMerchantUrl(raw);
   const key = url.origin;
   let policy = robotsCache.get(key);
@@ -290,7 +302,15 @@ export async function merchantPage(raw: string) {
   }
   if (!robotsAllowed(policy.text, url.pathname + url.search))
     throw new Error("Mənbə bu ünvanı avtomatik oxumağa açmır.");
-  return readPage(url);
+  return readPage(
+    url,
+    options.json
+      ? { Accept: "application/json" }
+      : options.fragment
+        ? { "X-Requested-With": "XMLHttpRequest" }
+        : {},
+    options.json,
+  );
 }
 export async function scanProduct(
   raw: string,

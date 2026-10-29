@@ -344,6 +344,55 @@ assert.equal(
   sqlite.prepare("SELECT count(*) AS n FROM records WHERE id='productMatch:expired'").get().n,
   0,
 );
+// Cross-store wording: the same model, storage and colour give one key; any difference splits it.
+const named = (id, name, brand, extra = {}) =>
+  product(id, { name, brand, variant: "Mənbədəki model", specs: {}, ...extra });
+const bakuPhone = named("baku-1", "Smartfon Apple iPhone 18 Pro 256GB GLACIER", "Apple");
+const ispacePhone = named("ispace-1", "iPhone 18 Pro, 256 GB, Glacier", "ISPACE", {
+  sourceStoreId: "ispace",
+});
+assert.equal(m.canonicalBrand(ispacePhone), "apple");
+assert.ok(m.modelKey(bakuPhone));
+assert.equal(m.modelKey(bakuPhone), m.modelKey(ispacePhone));
+assert.notEqual(
+  m.modelKey(bakuPhone),
+  m.modelKey(named("b2", "Smartfon Apple iPhone 18 Pro 256GB BURGUNDY", "Apple")),
+);
+assert.notEqual(
+  m.modelKey(bakuPhone),
+  m.modelKey(named("b3", "Smartfon Apple iPhone 18 Pro Max 256GB GLACIER", "Apple")),
+);
+assert.notEqual(
+  m.modelKey(bakuPhone),
+  m.modelKey(named("b4", "Smartfon Apple iPhone 18 Pro 512GB GLACIER", "Apple")),
+);
+assert.equal(
+  m.modelKey(named("s1", "Smartfon Samsung Galaxy S26 FE 8GB/256GB Black (S741)", "Samsung")),
+  m.modelKey(named("s2", "Samsung Galaxy S26 FE 256 GB qara", "SAMSUNG")),
+);
+assert.equal(m.modelKey(named("g", "Paltaryuyan maşın qara", "Digər")), "");
+assert.equal(m.modelKey(named("w", "Telefon qabı", "Samsung")), "");
+const crossStore = {
+  ...catalog(),
+  products: [bakuPhone, ispacePhone],
+  offers: [offer("baku-1", "one"), offer("ispace-1", "two")],
+};
+const crossPair = m.checkProductPair(crossStore, "ispace-1", "baku-1");
+assert.equal(crossPair.allowed, true, crossPair.reasons.join(" "));
+assert.deepEqual(crossPair.evidence, ["Eyni model, yaddaş və rəng"]);
+assert.equal(m.productMatchCandidates(crossStore, []).length, 1);
+const ram = m.checkProductPair(
+  {
+    ...crossStore,
+    products: [
+      named("baku-1", "Samsung Galaxy S26 FE 8GB/256GB Black", "Samsung"),
+      named("ispace-1", "Samsung Galaxy S26 FE 12GB/256GB Black", "Samsung"),
+    ],
+  },
+  "ispace-1",
+  "baku-1",
+);
+assert(ram.reasons.includes("Yaddaş / RAM uyğun deyil."));
 console.log(
-  "PASS: matching identity/variant/condition guards, valid identifier checks, merchant SKU exclusion, reversible aliases/history, duplicate-store/chain rejection, stale identity invalidation, RSC-compatible aliases, serialized fenced mutations and atomic rollback. In-memory SQLite; no network.",
+  "PASS: matching identity/variant/condition guards, valid identifier checks, merchant SKU exclusion, reversible aliases/history, duplicate-store/chain rejection, stale identity invalidation, RSC-compatible aliases, serialized fenced mutations and atomic rollback, cross-store model keys (storage, RAM, colour, retailer brand). In-memory SQLite; no network.",
 );

@@ -8,18 +8,23 @@ const compile = (s) =>
   }).outputText;
 const rules =
   "data:text/javascript;base64," +
-  Buffer.from(compile(fs.readFileSync("lib/crawl-sources.ts", "utf8"))).toString("base64");
+  Buffer.from(
+    // These scenarios exercise the one-URL-per-tick product-page path, so no source reads listings.
+    compile(fs.readFileSync("lib/crawl-sources.ts", "utf8")).replace(/listing: true,?/g, ""),
+  ).toString("base64");
 let code = compile(fs.readFileSync("lib/crawl-jobs.ts", "utf8"));
 code = code.replace(
   /import \{ knownSourceProduct \} from ["'].\/store-snapshots["'];/,
   () => `const knownSourceProduct=()=>undefined;`,
 );
 code = code.replace(/from ["'].\/crawl-sources["']/, () => `from '${rules}'`);
-const fake = `let scenario='ok',hook;let calls=0;export function configure(s,h){scenario=s;hook=h;}export function callCount(){return calls;}class SourceAccessError extends Error{constructor(message,status,retryAfterMs=0){super(message);this.status=status;this.retryAfterMs=retryAfterMs;}}async function readMerchantSitemap(){return '<urlset><url><loc>https://bakuelectronics.az/mehsul/test-123</loc></url></urlset>';}async function merchantPage(){return '';}async function scanProduct(url){calls++;if(scenario==='timeout'){const e=new Error('Timed out');e.name='TimeoutError';throw e;}if(scenario==='403')throw new SourceAccessError('HTTP 403',403);if(scenario==='429')throw new SourceAccessError('HTTP 429',429,120000);if(hook)await hook();return{name:'Fixture Product',price:scenario==='stale'?999:123.45,currency:'AZN',sku:'123',stock:true,stockKnown:true,image:'https://bakuelectronics.az/image.jpg',checkedAt:new Date().toISOString()};}`;
 code = code.replace(
-  /import \{ scanProduct, readMerchantSitemap, merchantPage, SourceAccessError \} from ["'].\/extractor["'];/,
-  () => fake,
+  /import \{[^}]*\} from ["'].\/listing-sources["'];/,
+  () =>
+    "const extractListing=()=>({items:[],pages:[]}),listingCategories=()=>[],brandFromName=()=>'';",
 );
+const fake = `let scenario='ok',hook;let calls=0;export function configure(s,h){scenario=s;hook=h;}export function callCount(){return calls;}class SourceAccessError extends Error{constructor(message,status,retryAfterMs=0){super(message);this.status=status;this.retryAfterMs=retryAfterMs;}}async function readMerchantSitemap(){return '<urlset><url><loc>https://bakuelectronics.az/mehsul/test-123</loc></url></urlset>';}async function merchantPage(){return '';}async function scanProduct(url){calls++;if(scenario==='timeout'){const e=new Error('Timed out');e.name='TimeoutError';throw e;}if(scenario==='403')throw new SourceAccessError('HTTP 403',403);if(scenario==='429')throw new SourceAccessError('HTTP 429',429,120000);if(hook)await hook();return{name:'Fixture Product',price:scenario==='stale'?999:123.45,currency:'AZN',sku:'123',stock:true,stockKnown:true,image:'https://bakuelectronics.az/image.jpg',checkedAt:new Date().toISOString()};}`;
+code = code.replace(/import \{[^}]*\} from ["'].\/extractor["'];/, () => fake);
 const crawlJobs = await import(
   "data:text/javascript;base64," + Buffer.from(code).toString("base64")
 );
@@ -234,6 +239,49 @@ assert.equal(
   999,
   "a late driver must not overwrite a newer heartbeat",
 );
+// Cancel ends a run; the scheduled refresh restarts sources whose finished run is old enough.
+assert.equal((await crawlJobs.controlCrawlJob(db, future.id, "cancel")).status, "complete");
+assert.deepEqual(await crawlJobs.startDueRefreshes(db), [], "a fresh run is not restarted");
+const later = Date.now() + 25 * 3600000;
+assert((await crawlJobs.startDueRefreshes(db, later)).includes("baku"));
+assert(
+  !(await crawlJobs.startDueRefreshes(db, later)).includes("baku"),
+  "one active run per source",
+);
+
+// Category-page sources store every row of a page and follow the page links they return.
+const listingRules =
+  "data:text/javascript;base64," +
+  Buffer.from(compile(fs.readFileSync("lib/crawl-sources.ts", "utf8"))).toString("base64");
+const listingFake = `class SourceAccessError extends Error{constructor(m,s){super(m);this.status=s;}}async function readMerchantSitemap(){throw new Error('no sitemap');}async function merchantPage(url){return url;}async function scanProduct(){throw new Error('product pages are not read');}`;
+const listingStub = `const listingCategories=()=>[],brandFromName=()=>"";function extractListing(source,html,url){const page=new URL(url).searchParams.get('page')||'1';const row=(n)=>({name:'Listing '+n,sku:'sku-'+n,price:100+Number(n),currency:'AZN',stock:true,stockKnown:true,checkedAt:new Date().toISOString(),url:'https://irshad.az/az/mehsullar/item-'+n,variantId:'v'+n});return page==='1'?{items:[row(1),row(2)],pages:[url+'&page=2']}:{items:[row(3)],pages:[]};}`;
+const listingCode = compile(fs.readFileSync("lib/crawl-jobs.ts", "utf8"))
+  .replace(
+    /import \{ knownSourceProduct \} from ["'].\/store-snapshots["'];/,
+    () => "const knownSourceProduct=()=>undefined;",
+  )
+  .replace(/from ["'].\/crawl-sources["']/, () => `from '${listingRules}'`)
+  .replace(/import \{[^}]*\} from ["'].\/listing-sources["'];/, () => listingStub)
+  .replace(/import \{[^}]*\} from ["'].\/extractor["'];/, () => listingFake);
+const listingJobs = await import(
+  "data:text/javascript;base64," + Buffer.from(listingCode).toString("base64")
+);
+let listingJob = await listingJobs.startCrawlJob(db, "irshad");
+for (let i = 0; i < 5 && listingJob.status !== "complete"; i++) {
+  ready(listingJob.id);
+  sqlite.prepare("DELETE FROM records WHERE kind='crawlLock'").run();
+  listingJob = await listingJobs.tickCrawlJob(db, listingJob.id);
+}
+assert.equal(listingJob.status, "complete");
+assert.equal(listingJob.imported, 3);
+const listed = sqlite
+  .prepare(
+    "SELECT payload FROM records WHERE kind='offer' AND json_extract(payload,'$.storeId')='irshad'",
+  )
+  .all()
+  .map((r) => JSON.parse(r.payload));
+assert.deepEqual(listed.map((o) => o.price).sort(), [101, 102, 103]);
+assert(listed.every((o) => o.stock && !o.demo && o.url.startsWith("https://irshad.az/")));
 console.log(
-  "PASS: 403/429 recovery, atomic D1 retry, pause and stale leases, background driver completion, paused/future job exclusion, per-job error isolation, persisted heartbeat and newer-run fencing. In-memory SQLite; no network.",
+  "PASS: 403/429 recovery, atomic D1 retry, pause and stale leases, background driver completion, paused/future job exclusion, per-job error isolation, persisted heartbeat and newer-run fencing, cancel, scheduled refresh, category-page paging. In-memory SQLite; no network.",
 );
