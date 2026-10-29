@@ -71,7 +71,7 @@ assert.equal(
 assert.equal(tapShopProduct({ ...state, "Ad:1": { ...ad, shop: null } }).products.length, 0);
 // The public endpoint serves slices; ask for the products under test in batches.
 async function publicCatalog(ids) {
-  const out = { products: [], offers: [], liveSource: undefined };
+  const out = { products: [], offers: [], liveSource: undefined, productAliases: {} };
   for (let i = 0; i < ids.length; i += 60) {
     const q = new URLSearchParams({ path: "/verify", ids: ids.slice(i, i + 60).join(",") });
     const r = await fetch("http://127.0.0.1:5173/api/v1/catalog?" + q);
@@ -80,6 +80,7 @@ async function publicCatalog(ids) {
     out.products.push(...slice.products);
     out.offers.push(...slice.offers);
     out.liveSource = slice.liveSource;
+    Object.assign(out.productAliases, slice.productAliases);
   }
   return out;
 }
@@ -94,9 +95,13 @@ const c = await publicCatalog([
 const products = new Map(c.products.map((p) => [p.id, p])),
   offers = new Map(c.offers.map((o) => [o.id, o]));
 for (const s of [...snapshots, tap]) {
-  for (const p of s.products) assert(products.has(p.id), p.id);
+  // Duplicates are merged into another listing and reached through an alias.
+  for (const p of s.products)
+    assert(products.has(p.id) || products.has(c.productAliases[p.id]), p.id);
   for (const o of s.offers) {
     const served = offers.get(o.id);
+    // A store's second copy of a listing is hidden together with its offer.
+    if (!served && c.productAliases[o.productId]) continue;
     assert(served, o.id);
     // A scheduled sync stores a newer check in D1, which replaces the bundled snapshot.
     if (Date.parse(served.checkedAt) > Date.parse(o.checkedAt)) continue;

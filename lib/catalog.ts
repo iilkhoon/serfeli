@@ -64,6 +64,7 @@ export type Review = {
 };
 export type Point = { id: string; productId: string; price: number; date: string; demo: boolean };
 export type Catalog = {
+  dataStatus?: { state: "ready" | "initializing" | "unavailable"; message?: string };
   productAliases?: Record<string, string>;
   sourceCoverage?: {
     storeId: string;
@@ -430,19 +431,31 @@ export function recordedOffersFor(c: Catalog, pid: string, city?: string) {
   return city ? all.filter((o) => o.cities.includes(city)) : all;
 }
 export function validOffers(c: Catalog, pid: string, city?: string) {
-  const all = recordedOffersFor(c, pid, city);
-  const real = all.filter((o) => !o.demo);
-  return (real.length ? real : all)
-    .filter((o) => o.stock)
-    .sort((a, b) => a.price + a.shipping - (b.price + b.shipping));
+  return bestRecordedOffersFor(c, pid, city).filter((o) => o.stock && o.stockKnown !== false);
+}
+// The public comparison shows one real offer per merchant. Availability wins before price;
+// an unavailable bargain must never replace a merchant's available listing.
+export function bestRecordedOffersFor(c: Catalog, pid: string, city?: string) {
+  const rank = (o: Offer) => (o.stockKnown === false ? 1 : o.stock ? 0 : 2);
+  const order = (a: Offer, b: Offer) =>
+    rank(a) - rank(b) ||
+    a.price - b.price ||
+    (a.shippingKnown && b.shippingKnown ? a.shipping - b.shipping : 0) ||
+    Date.parse(b.checkedAt) - Date.parse(a.checkedAt) ||
+    a.id.localeCompare(b.id);
+  const chosen = new Map<string, Offer>();
+  for (const o of recordedOffersFor(c, pid, city)) {
+    if (o.demo || !Number.isFinite(o.price) || o.price <= 0) continue;
+    const previous = chosen.get(o.storeId);
+    if (!previous || order(o, previous) < 0) chosen.set(o.storeId, o);
+  }
+  return [...chosen.values()].sort(order);
 }
 export function priceOf(c: Catalog, pid: string) {
   const l = validOffers(c, pid);
-  if (l.length) return l[0].price + l[0].shipping;
-  const all = recordedOffersFor(c, pid);
-  const real = all.filter((o) => !o.demo);
-  const shown = real.length ? real : all;
-  return shown.length ? Math.min(...shown.map((o) => o.price + o.shipping)) : 0;
+  if (l.length) return l[0].price;
+  const shown = bestRecordedOffersFor(c, pid);
+  return shown.length ? Math.min(...shown.map((o) => o.price)) : 0;
 }
 export function money(n: number) {
   if (!Number.isFinite(n)) return "—";

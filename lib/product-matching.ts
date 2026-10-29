@@ -45,26 +45,30 @@ function details(p: Product) {
     p.name + " " + (generic(p.variant) ? "" : p.variant) + " " + Object.values(p.specs).join(" ")
   );
 }
+const colorPatterns = [
+  "black|qara|черный|чёрный",
+  "white|ağ|beyaz|белый",
+  "silver|gümüşü|gümüş|серебристый",
+  "blue|göy|mavi|синий",
+  "red|qırmızı|красный",
+  "green|yaşıl|зеленый",
+  "pink|çəhrayı|розовый",
+  "gold|qızılı|золотой",
+  "purple|bənövşəyi|фиолетовый",
+  "gray|grey|boz|серый",
+  "brown|qəhvəyi|коричневый",
+  "orange|narıncı|оранжевый",
+].map((group) => new RegExp("(^|[^\\p{L}])(" + group + ")(?=$|[^\\p{L}])", "u"));
+// Products are not changed in place, so values computed once hold for that object.
+const colorCache = new WeakMap<Product, string[]>();
 function colors(p: Product) {
+  let found = colorCache.get(p);
+  if (found) return found;
   // Both foldings: "WHITE" must read as "white", "QIRMIZI" as "qırmızı".
   const text = details(p).toLowerCase() + " " + details(p).toLocaleLowerCase("az");
-  const groups = [
-    "black|qara|черный|чёрный",
-    "white|ağ|beyaz|белый",
-    "silver|gümüşü|gümüş|серебристый",
-    "blue|göy|mavi|синий",
-    "red|qırmızı|красный",
-    "green|yaşıl|зеленый",
-    "pink|çəhrayı|розовый",
-    "gold|qızılı|золотой",
-    "purple|bənövşəyi|фиолетовый",
-    "gray|grey|boz|серый",
-    "brown|qəhvəyi|коричневый",
-    "orange|narıncı|оранжевый",
-  ];
-  return groups.flatMap((group, i) =>
-    new RegExp("(^|[^\\p{L}])(" + group + ")(?=$|[^\\p{L}])", "u").test(text) ? [String(i)] : [],
-  );
+  found = colorPatterns.flatMap((pattern, i) => (pattern.test(text) ? [String(i)] : []));
+  colorCache.set(p, found);
+  return found;
 }
 // Stores write memory as "12GB/256GB", "8GB/256", "6/128GB" or "256 GB". Storage is the largest
 // figure; RAM is the smaller one when a pair is given, so a store that omits RAM still compares.
@@ -74,6 +78,7 @@ function memory(p: Product) {
     Number(n.replace(",", ".")) * (/TB|ТБ/i.test(unit) ? 1024 : 1);
   const values: number[] = [];
   let ram = 0;
+  let memoryPair = false;
   for (const m of text.matchAll(
     /(\d+(?:[.,]\d+)?)\s*(?:GB|ГБ)?\s*\/\s*(\d+(?:[.,]\d+)?)\s*(TB|GB|ТБ|ГБ)?(?![\p{L}\d])/giu,
   )) {
@@ -82,16 +87,31 @@ function memory(p: Product) {
     if (!m[3] && !/GB|ГБ/i.test(m[0])) continue;
     values.push(a, b);
     ram = Math.min(a, b);
+    memoryPair = true;
   }
   for (const m of text.matchAll(/(\d+(?:[.,]\d+)?)\s*(TB|GB|ТБ|ГБ)\b/gi))
     values.push(gb(m[1], m[2]));
-  return { storage: values.length ? Math.max(...values) : 0, ram };
+  for (const [key, value] of Object.entries(p.specs)) {
+    if (!/^(ram|operativ yaddaş|əməli yaddaş|оперативная память)$/i.test(key.trim())) continue;
+    const amount = value.match(/(\d+(?:[.,]\d+)?)\s*(TB|GB|ТБ|ГБ)?/i);
+    if (amount) ram = gb(amount[1], amount[2]);
+  }
+  const namedRam = text.match(/(?:\bRAM\s*:?\s*(\d+)\s*GB|(\d+)\s*GB\s*RAM\b)/i);
+  if (namedRam) ram = Number(namedRam[1] || namedRam[2]);
+  let storage = values.length ? Math.max(...values) : 0;
+  const statedStorage = Object.entries(p.specs).some(
+    ([key, value]) =>
+      /^(rom|daxili yaddaş|yaddaş|storage|ssd|hdd)$/i.test(key.trim()) && /\d/.test(value),
+  );
+  // A RAM-only label must not invent the same amount of internal storage.
+  if (ram && storage === ram && !memoryPair && !statedStorage) storage = 0;
+  return { storage, ram };
 }
 // Words that name the product type or connectivity rather than the model.
 const typeWords = new Set(
   (
     "smartfon smartfonu mobil telefon telefonu noutbuk notebook laptop planşet planset tablet " +
-    "televizor qulaqlıq qulaqliq simsiz ağıllı saat saatı nfc lte dual sim ds global version " +
+    "televizor qulaqlıq qulaqliq qulaqlıqlar qulaqliqlar headphones earphones earbuds simsiz ağıllı saat saatı " +
     "yeni new for with ilə və and the"
   ).split(" "),
 );
@@ -119,7 +139,14 @@ export function canonicalBrand(p: Product) {
 }
 // Order-insensitive model identity: brand, model words, storage and colour. Two listings with the
 // same key name the same model in the same configuration, whatever each store's wording.
+// Cached like colors().
+const modelKeys = new WeakMap<Product, string>();
 export function modelKey(p: Product) {
+  let key = modelKeys.get(p);
+  if (key === undefined) modelKeys.set(p, (key = computeModelKey(p)));
+  return key;
+}
+function computeModelKey(p: Product) {
   const brand = canonicalBrand(p);
   if (!brand || /^(digər|unknown|generic)$/.test(brand)) return "";
   const text = (p.name + " " + (generic(p.variant) ? "" : p.variant))
@@ -137,10 +164,10 @@ export function modelKey(p: Product) {
   }
   // Colour words are compared as colour groups ("qara" = "black"), the rest stay literal.
   const colourWords = new Set(
-    [...tokens].filter((t) => colors({ ...p, name: t, variant: "", specs: {} }).length > 0),
+    [...tokens].filter((t) => colorPatterns.some((pattern) => pattern.test(t))),
   );
   const model = [...tokens].filter((t) => !colourWords.has(t)).sort();
-  if (model.length < 2 || !model.some((t) => /\d/.test(t))) return "";
+  if (!model.length || !model.some((t) => /\d/.test(t))) return "";
   const { storage } = memory(p);
   return [brand, model.join(" "), storage || "", [...colour.keys()].sort().join(",")].join("|");
 }
@@ -173,6 +200,36 @@ function identifiers(p: Product, keys: RegExp, checkBarcode = false) {
 }
 const gtinKeys = /^(gtin|ean|ean13|upc|barcode|barkod|isbn)$/i;
 const mpnKeys = /^(mpn|manufacturer part number|istehsalçı kodu|model kodu)$/i;
+function titledModelCodes(p: Product) {
+  return [...p.name.matchAll(/\(([^)]+)\)/g)]
+    .map((value) => value[1].trim())
+    .filter(
+      (value) =>
+        value.length >= 5 &&
+        /[a-z]/i.test(value) &&
+        /\d/.test(value) &&
+        !/^\d+(?:[.,]\d+)?\s*(?:gb|tb|mb)$/i.test(value),
+    )
+    .map(matchText);
+}
+function ancStates(p: Product) {
+  const states = new Set<number>();
+  const title = p.name + " " + (generic(p.variant) ? "" : p.variant);
+  if (/\bANC\b|active noise cancel|aktiv səsboğma|aktiv səs.?küy.*boğ/i.test(title))
+    states.add(
+      /without\s+(?:ANC|active noise)|non[- ]ANC|ANC\s*(?:yoxdur|yox|xeyr)/i.test(title) ? 0 : 1,
+    );
+  for (const [key, value] of Object.entries(p.specs)) {
+    if (!/\bANC\b|active noise cancel|aktiv səsboğma|aktiv səs.?küy.*boğ/i.test(key)) continue;
+    if (/^(?:yox|yoxdur|xeyr|no|false|0|dəstəkləmir|нет)$/i.test(value.trim())) states.add(0);
+    else if (
+      /^(?:var|bəli|yes|true|1|да)$/i.test(value.trim()) ||
+      /adaptive?|aktiv|active|adaptiv/i.test(value)
+    )
+      states.add(1);
+  }
+  return [...states];
+}
 function evidence(a: Product, b: Product) {
   const result: string[] = [];
   for (const [keys, label] of [
@@ -234,9 +291,29 @@ export function checkProductPair(c: Catalog, sourceId: string, targetId: string)
     if (a.length && b.length && !a.some((v) => b.includes(v)))
       reasons.push(keys === gtinKeys ? "Barkod / ISBN fərqlidir." : "İstehsalçı kodu fərqlidir.");
   }
+  const sourceCodes = titledModelCodes(source),
+    targetCodes = titledModelCodes(target);
+  if (
+    sourceCodes.length &&
+    targetCodes.length &&
+    !sourceCodes.some((code) => targetCodes.includes(code))
+  )
+    reasons.push("Başlıqdakı model kodu fərqlidir.");
+  const sourceAnc = ancStates(source),
+    targetAnc = ancStates(target);
+  if (sourceAnc.length > 1 || targetAnc.length > 1)
+    reasons.push("Mənbənin ANC məlumatları ziddiyyətlidir.");
+  else if (sourceAnc.length && targetAnc.length && sourceAnc[0] !== targetAnc[0])
+    reasons.push("ANC variantı uyğun deyil.");
+  else if (!sourceAnc.length !== !targetAnc.length)
+    warnings.push("ANC məlumatı yalnız bir mənbədə göstərilib; əl ilə yoxla.");
   const aColor = colors(source).join(","),
     bColor = colors(target).join(",");
   if (aColor && bColor && aColor !== bColor) reasons.push("Rənglər uyğun deyil.");
+  const sourceColor = exactColor(source),
+    targetColor = exactColor(target);
+  if (sourceColor && targetColor && sourceColor !== targetColor)
+    reasons.push("Rəng variantı uyğun deyil.");
   if (!aColor || !bColor)
     warnings.push("Mənbələrdən ən az birində rəng dəqiq göstərilməyib; əl ilə yoxla.");
   const aMemory = memory(source),
@@ -258,6 +335,7 @@ export function checkProductPair(c: Catalog, sourceId: string, targetId: string)
   for (const [k, value] of Object.entries(source.specs))
     if (
       specKeys.test(k) &&
+      !/^(color|colour|rəng|reng|цвет)$/i.test(k.trim()) &&
       targetSpecs.has(matchText(k)) &&
       targetSpecs.get(matchText(k)) !== matchText(value)
     )
@@ -415,4 +493,292 @@ export function productMatchCandidates(c: Catalog, matches: ProductMatch[], sear
       }
   }
   return candidates;
+}
+// Preserve the full named colour: "Deep Blue" is not automatically interchangeable with "Blue".
+function exactColor(p: Product) {
+  const fold = (value: string) => {
+    let text = value.toLowerCase() + " ";
+    const basic = [
+      "black",
+      "white",
+      "silver",
+      "blue",
+      "red",
+      "green",
+      "pink",
+      "gold",
+      "purple",
+      "gray",
+      "brown",
+      "orange",
+    ];
+    for (let i = 0; i < colorPatterns.length; i++)
+      text = text.replace(
+        new RegExp(colorPatterns[i].source, "gu"),
+        (_, prefix: string) => prefix + basic[i],
+      );
+    return matchText(text);
+  };
+  const stated = Object.entries(p.specs)
+    .filter(([key]) => /^(color|colour|rəng|reng|цвет)$/i.test(key.trim()))
+    .map(([, value]) => fold(value))
+    .filter(Boolean);
+  if (stated.length) return [...new Set(stated)].sort().join(",");
+  const value = (generic(p.variant) ? p.name : p.variant).toLowerCase();
+  const shade =
+    "(?:(?:deep|dark|light|midnight|cosmic|sky|ocean|space|desert|natural|rose|jet|sierra|pacific|alpine)\\s+)*";
+  const basic = colorPatterns
+    .map((pattern) => pattern.source.match(/\(([^()]*)\)\(\?=\$/)?.[1])
+    .filter(Boolean)
+    .join("|");
+  const result = [
+    ...value.matchAll(
+      new RegExp("(^|[^\\p{L}])(" + shade + "(?:" + basic + "))(?=$|[^\\p{L}])", "gu"),
+    ),
+  ].map((item) => fold(item[2]));
+  return [...new Set(result)].sort().join(",");
+}
+function sameTradeItem(a: Product, b: Product) {
+  return [gtinKeys, mpnKeys].some((keys) => {
+    const right = identifiers(b, keys, keys === gtinKeys);
+    return identifiers(a, keys, keys === gtinKeys).some((value) => right.includes(value));
+  });
+}
+function automaticPair(c: Catalog, a: Product, b: Product, sameStore: boolean) {
+  // Pair checks remain useful for manual review, but an automatic decision needs more evidence.
+  const result = checkProductPair(c, a.id, b.id);
+  const reasons = result.reasons.filter(
+    (reason) => !(sameStore && reason === "Eyni mağazanın iki qeydi bu yolla birləşdirilmir."),
+  );
+  if (reasons.length) return false;
+  const left = c.offers.filter((o) => o.productId === a.id && !o.demo),
+    right = c.offers.filter((o) => o.productId === b.id && !o.demo);
+  const condition = (items: typeof left) =>
+    [...new Set(items.map((o) => o.condition || "unspecified"))].sort().join(",");
+  const state = condition(left);
+  if (state !== condition(right) || state === "unknown" || state.includes(",")) return false;
+  const strong = sameTradeItem(a, b);
+  if (!strong && !ancStates(a).length !== !ancStates(b).length) return false;
+  const aColor = exactColor(a),
+    bColor = exactColor(b);
+  if (aColor && bColor && aColor !== bColor) return false;
+  const x = memory(a),
+    y = memory(b);
+  const memoryProduct = ["telefon", "noutbuk", "planset"].includes(a.category);
+  const fullVariant = !!(
+    aColor &&
+    bColor &&
+    aColor === bColor &&
+    (!memoryProduct ||
+      // Storage must be stated; RAM must agree, and some makers (Apple) never state it.
+      (x.storage && y.storage && x.storage === y.storage && x.ram === y.ram))
+  );
+  // A trusted manufacturer identifier identifies the exact trade item, unlike a shop's own SKU.
+  // Ordinary retail may omit condition on both sides; that is never converted to an invented "new".
+  if (
+    state === "unspecified" &&
+    /outlet|refurb|renewed|ikinci əl|işlənmiş|used/i.test(
+      a.name + " " + b.name + " " + a.variant + " " + b.variant,
+    )
+  )
+    return false;
+  if (!strong && !fullVariant) return false;
+  if (!strong && (!modelKey(a) || modelKey(a) !== modelKey(b))) return false;
+  // A one-sided storage or RAM value still needs review unless a trade-item identifier proves it.
+  if (!strong && (!x.storage !== !y.storage || !x.ram !== !y.ram)) return false;
+  return true;
+}
+const availableOffer = (o: Catalog["offers"][number]) => o.stock && o.stockKnown !== false;
+function compareOffer(a: Catalog["offers"][number], b: Catalog["offers"][number]) {
+  return (
+    Number(availableOffer(b)) - Number(availableOffer(a)) ||
+    a.price - b.price ||
+    a.shipping - b.shipping ||
+    b.checkedAt.localeCompare(a.checkedAt) ||
+    a.id.localeCompare(b.id)
+  );
+}
+// A known product/store pair has one displayed offer. Mixed conditions remain separate for review.
+function uniqueStoreOffers(offers: Catalog["offers"]) {
+  const groups = new Map<string, Catalog["offers"]>();
+  for (const offer of offers) {
+    const key = offer.productId + "\n" + offer.storeId + "\n" + (offer.demo ? "demo" : "real");
+    const group = groups.get(key) || [];
+    group.push(offer);
+    groups.set(key, group);
+  }
+  return [...groups.values()].flatMap((group) =>
+    new Set(group.map((o) => o.condition || "unspecified")).size > 1
+      ? group
+      : [[...group].sort(compareOffer)[0]],
+  );
+}
+function flattenAliases(input: Record<string, string>) {
+  const aliases: Record<string, string> = {};
+  for (const id of Object.keys(input)) {
+    const seen = new Set([id]);
+    let target = input[id];
+    while (input[target] && !seen.has(target)) {
+      seen.add(target);
+      target = input[target];
+    }
+    if (!seen.has(target) && target !== id) aliases[id] = target;
+  }
+  return aliases;
+}
+// Automatic folds never delete original database records. A revoked pair constrains every member
+// of a cluster, not just its representative; incomplete variant facts stay in manual review.
+export function mergeDuplicateProducts(c: Catalog, matches: ProductMatch[] = []): Catalog {
+  const pairKey = (a: string, b: string) => [a, b].sort().join("\n");
+  const revoked = new Set(
+    matches.filter((m) => !m.active).map((m) => pairKey(m.sourceId, m.targetId)),
+  );
+  const normalizedOffers = uniqueStoreOffers(c.offers);
+  const offers = new Map<string, Catalog["offers"]>();
+  for (const o of normalizedOffers)
+    if (!o.demo) offers.set(o.productId, [...(offers.get(o.productId) || []), o]);
+  const candidates = c.products.filter(
+    (p) => p.active && !p.marketplace && offers.has(p.id) && !c.productAliases?.[p.id],
+  );
+  const storesOf = (id: string) => new Set(offers.get(id)!.map((o) => o.storeId));
+  const best = (p: Product) => {
+    const selected = [...offers.get(p.id)!].sort(compareOffer)[0];
+    return [availableOffer(selected) ? 0 : 1, selected.price];
+  };
+  const buckets = new Map<string, Product[]>();
+  for (const p of candidates) {
+    const model = modelKey(p);
+    const name = matchText(p.name);
+    for (const key of [
+      ...(name.length >= 10 ? ["name:" + name] : []),
+      ...(model ? ["model:" + model] : []),
+      ...identifiers(p, gtinKeys, true).map((v) => "gtin:" + v),
+      ...identifiers(p, mpnKeys).map((v) => "mpn:" + v),
+    ])
+      buckets.set(key, [...(buckets.get(key) || []), p]);
+  }
+  const root = new Map<string, string>();
+  const find = (id: string): string => {
+    const r = root.get(id);
+    return r && r !== id ? find(r) : id;
+  };
+  const members = new Map<string, Set<string>>();
+  const clusterStores = (r: string) =>
+    new Set([...(members.get(r) || [r])].flatMap((id) => [...storesOf(id)]));
+  const byId = new Map(candidates.map((p) => [p.id, p]));
+  const allProducts = new Map(c.products.map((p) => [p.id, p]));
+  const priorMembers = new Map<string, string[]>();
+  const priorAliases = flattenAliases(c.productAliases || {});
+  for (const [id, target] of Object.entries(priorAliases))
+    priorMembers.set(target, [...(priorMembers.get(target) || []), id]);
+  const cluster = (r: string) => [...(members.get(r) || [r])];
+  const revokedMembers = (r: string) =>
+    cluster(r).flatMap((id) => [id, ...(priorMembers.get(id) || [])]);
+  const approvedFacts = (r: string) =>
+    cluster(r).flatMap((id) =>
+      (priorMembers.get(id) || []).flatMap((sourceId) => {
+        const product = allProducts.get(sourceId);
+        return product
+          ? [
+              {
+                product: { ...product, active: true },
+                offers: offers.get(id)!.map((o) => ({ ...o, productId: sourceId })),
+              },
+            ]
+          : [];
+      }),
+    );
+  for (const sameStore of [true, false])
+    for (const original of buckets.values()) {
+      const group = [...original];
+      if (group.length < 2 || group.length > 30) continue;
+      group.sort((a, b) => {
+        if (sameStore) {
+          const x = best(a),
+            y = best(b);
+          return x[0] - y[0] || x[1] - y[1] || a.id.localeCompare(b.id);
+        }
+        return storesOf(b.id).size - storesOf(a.id).size || a.id.localeCompare(b.id);
+      });
+      for (let i = 0; i < group.length; i++)
+        for (let j = i + 1; j < group.length; j++) {
+          const target = find(group[i].id),
+            source = find(group[j].id);
+          if (target === source) continue;
+          const left = clusterStores(target),
+            right = clusterStores(source);
+          const overlap = [...right].some((s) => left.has(s));
+          if (sameStore ? !(overlap && left.size === 1 && right.size === 1) : overlap) continue;
+          if (
+            revokedMembers(source).some((x) =>
+              revokedMembers(target).some((y) => revoked.has(pairKey(x, y))),
+            )
+          )
+            continue;
+          // A~B and B~C is insufficient: every original member must agree with every incoming one.
+          if (
+            !cluster(source).every((x) =>
+              cluster(target).every((y) => {
+                const a = byId.get(x)!,
+                  b = byId.get(y)!;
+                return automaticPair(
+                  { ...c, products: [a, b], offers: [...offers.get(x)!, ...offers.get(y)!] },
+                  a,
+                  b,
+                  sameStore,
+                );
+              }),
+            )
+          )
+            continue;
+          // Previously approved aliases can carry known attributes absent from their representative.
+          // Their missing fields were manually checked, but a known conflict cannot be bridged later.
+          const facts = (r: string) => [
+            ...cluster(r).map((id) => ({ product: byId.get(id)!, offers: offers.get(id)! })),
+            ...approvedFacts(r),
+          ];
+          if (
+            !facts(source).every((x) =>
+              facts(target).every((y) => {
+                const pair = checkProductPair(
+                  { ...c, products: [x.product, y.product], offers: [...x.offers, ...y.offers] },
+                  x.product.id,
+                  y.product.id,
+                );
+                const reasons = pair.reasons.filter(
+                  (reason) =>
+                    !(sameStore && reason === "Eyni mağazanın iki qeydi bu yolla birləşdirilmir."),
+                );
+                const a = exactColor(x.product),
+                  b = exactColor(y.product);
+                return reasons.length === 0 && !(a && b && a !== b);
+              }),
+            )
+          )
+            continue;
+          root.set(source, target);
+          members.set(
+            target,
+            new Set([...(members.get(target) || [target]), ...(members.get(source) || [source])]),
+          );
+          members.delete(source);
+        }
+    }
+  const pendingAliases: Record<string, string> = { ...priorAliases };
+  for (const id of root.keys()) pendingAliases[id] = find(id);
+  const aliases = flattenAliases(pendingAliases);
+  const resolve = (id: string) => aliases[id] || id;
+  return {
+    ...c,
+    productAliases: aliases,
+    products: c.products.map((p) => (aliases[p.id] ? { ...p, active: false } : p)),
+    offers: uniqueStoreOffers(
+      normalizedOffers.map((o) =>
+        resolve(o.productId) !== o.productId ? { ...o, productId: resolve(o.productId) } : o,
+      ),
+    ),
+    reviews: c.reviews.map((r) =>
+      aliases[r.productId] ? { ...r, productId: aliases[r.productId] } : r,
+    ),
+  };
 }

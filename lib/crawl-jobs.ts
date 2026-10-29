@@ -16,6 +16,7 @@ import {
 } from "./extractor";
 import { brandFromName, extractListing, listingCategories } from "./listing-sources";
 import type { Product, Offer } from "./catalog";
+import { materializeCatalog } from "./catalog-storage";
 type Status = "discovering" | "importing" | "waiting" | "paused" | "blocked" | "complete";
 export type CrawlJob = {
   id: string;
@@ -347,7 +348,7 @@ async function productStatements(
 async function recordStatements(
   db: D1Database,
   j: CrawlJob,
-  records: { products: Product[]; offers: Offer[] } | undefined,
+  records: { products: Product[]; offers: Offer[]; completeSnapshot?: boolean } | undefined,
   guard: { id: string; token: string },
 ) {
   if (!records) return [];
@@ -382,6 +383,21 @@ async function recordStatements(
         ),
       );
     }
+  }
+  if (records.completeSnapshot && j.sourceId === "technomania") {
+    statements.push(
+      db
+        .prepare(
+          "UPDATE records SET payload=json_set(payload,'$.stock',json('false'),'$.stockKnown',json('true')),updated_at=? WHERE kind='offer' AND json_extract(payload,'$.storeId')=? AND json_extract(payload,'$.id') NOT IN (SELECT value FROM json_each(?)) AND EXISTS(SELECT 1 FROM records WHERE id=? AND json_extract(payload,'$.leaseToken')=?)",
+        )
+        .bind(
+          Date.now(),
+          j.sourceId,
+          JSON.stringify(records.offers.map((o) => o.id)),
+          key(guard.id),
+          guard.token,
+        ),
+    );
   }
   return statements;
 }
@@ -636,6 +652,7 @@ export async function tickDueCrawlJobs(db: D1Database, budgetMs = 45000) {
   };
   await put(db, "crawlRuntime", "scheduled", runtime).run();
   try {
+    await materializeCatalog(db);
     await startDueRefreshes(db);
     const rows = await db
       .prepare(

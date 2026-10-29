@@ -70,7 +70,7 @@
   padding: 13px 16px;
   border: 1px solid #e8c6c6;
   border-radius: 12px;
-  color: #8e3039;
+  color: var(--danger);
   background: #fff2f2;
   font-size: 14px;
   overflow-wrap: anywhere;
@@ -172,7 +172,7 @@
   flex-wrap: wrap;
   gap: 6px 12px;
   font-size: 12px;
-  color: #4b6b54;
+  color: var(--success);
 }
 .match-evidence > span {
   display: flex;
@@ -280,12 +280,12 @@
   font-weight: 500;
   border-radius: 7px;
   padding: 4px 8px;
-  color: #3e6548;
+  color: var(--success);
   background: #eef4ef;
 }
 .match-approved-row.needs-review .match-status {
   background: #fff0df;
-  color: #895c25;
+  color: var(--warning);
 }
 .match-approved-empty {
   padding: 18px 0 4px;
@@ -453,7 +453,7 @@
   margin-bottom: 0;
 }
 .match-warnings {
-  color: #815b2f;
+  color: var(--warning);
 }
 .match-confirmation {
   display: flex;

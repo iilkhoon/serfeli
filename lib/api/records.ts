@@ -2,7 +2,7 @@
 import { env } from "cloudflare:workers";
 import type { Catalog, Review } from "../catalog";
 import { seedCatalog } from "../server-catalog";
-import { withStoreSnapshots } from "../store-snapshots";
+import { catalogMaterializationStatus } from "../catalog-storage";
 
 export function db() {
   if (!env.DB) throw new Error("Məlumat bazası qoşulmayıb.");
@@ -18,8 +18,6 @@ export async function list<T = unknown>(kind: string): Promise<T[]> {
 }
 
 async function storedCatalog(): Promise<Catalog> {
-  const initialized = await db().prepare("SELECT id FROM records WHERE id='system:seed'").first();
-  if (!initialized) return seedCatalog;
   const [products, stores, offers, history, settings, reviews] = await Promise.all([
     list<Catalog["products"][number]>("product"),
     list<Catalog["stores"][number]>("store"),
@@ -28,6 +26,7 @@ async function storedCatalog(): Promise<Catalog> {
     list<Catalog["settings"]>("settings"),
     list<Review>("review"),
   ]);
+  const ready = (await catalogMaterializationStatus(db()))?.complete;
   return {
     products,
     stores,
@@ -35,11 +34,52 @@ async function storedCatalog(): Promise<Catalog> {
     history,
     settings: settings[0] || seedCatalog.settings,
     reviews: reviews.filter((r) => r.status === "approved"),
+    dataStatus: ready
+      ? { state: "ready" }
+      : {
+          state: "initializing",
+          message:
+            "İlkin kataloqun bazaya köçürülməsi davam edir. Hazırda bazada saxlanan məhsullar göstərilir.",
+        },
   };
 }
 
 export async function catalog(): Promise<Catalog> {
-  return withStoreSnapshots(await storedCatalog());
+  const c = await storedCatalog();
+  const counts = new Map<string, Set<string>>(),
+    checked = new Map<string, string>();
+  for (const p of c.products)
+    if (p.active && p.sourceStoreId) {
+      const set = counts.get(p.sourceStoreId) || new Set<string>();
+      set.add(p.id);
+      counts.set(p.sourceStoreId, set);
+    }
+  for (const o of c.offers)
+    if (!o.demo) {
+      const set = counts.get(o.storeId) || new Set<string>();
+      set.add(o.productId);
+      counts.set(o.storeId, set);
+      if ((checked.get(o.storeId) || "") < o.checkedAt) checked.set(o.storeId, o.checkedAt);
+    }
+  c.sourceCoverage = [...counts].map(([storeId, ids]) => ({
+    storeId,
+    count: ids.size,
+    priced: new Set(
+      c.offers.filter((o) => !o.demo && o.storeId === storeId).map((o) => o.productId),
+    ).size,
+    checkedAt: checked.get(storeId) || "",
+  }));
+  const feed = await list<{ checkedAt: string; sourceCount: number; variantCount: number }>("feed");
+  const technomania = feed.find((f) => (f as { id?: string }).id === "technomania");
+  const checkedAt = technomania?.checkedAt || checked.get("technomania") || "";
+  c.liveSource = {
+    name: "Technomania",
+    checkedAt,
+    sourceCount: technomania?.sourceCount || 0,
+    variantCount: c.offers.filter((o) => o.storeId === "technomania" && !o.demo).length,
+    state: Date.now() - Date.parse(checkedAt) < 3600000 ? "fresh" : "stale",
+  };
+  return c;
 }
 
 export function statement<T extends { id?: string }>(kind: string, value: T) {

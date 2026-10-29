@@ -8,9 +8,10 @@ import sitemapCoverage from "../../../../docs/sitemap-source-coverage.json";
 import { catalogSlice, parseCatalogQuery } from "../../../../lib/catalog-query";
 import { invalidatePublicCatalog, publicCatalog } from "../../../../lib/public-data";
 import { fetchTechnomania } from "../../../../lib/technomania";
-import { withLiveFeed } from "../../../../lib/live-feed";
+import { materializeCatalog } from "../../../../lib/catalog-storage";
 import {
   applyProductMatches,
+  mergeDuplicateProducts,
   prepareProductMatch,
   productMatchCandidates,
   type ProductMatch,
@@ -19,13 +20,6 @@ import { withProductMatchLock, MatchConflictError } from "../../../../lib/match-
 import { canonicalProductId } from "../../../../lib/catalog";
 import { env } from "cloudflare:workers";
 import { getChatGPTUser, type ChatGPTUser } from "../../../chatgpt-auth";
-import {
-  seedCatalog,
-  seedProducts,
-  seedStores,
-  seedOffers,
-  seedHistory,
-} from "../../../../lib/server-catalog";
 import { scanProduct, safeMerchantUrl } from "../../../../lib/extractor";
 import { id, offer, saveRequest } from "../../../../lib/api/schemas";
 import {
@@ -75,13 +69,8 @@ async function bootstrap(user: ChatGPTUser) {
     return json({ error: "Admin yalnız platforma sahibidir." }, 403);
   const seed = await db().prepare("SELECT id FROM records WHERE id='system:seed'").first();
   if (!seed) {
-    await runBatched([
-      ...seedProducts.map((v) => statement("product", v)),
-      ...seedStores.map((v) => statement("store", v)),
-      ...seedOffers.map((v) => statement("offer", v)),
-      ...seedHistory.map((v) => statement("history", v)),
-      statement("settings", { id: "main", ...seedCatalog.settings }),
-    ]);
+    let progress = await materializeCatalog(db());
+    while (!progress.complete) progress = await materializeCatalog(db());
     await statement("system", { id: "seed" }).run();
   }
   return json({ ok: true });
@@ -380,9 +369,18 @@ async function adminDelete(req: Request, user: ChatGPTUser) {
 
 async function matchesGet(req: Request) {
   const query = new URL(req.url).searchParams;
-  const c = await withLiveFeed(await catalog()),
+  const c = await catalog(),
     matches = await list<ProductMatch>("productMatch");
-  const candidates = productMatchCandidates(c, matches, (query.get("q") || "").slice(0, 100));
+  // Pairs the public catalog already folds automatically need no review.
+  const folded = mergeDuplicateProducts(applyProductMatches(c, matches), matches);
+  const candidates = productMatchCandidates(
+    c,
+    matches,
+    (query.get("q") || "").slice(0, 100),
+  ).filter(
+    (pair) =>
+      canonicalProductId(folded, pair.source.id) !== canonicalProductId(folded, pair.target.id),
+  );
   const requested = Number(query.get("offset"));
   const offset = Math.min(
     Number.isFinite(requested) ? Math.max(0, Math.floor(requested / 24) * 24) : 0,
@@ -454,7 +452,7 @@ async function matchesPost(req: Request, user: ChatGPTUser) {
           ]);
         return json({ ok: true });
       }
-      const raw = await withLiveFeed(await catalog());
+      const raw = await catalog();
       const match = prepareProductMatch(raw, b.sourceId, b.targetId, matches);
       if (
         match.sourceSignature !== b.sourceSignature ||
@@ -484,6 +482,8 @@ async function matchesPost(req: Request, user: ChatGPTUser) {
 async function admin(req: Request, path: string, user: ChatGPTUser) {
   const route = `${req.method} ${path}`;
   switch (route) {
+    case "POST admin/catalog/materialize":
+      return json(await materializeCatalog(db()));
     case "GET admin/matches":
       return matchesGet(req);
     case "POST admin/matches":
@@ -505,7 +505,7 @@ async function admin(req: Request, path: string, user: ChatGPTUser) {
       return json(await controlCrawlJob(db(), b.id, b.action));
     }
     case "GET admin/catalog":
-      return json(await withLiveFeed(await catalog()));
+      return json(await catalog());
     case "GET admin/data":
       return adminData();
     case "POST admin/feed-preview":

@@ -14,6 +14,10 @@ const rules =
   ).toString("base64");
 let code = compile(fs.readFileSync("lib/crawl-jobs.ts", "utf8"));
 code = code.replace(
+  /import \{ materializeCatalog \} from ["'].\/catalog-storage["'];/,
+  "const materializeCatalog=async()=>({complete:true});",
+);
+code = code.replace(
   /import \{ knownSourceProduct \} from ["'].\/store-snapshots["'];/,
   () => `const knownSourceProduct=()=>undefined;`,
 );
@@ -256,6 +260,10 @@ const listingRules =
 const listingFake = `class SourceAccessError extends Error{constructor(m,s){super(m);this.status=s;}}async function readMerchantSitemap(){throw new Error('no sitemap');}async function merchantPage(url){return url;}async function scanProduct(){throw new Error('product pages are not read');}`;
 const listingStub = `const listingCategories=()=>[],brandFromName=()=>"";function extractListing(source,html,url){const page=new URL(url).searchParams.get('page')||'1';const row=(n)=>({name:'Listing '+n,sku:'sku-'+n,price:100+Number(n),currency:'AZN',stock:true,stockKnown:true,checkedAt:new Date().toISOString(),url:'https://irshad.az/az/mehsullar/item-'+n,variantId:'v'+n});return page==='1'?{items:[row(1),row(2)],pages:[url+'&page=2']}:{items:[row(3)],pages:[]};}`;
 const listingCode = compile(fs.readFileSync("lib/crawl-jobs.ts", "utf8"))
+  .replace(
+    /import \{ materializeCatalog \} from ["'].\/catalog-storage["'];/,
+    "const materializeCatalog=async()=>({complete:true});",
+  )
   .replace(
     /import \{ knownSourceProduct \} from ["'].\/store-snapshots["'];/,
     () => "const knownSourceProduct=()=>undefined;",

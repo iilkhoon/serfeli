@@ -45,6 +45,7 @@ export const MAX_LIMIT = 960;
 const MAX_IDS = 60;
 const HOME_CATEGORIES = [
   "telefon",
+  "planset",
   "audio",
   "ev",
   "tv",
@@ -56,6 +57,10 @@ const HOME_CATEGORIES = [
   "mebel",
   "idman",
   "aksesuar",
+  "oyuncaq",
+  "market",
+  "avto",
+  "kitab",
 ];
 export const HERO_PRODUCT = "iphone17-pro-blue";
 export const HOME_HERO_IDS = [HERO_PRODUCT, "iphone16-black", "macbook-air-m5"];
@@ -72,8 +77,50 @@ type Index = {
   storeProducts: Map<string, Set<string>>;
   storeStats: Record<string, StoreStat>;
   categoryStats: Record<string, { count: number; inStock: number; minPrice?: number }>;
-  home: Product[];
+  homeByCity: Map<string, Product[]>;
 };
+
+// This is also used by the homepage so its feature, category and catalog order share one rule.
+export function rankProductsByStoreCount(c: Catalog, products: Product[], city?: string) {
+  const counts = new Map(products.map((p) => [p.id, validOffers(c, p.id, city).length]));
+  return [...products].sort((a, b) => counts.get(b.id)! - counts.get(a.id)!);
+}
+
+function homeProducts(c: Catalog, active: Product[], city?: string) {
+  const ranked = rankProductsByStoreCount(c, active, city).filter(
+    (p) => validOffers(c, p.id, city).length > 0,
+  );
+  const home = new Map(ranked.slice(0, 8).map((p) => [p.id, p]));
+  const perCategory = new Map<string, number>();
+  for (const p of ranked) {
+    if (!HOME_CATEGORIES.includes(p.category) || (perCategory.get(p.category) || 0) >= 6) continue;
+    // Merchant laptop categories also contain bags and peripherals. Lead with computers.
+    if (
+      p.category === "noutbuk" &&
+      (/\b(backpack|sleeve|bag|case|adapter|keyboard|mouse|hub|cover)\b|çanta|klaviatura|siçan/i.test(
+        p.name,
+      ) ||
+        !/noutbuk|notebook|laptop|macbook|imac|thinkpad|ideapad|vivobook|zenbook|expertbook|latitude|inspiron/i.test(
+          p.name,
+        ))
+    )
+      continue;
+    if (
+      p.category === "telefon" &&
+      /dashcam|videoqeydiyyat|\b(case|cover|adapter)\b|qabı/i.test(p.name)
+    )
+      continue;
+    home.set(p.id, p);
+    perCategory.set(p.category, (perCategory.get(p.category) || 0) + 1);
+  }
+  // Keep bookmarked/editorial products in the payload without letting them jump the ranking.
+  for (const p of active.filter((p) => p.featured).slice(0, 6)) home.set(p.id, p);
+  for (const id of HOME_HERO_IDS) {
+    const product = active.find((p) => p.id === id);
+    if (product) home.set(product.id, product);
+  }
+  return [...home.values()];
+}
 
 // Search folding: Azerbaijani lower case, but dotless ı and dotted i compare equal, so "GLACIER"
 // (stored as "glacıer") is found by "glacier" and "qirmizi" by "qırmızı".
@@ -109,13 +156,19 @@ function indexOf(c: Catalog): Index {
     storeProducts.set(o.storeId, set);
   }
   const sourced = group(
-    c.products.filter((p) => p.sourceStoreId),
+    active.filter((p) => p.sourceStoreId),
     (p) => p.sourceStoreId!,
   );
   const storeStats: Record<string, StoreStat> = {};
+  const activeIds = new Set(active.map((p) => p.id));
   for (const s of c.stores) {
-    const real = c.offers.filter((o) => o.storeId === s.id && !o.demo).length;
-    storeStats[s.id] = { count: sourced.get(s.id)?.length || real, real: real > 0 };
+    const realProducts = new Set(
+      c.offers
+        .filter((o) => o.storeId === s.id && !o.demo && activeIds.has(o.productId))
+        .map((o) => o.productId),
+    );
+    const products = new Set([...(sourced.get(s.id) || []).map((p) => p.id), ...realProducts]);
+    storeStats[s.id] = { count: products.size, real: realProducts.size > 0 };
   }
   const categoryStats: Index["categoryStats"] = {};
   for (const p of active) {
@@ -129,39 +182,6 @@ function indexOf(c: Catalog): Index {
     }
     categoryStats[p.category] = value;
   }
-  const home = new Map(
-    active
-      .filter((p) => p.featured)
-      .slice(0, 6)
-      .map((p) => [p.id, p]),
-  );
-  for (const id of HOME_HERO_IDS) {
-    const product = active.find((p) => p.id === id);
-    if (product) home.set(product.id, product);
-  }
-  const perCategory = new Map<string, number>();
-  for (const p of active) {
-    if (!HOME_CATEGORIES.includes(p.category) || (perCategory.get(p.category) || 0) >= 6) continue;
-    // Merchant laptop categories also contain bags and peripherals. Lead the homepage with computers.
-    if (
-      p.category === "noutbuk" &&
-      (/\b(backpack|sleeve|bag|case|adapter|keyboard|mouse|hub|cover)\b|çanta|klaviatura|siçan/i.test(
-        p.name,
-      ) ||
-        !/noutbuk|notebook|laptop|macbook|imac|thinkpad|ideapad|vivobook|zenbook|expertbook|latitude|inspiron/i.test(
-          p.name,
-        ))
-    )
-      continue;
-    if (
-      p.category === "telefon" &&
-      /dashcam|videoqeydiyyat|\b(case|cover|adapter)\b|qabı/i.test(p.name)
-    )
-      continue;
-    if (!validOffers(c, p.id).some((o) => !o.demo)) continue;
-    home.set(p.id, p);
-    perCategory.set(p.category, (perCategory.get(p.category) || 0) + 1);
-  }
   index = {
     active,
     byId: new Map(c.products.map((p) => [p.id, p])),
@@ -174,7 +194,7 @@ function indexOf(c: Catalog): Index {
     storeProducts,
     storeStats,
     categoryStats,
-    home: [...home.values()],
+    homeByCity: new Map(),
   };
   indexes.set(c, index);
   return index;
@@ -251,19 +271,31 @@ function listing(c: Catalog, x: Index, q: CatalogQuery, page: string, parts: str
   const key = new Map<string, number | string>();
   if (sort === "low" || sort === "high") for (const v of p) key.set(v.id, priceFor(v.id));
   if (sort === "saving") for (const v of p) key.set(v.id, savings(v.id));
-  const inStock = new Map(p.map((v) => [v.id, validOffers(c, v.id, q.city).length > 0 ? 1 : 0]));
-  // With a search and the default order, the products themselves come before their accessories,
-  // then titles with fewer words beyond the query.
-  const relevance = new Map<string, number>();
-  if (words.length && (!sort || sort === "popular"))
+  const inStock = new Map<string, number>(),
+    storeCount = new Map<string, number>();
+  for (const v of p) {
+    const l = validOffers(c, v.id, q.city);
+    inStock.set(v.id, l.length > 0 ? 1 : 0);
+    storeCount.set(v.id, new Set(l.filter((o) => !o.demo).map((o) => o.storeId)).size);
+  }
+  // The default order leads with products sold in the most stores. With a search, the products
+  // themselves come before their accessories, and titles with fewer words beyond the query break ties.
+  const popular = !sort || sort === "popular";
+  const accessory = (v: Product) => (words.length && v.category === "aksesuar" ? 1 : 0);
+  const extraWords = new Map<string, number>();
+  if (words.length && popular)
     for (const v of p)
-      relevance.set(
+      extraWords.set(
         v.id,
-        (v.category === "aksesuar" ? 1000 : 0) +
-          searchWords(v.name).filter((w) => !words.some((q) => w.includes(q))).length,
+        searchWords(v.name).filter((w) => !words.some((q) => w.includes(q))).length,
       );
   const order = (a: Product, b: Product) => {
-    if (relevance.size) return relevance.get(a.id)! - relevance.get(b.id)!;
+    if (popular)
+      return (
+        accessory(a) - accessory(b) ||
+        storeCount.get(b.id)! - storeCount.get(a.id)! ||
+        (extraWords.get(a.id) || 0) - (extraWords.get(b.id) || 0)
+      );
     if (sort === "low") return (key.get(a.id) as number) - (key.get(b.id) as number);
     if (sort === "high" || sort === "saving")
       return (key.get(b.id) as number) - (key.get(a.id) as number);
@@ -271,7 +303,9 @@ function listing(c: Catalog, x: Index, q: CatalogQuery, page: string, parts: str
     return 0;
   };
   // Array.prototype.sort is stable, so ties keep the catalog's own order.
-  const sorted = [...p].sort((a, b) => inStock.get(b.id)! - inStock.get(a.id)! || order(a, b));
+  const sorted = [...p].sort((a, b) =>
+    popular ? order(a, b) : inStock.get(b.id)! - inStock.get(a.id)! || order(a, b),
+  );
   return { sorted, brands };
 }
 
@@ -297,7 +331,9 @@ export function catalogSlice(c: Catalog, q: CatalogQuery): CatalogSlice {
     if (p) chosen.set(p.id, p);
   };
   if (page === "home") {
-    for (const p of x.home) chosen.set(p.id, p);
+    const cityKey = q.city || "";
+    if (!x.homeByCity.has(cityKey)) x.homeByCity.set(cityKey, homeProducts(c, x.active, q.city));
+    for (const p of x.homeByCity.get(cityKey)!) chosen.set(p.id, p);
     for (const id of HOME_HERO_IDS) add(id);
   }
   add(HERO_PRODUCT);

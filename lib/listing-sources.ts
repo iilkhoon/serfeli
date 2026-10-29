@@ -3,13 +3,14 @@
 import type { ScannedProduct } from "./extractor";
 import type { Offer, Product } from "./catalog";
 import { extractIrshadListing } from "./irshad";
+import { normalizeTechnomania } from "./technomania";
 import { normalizeStoreProducts, storeApiSources, type StoreApiRow } from "./woocommerce";
 
 // items are scanned rows the importer turns into records; records are already normalized.
 export type ListingPage = {
   items: ScannedProduct[];
   pages: string[];
-  records?: { products: Product[]; offers: Offer[] };
+  records?: { products: Product[]; offers: Offer[]; completeSnapshot?: boolean };
 };
 
 // Leading words that name the product type, not the brand ("Smartfon Apple iPhone…").
@@ -224,6 +225,14 @@ export function extractStoreApiPage(sourceId: string, body: string, pageUrl: str
 }
 
 export function extractListing(sourceId: string, html: string, pageUrl: string) {
+  if (sourceId === "technomania") {
+    const feed = normalizeTechnomania(JSON.parse(html));
+    return {
+      items: [],
+      pages: [],
+      records: { products: feed.products, offers: feed.offers, completeSnapshot: true },
+    };
+  }
   if (storeApiSources.some((s) => s.id === sourceId))
     return extractStoreApiPage(sourceId, html, pageUrl);
   if (sourceId === "baku") return extractBakuListing(html, pageUrl);

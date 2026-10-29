@@ -16,6 +16,15 @@ export const crawlSources: {
   // The listing pages are WooCommerce Store API JSON.
   listingJson?: boolean;
 }[] = [
+  {
+    id: "technomania",
+    name: "Technomania",
+    root: "https://technomania.az/api/catalog/feed?format=json",
+    refreshHours: 1,
+    listing: true,
+    listingJson: true,
+    listingStart: "https://technomania.az/api/catalog/feed?format=json",
+  },
   // robots.txt asks for Crawl-delay: 30.
   {
     id: "irshad",
@@ -35,6 +44,18 @@ export const crawlSources: {
     listing: true,
   },
   { id: "ispace", name: "iSpace", root: "https://ispace.az/sitemap.xml", refreshHours: 24 },
+  {
+    id: "compstore",
+    name: "Compstore",
+    root: "https://compstore.az/sitemap.xml",
+    refreshHours: 24,
+  },
+  {
+    id: "smartelectronics",
+    name: "Smart Electronics",
+    root: "https://smartelectronics.az/az/sitemap_az.xml",
+    refreshHours: 24,
+  },
   {
     id: "mgstore",
     name: "Music Gallery",
@@ -101,6 +122,8 @@ export function isProductCandidate(sourceId: string, raw: string) {
     return path.startsWith("/az/") && path.endsWith(".html") && !path.includes("/pages/");
   if (sourceId === "bytelecom") return path.startsWith("/az/products/");
   if (sourceId === "ispace") return /^\/product\/[^/]+$/.test(path);
+  if (sourceId === "compstore") return /^\/[^/]+\.html$/.test(path);
+  if (sourceId === "smartelectronics") return /^\/az\/mehsullar\/[^/]+\/?$/.test(path);
   return (
     !path.startsWith("/catalog/") &&
     !path.startsWith("/customer/") &&

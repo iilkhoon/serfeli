@@ -393,6 +393,367 @@ const ram = m.checkProductPair(
   "baku-1",
 );
 assert(ram.reasons.includes("Yaddaş / RAM uyğun deyil."));
+// Automatic merge: the same phone in three stores becomes one product; a store's second copy of
+// a listing is hidden behind its cheaper in-stock twin; a listing without a colour stays apart.
+const folded = m.mergeDuplicateProducts({
+  ...catalog(),
+  products: [
+    ...[
+      bakuPhone,
+      ispacePhone,
+      named("irshad-1", "iPhone 18 Pro 256 GB Glacier", "Apple"),
+      named("irshad-2", "iPhone 18 Pro 256 GB Glacier", "Apple"),
+    ].map((p) => ({
+      ...p,
+      specs: { MPN: "MP-18P-256-GLA", RAM: "8 GB", Yaddaş: "256 GB", Rəng: "Glacier" },
+    })),
+    named("tm-1", "Apple iPhone 18 Pro 256GB", "Apple"),
+  ],
+  offers: [
+    offer("baku-1", "one"),
+    offer("ispace-1", "two"),
+    offer("irshad-1", "three", { price: 120 }),
+    offer("irshad-2", "three", { price: 110 }),
+    offer("tm-1", "four"),
+  ],
+});
+const live = folded.products.filter((p) => p.active).map((p) => p.id);
+assert.deepEqual(live.sort(), ["baku-1", "tm-1"]);
+assert.deepEqual(folded.productAliases, {
+  "ispace-1": "baku-1",
+  "irshad-1": "baku-1",
+  "irshad-2": "baku-1",
+});
+assert.deepEqual(
+  folded.offers.filter((o) => o.productId === "baku-1").map((o) => [o.storeId, o.price]),
+  [
+    ["one", 100],
+    ["two", 100],
+    ["three", 110],
+  ],
+);
+// A revoked match keeps the pair apart.
+const kept = m.mergeDuplicateProducts(crossStore, [
+  { id: "ispace-1", sourceId: "ispace-1", targetId: "baku-1", active: false },
+]);
+assert.equal(kept.products.filter((p) => p.active).length, 2);
+// No automatic decision may silently discard uncertain variant fields or known conditions.
+const pairCatalog = (products, changes = {}) => ({
+  ...catalog(),
+  products,
+  offers: products.map((p, i) => offer(p.id, "shop-" + i)),
+  ...changes,
+});
+const activeIds = (c) =>
+  c.products
+    .filter((p) => p.active)
+    .map((p) => p.id)
+    .sort();
+const missing = pairCatalog([
+  named("missing-a", "Acme X10 128GB", "Acme"),
+  named("missing-b", "Acme X10 128GB", "Acme"),
+]);
+assert.equal(
+  activeIds(m.mergeDuplicateProducts(missing)).length,
+  2,
+  "unidentified colour/RAM needs review",
+);
+assert.equal(
+  m.productMatchCandidates(missing, []).length,
+  1,
+  "uncertain pair remains available for manual review",
+);
+const duplicateStock = pairCatalog([product("duplicate-a"), product("duplicate-b")], {
+  offers: [
+    offer("duplicate-a", "one", { stock: false, price: 1 }),
+    offer("duplicate-a", "one", { id: "live-a", stock: true, price: 120 }),
+    offer("duplicate-b", "one", { price: 110 }),
+  ],
+});
+const stockFolded = m.mergeDuplicateProducts(duplicateStock);
+assert.deepEqual(activeIds(stockFolded), ["duplicate-b"]);
+assert.equal(stockFolded.offers.length, 1);
+assert.equal(
+  stockFolded.offers[0].price,
+  110,
+  "unavailable low price must not determine the canonical listing",
+);
+assert.equal(stockFolded.productAliases["duplicate-a"], "duplicate-b");
+const unknownStock = m.mergeDuplicateProducts(
+  pairCatalog([product("unknown-stock")], {
+    offers: [
+      offer("unknown-stock", "one", { id: "unknown-offer", stockKnown: false, price: 1 }),
+      offer("unknown-stock", "one", { id: "known-offer", stockKnown: true, price: 120 }),
+    ],
+  }),
+);
+assert.equal(unknownStock.offers[0].id, "known-offer");
+const sameStoreRam = pairCatalog(
+  [
+    product("ram-a", { specs: { Rəng: "Black", Yaddaş: "128GB", RAM: "8GB" } }),
+    product("ram-b", { specs: { Rəng: "Black", Yaddaş: "128GB", RAM: "12GB" } }),
+  ],
+  { offers: [offer("ram-a", "one"), offer("ram-b", "one")] },
+);
+assert.equal(
+  activeIds(m.mergeDuplicateProducts(sameStoreRam)).length,
+  2,
+  "same-store RAM variants remain distinct",
+);
+const completeModel = pairCatalog(
+  [
+    product("complete-a", { specs: { Rəng: "Black", Yaddaş: "128GB", RAM: "8GB" } }),
+    product("complete-b", { specs: { Rəng: "Qara", Yaddaş: "128GB", RAM: "8GB" } }),
+  ],
+  {
+    offers: [
+      offer("complete-a", "one", { price: 125 }),
+      offer("complete-b", "one", { price: 100 }),
+    ],
+  },
+);
+assert.deepEqual(
+  activeIds(m.mergeDuplicateProducts(completeModel)),
+  ["complete-b"],
+  "a complete exact model/variant also folds without a barcode",
+);
+const conditionConflict = pairCatalog([product("state-a"), product("state-b")], {
+  offers: [
+    offer("state-a", "one", { condition: "new" }),
+    offer("state-b", "two", { condition: "used" }),
+  ],
+});
+const ramOnly = pairCatalog([
+  named("ram-only-a", "Acme X10 Black", "Acme", { specs: { RAM: "8GB", Rəng: "Black" } }),
+  named("ram-only-b", "Acme X10 Black", "Acme", { specs: { RAM: "8GB", Rəng: "Black" } }),
+]);
+assert.equal(
+  activeIds(m.mergeDuplicateProducts(ramOnly)).length,
+  2,
+  "RAM alone does not establish internal storage",
+);
+assert.equal(activeIds(m.mergeDuplicateProducts(conditionConflict)).length, 2);
+const unknownCondition = pairCatalog([product("state-a"), product("state-b")], {
+  offers: [
+    offer("state-a", "one", { condition: "unknown" }),
+    offer("state-b", "two", { condition: "unknown" }),
+  ],
+});
+assert.equal(activeIds(m.mergeDuplicateProducts(unknownCondition)).length, 2);
+const ordinaryRetail = pairCatalog([product("retail-a"), product("retail-b")], {
+  offers: [
+    offer("retail-a", "one", { condition: undefined }),
+    offer("retail-b", "two", { condition: undefined }),
+  ],
+});
+const ordinaryFold = m.mergeDuplicateProducts(ordinaryRetail);
+assert.equal(
+  activeIds(ordinaryFold).length,
+  1,
+  "explicit same manufacturer trade item permits unspecified ordinary retail without pretending new",
+);
+assert(ordinaryFold.offers.every((o) => o.condition === undefined));
+const oneSidedCondition = {
+  ...ordinaryRetail,
+  offers: [ordinaryRetail.offers[0], { ...ordinaryRetail.offers[1], condition: "new" }],
+};
+assert.equal(activeIds(m.mergeDuplicateProducts(oneSidedCondition)).length, 2);
+const outlet = {
+  ...ordinaryRetail,
+  products: ordinaryRetail.products.map((p) => ({ ...p, name: p.name + " (Outlet)" })),
+};
+assert.equal(activeIds(m.mergeDuplicateProducts(outlet)).length, 2);
+const shades = pairCatalog([
+  product("shade-a", { name: "Acme X10 128GB Deep Blue", variant: "128GB Deep Blue", specs: {} }),
+  product("shade-b", { name: "Acme X10 128GB Blue", variant: "128GB Blue", specs: {} }),
+]);
+assert.equal(
+  activeIds(m.mergeDuplicateProducts(shades)).length,
+  2,
+  "a shade is part of colour identity",
+);
+const sameStoreRevoked = m.mergeDuplicateProducts(duplicateStock, [
+  { id: "duplicate-a", sourceId: "duplicate-a", targetId: "duplicate-b", active: false },
+]);
+assert.equal(activeIds(sameStoreRevoked).length, 2, "a revoked same-store pair must remain apart");
+const bridge = pairCatalog([
+  product("bridge-a", {
+    specs: { EAN: "9780306406157", Rəng: "Black", Yaddaş: "128GB", RAM: "8GB" },
+  }),
+  product("bridge-b", {
+    specs: { EAN: "9780306406157", MPN: "BRIDGE-C-128", Rəng: "Black", Yaddaş: "128GB" },
+  }),
+  product("bridge-c", {
+    specs: { MPN: "BRIDGE-C-128", Rəng: "Black", Yaddaş: "128GB", RAM: "12GB" },
+  }),
+]);
+assert.equal(
+  activeIds(m.mergeDuplicateProducts(bridge)).length,
+  2,
+  "pairwise similarity is not transitive across conflicting RAM",
+);
+const transitiveRevocation = m.mergeDuplicateProducts(
+  pairCatalog([product("tr-a"), product("tr-b"), product("tr-c")]),
+  [{ id: "tr-c", sourceId: "tr-c", targetId: "tr-a", active: false }],
+);
+assert.equal(
+  activeIds(transitiveRevocation).length,
+  2,
+  "revoked members cannot reconnect through a third product",
+);
+const prior = pairCatalog(
+  [product("alias-old", { active: false }), product("alias-b"), product("alias-a")],
+  {
+    productAliases: { "alias-old": "alias-b" },
+    offers: [offer("alias-b", "one"), offer("alias-a", "two")],
+  },
+);
+const aliasFold = m.mergeDuplicateProducts(prior);
+assert.equal(aliasFold.productAliases["alias-old"], "alias-a");
+assert.equal(aliasFold.productAliases["alias-b"], "alias-a");
+const priorRevoked = m.mergeDuplicateProducts(prior, [
+  { id: "alias-old", sourceId: "alias-old", targetId: "alias-a", active: false },
+]);
+assert.equal(priorRevoked.productAliases["alias-old"], "alias-b");
+assert.equal(activeIds(priorRevoked).length, 2);
+const foldOriginal = JSON.stringify(duplicateStock);
+m.mergeDuplicateProducts(duplicateStock);
+assert.equal(
+  JSON.stringify(duplicateStock),
+  foldOriginal,
+  "automatic matching preserves all input records for rollback",
+);
+assert.deepEqual(m.mergeDuplicateProducts(stockFolded), stockFolded, "normalization is idempotent");
+const approvedBridge = pairCatalog(
+  [
+    product("approved-original", {
+      active: false,
+      specs: { MPN: "SAME-TRADE-ITEM", RAM: "8GB", Yaddaş: "128GB", Rəng: "Black" },
+    }),
+    product("approved-root", { specs: { MPN: "SAME-TRADE-ITEM", Yaddaş: "128GB", Rəng: "Black" } }),
+    product("approved-incoming", {
+      specs: { MPN: "SAME-TRADE-ITEM", RAM: "12GB", Yaddaş: "128GB", Rəng: "Black" },
+    }),
+  ],
+  {
+    productAliases: { "approved-original": "approved-root" },
+    offers: [
+      offer("approved-root", "one"),
+      offer("approved-root", "two", { id: "second-approved" }),
+      offer("approved-incoming", "three"),
+    ],
+  },
+);
+assert.equal(
+  activeIds(m.mergeDuplicateProducts(approvedBridge)).length,
+  2,
+  "a known attribute of a previously approved alias must not be lost in a later merge",
+);
+const nestedAlias = {
+  ...prior,
+  products: [...prior.products, product("alias-older", { active: false })],
+  productAliases: { "alias-older": "alias-old", "alias-old": "alias-b" },
+};
+const nestedKept = m.mergeDuplicateProducts(nestedAlias, [
+  { id: "alias-older", sourceId: "alias-older", targetId: "alias-a", active: false },
+]);
+assert.equal(nestedKept.productAliases["alias-older"], "alias-b");
+assert.equal(activeIds(nestedKept).length, 2, "revocation applies through prior nested aliases");
+// Real source wording, with manufacturer fields explicitly checked by the source adapters.
+// The two AirPods4 variants must have independent canonical products and store counts.
+const airpods = pairCatalog([
+  named("airpods4", "Apple AirPods 4", "Apple", {
+    category: "audio",
+    variant: "White",
+    specs: { MPN: "MXP63ZE/A", Rəng: "White", ANC: "Xeyr" },
+  }),
+  named("baku-basic", "Simsiz qulaqlıq Apple AirPods 4 White (MXP63ZE/A)", "Apple", {
+    category: "audio",
+    specs: { MPN: "MXP63ZE/A", Rəng: "White", ANC: "Xeyr", "Mənbə SKU": "212472" },
+  }),
+  named("ispace-basic", "Qulaqlıqlar APPLE AirPods 4, Ağ", "APPLE", {
+    category: "audio",
+    specs: { MPN: "MXP63ZE/A", Rəng: "Ağ", ANC: "Xeyr" },
+  }),
+  named(
+    "baku-anc",
+    "Simsiz qulaqlıq Apple AirPods 4 with Active Noise Cancellation (MXP93ZE/A)",
+    "Apple",
+    { category: "audio", specs: { MPN: "MXP93ZE/A", Rəng: "White", ANC: "Bəli" } },
+  ),
+  named("ispace-anc", "Qulaqlıqlar APPLE AirPods 4 aktiv səsboğma ilə, Ağ", "APPLE", {
+    category: "audio",
+    specs: { MPN: "MXP93ZE/A", Rəng: "Ağ", ANC: "Bəli" },
+  }),
+  named("tm-ambiguous", "Apple AirPods 4", "Apple", {
+    category: "audio",
+    variant: "Ağ",
+    specs: {
+      Rəng: "Ağ",
+      "Aktiv Səs-küy Boğucu (ANC)": "Adaptiv Aktiv Səs-küy Boğucu (ANC) və Şəffaflıq rejimi",
+    },
+  }),
+  named("uniq-case", "UNIQ Apple AirPods 4 White Case", "UNIQ", {
+    category: "aksesuar",
+    variant: "White",
+  }),
+]);
+airpods.offers = airpods.offers.map((o) => ({ ...o, condition: undefined }));
+const airpodsFold = m.mergeDuplicateProducts(airpods);
+assert.equal(activeIds(airpodsFold).length, 4);
+const basicRoot = airpodsFold.productAliases["ispace-basic"] || "ispace-basic";
+const ancRoot = airpodsFold.productAliases["ispace-anc"] || "ispace-anc";
+assert.notEqual(basicRoot, ancRoot);
+assert.equal(
+  new Set(airpodsFold.offers.filter((o) => o.productId === basicRoot).map((o) => o.storeId)).size,
+  3,
+);
+assert.equal(
+  new Set(airpodsFold.offers.filter((o) => o.productId === ancRoot).map((o) => o.storeId)).size,
+  2,
+);
+assert(
+  !airpodsFold.productAliases["tm-ambiguous"],
+  "contradictory source variant facts stay out of the basic variant",
+);
+assert(!airpodsFold.productAliases["uniq-case"]);
+const unknownAnc = pairCatalog([
+  named("plain-a", "Apple AirPods 4", "Apple", { category: "audio", variant: "White" }),
+  named("plain-b", "Apple AirPods 4", "Apple", {
+    category: "audio",
+    variant: "White",
+    specs: { ANC: "Bəli" },
+  }),
+]);
+assert.equal(
+  activeIds(m.mergeDuplicateProducts(unknownAnc)).length,
+  2,
+  "one-sided ANC information needs review even when titles are identical",
+);
+assert(
+  m
+    .checkProductPair(
+      pairCatalog([
+        product("code-a", {
+          name: "Apple AirPods 4 White (MXP63ZE/A)",
+          brand: "Apple",
+          category: "audio",
+          variant: "White",
+          specs: {},
+        }),
+        product("code-b", {
+          name: "Apple AirPods 4 White (MXP93ZE/A)",
+          brand: "Apple",
+          category: "audio",
+          variant: "White",
+          specs: {},
+        }),
+      ]),
+      "code-a",
+      "code-b",
+    )
+    .reasons.includes("Başlıqdakı model kodu fərqlidir."),
+);
 console.log(
-  "PASS: matching identity/variant/condition guards, valid identifier checks, merchant SKU exclusion, reversible aliases/history, duplicate-store/chain rejection, stale identity invalidation, RSC-compatible aliases, serialized fenced mutations and atomic rollback, cross-store model keys (storage, RAM, colour, retailer brand). In-memory SQLite; no network.",
+  "PASS: matching identity/variant/condition guards, valid identifier checks, merchant SKU exclusion, reversible aliases/history, duplicate-store/chain rejection, stale identity invalidation, RSC-compatible aliases, serialized fenced mutations and atomic rollback, cross-store model keys (storage, RAM, colour, retailer brand), automatic duplicate merge (same store and across stores). In-memory SQLite; no network.",
 );

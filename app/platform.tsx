@@ -40,7 +40,7 @@ import {
   categories,
   canonicalProductId,
   seedCatalog,
-  recordedOffersFor,
+  bestRecordedOffersFor,
   validOffers,
   priceOf,
   money,
@@ -290,18 +290,30 @@ export default function Platform({
             : "Bütün məhsullar";
   const productCard = (p: Product) => {
     const available = validOffers(c, p.id, city),
-      recorded = recordedOffersFor(c, p.id, city),
-      realRecords = recorded.filter((o) => !o.demo),
-      offers = available.length
-        ? available
-        : (realRecords.length ? realRecords : recorded).sort((a, b) => a.price - b.price),
+      recorded = bestRecordedOffersFor(c, p.id, city),
+      offers = available.length ? available : recorded,
       low = offers[0],
-      high = offers.length ? Math.max(...offers.map((o) => o.price + o.shipping)) : 0,
-      save = low && available.length > 1 ? high - low.price - low.shipping : 0;
+      high = available.length ? Math.max(...available.map((o) => o.price)) : 0,
+      save = low && available.length > 1 ? high - low.price : 0,
+      // Where the product is sold, cheapest first.
+      sellers = [
+        ...new Set(offers.map((o) => c.stores.find((s) => s.id === o.storeId)?.name || o.storeId)),
+      ];
     return (
-      <article className="product-card" key={p.id}>
+      <article className={"product-card" + (available.length ? " has-live-price" : "")} key={p.id}>
         <div className="card-top">
-          <span className={"badge " + (save ? "green" : "neutral")}>
+          <span
+            className={
+              "badge " +
+              (save
+                ? "green"
+                : !available.length && low
+                  ? low.stockKnown === false
+                    ? "stock-unknown"
+                    : "stock-out"
+                  : "neutral")
+            }
+          >
             {p.marketplace ? (
               "Tap.az · Mağaza elanı"
             ) : !available.length && offers.length ? (
@@ -312,7 +324,7 @@ export default function Platform({
               )
             ) : save ? (
               <>
-                <TrendingDown size={12} /> {money(save)} fərq
+                <TrendingDown size={12} /> {money(save)} ucuz
               </>
             ) : (
               "Qiymət müqayisəsi"
@@ -351,8 +363,27 @@ export default function Platform({
               <i />
               <i />
             </span>
-            {offers.length ? offers.length + " mağazada" : "Qiymət mənbədə açıqlanmır"}
+            {available.length
+              ? available.length + " mağazada"
+              : offers.length
+                ? "0 mağazada · stok təsdiqlənməyib"
+                : "Qiymət mənbədə açıqlanmır"}
           </div>
+          {sellers.length > 0 && (
+            <p className="card-stores" title={sellers.join(", ")}>
+              {!available.length && "Son mənbələr: "}
+              {sellers.slice(0, 3).join(" · ")}
+              {sellers.length > 3 && " +" + (sellers.length - 3)}
+            </p>
+          )}
+          {low && (
+            <p className="card-source-date micro muted">
+              Yoxlanıb:{" "}
+              <time dateTime={low.checkedAt}>
+                {new Date(low.checkedAt).toLocaleDateString("az-AZ", { timeZone: "Asia/Baku" })}
+              </time>
+            </p>
+          )}
           <div className="card-price">
             <div>
               <span className="muted micro">
@@ -364,11 +395,9 @@ export default function Platform({
                       ? "Son bildirilən qiymət"
                       : offers.length && offers.every((o) => o.demo)
                         ? "Nümunə qiymət"
-                        : low?.shippingKnown === false
-                          ? "Ən aşağı nağd"
-                          : "Ən aşağı yekun"}
+                        : "Ən aşağı nağd"}
               </span>
-              <strong>{low ? money(low.price + low.shipping) : "Qiymət soruş"}</strong>
+              <strong>{low ? money(low.price) : "Qiymət soruş"}</strong>
             </div>
             <button
               className={"compare-icon " + (comp.includes(p.id) ? "active" : "")}
@@ -554,6 +583,25 @@ export default function Platform({
           </div>
         )}
       </nav>
+      {c.dataStatus && c.dataStatus.state !== "ready" && (
+        <div
+          className="shell data-notice data-status-banner"
+          role={c.dataStatus.state === "unavailable" ? "alert" : "status"}
+        >
+          <Info size={18} />
+          <span>
+            {c.dataStatus.message ||
+              (c.dataStatus.state === "unavailable"
+                ? "Kataloq hazırda yüklənmir. Yenidən yoxla."
+                : "Kataloq bazaya hazırlanır. Hazır olduqda məhsullar və qiymətlər burada görünəcək.")}
+          </span>
+          {c.dataStatus.state === "unavailable" && (
+            <button className="outline-button" onClick={refresh}>
+              Yenidən yoxla
+            </button>
+          )}
+        </div>
+      )}
       {error && (
         <div className="shell error-banner">
           <Info size={18} />
@@ -565,6 +613,7 @@ export default function Platform({
         {page === "home" && (
           <Home
             catalog={c}
+            city={city}
             cards={cards}
             onAlert={alert}
             onInfo={(topic) => setModal({ type: "info", topic })}
@@ -590,7 +639,7 @@ export default function Platform({
                 value={filter.sort}
                 onChange={(e) => setFilter({ ...filter, sort: e.target.value })}
               >
-                <option value="popular">Seçilmiş sıralama</option>
+                <option value="popular">Ən çox mağazada</option>
                 <option value="low">Ən ucuzdan bahaya</option>
                 <option value="high">Ən bahadan ucuza</option>
                 <option value="saving">Ən böyük qiymət fərqi</option>
@@ -1282,21 +1331,15 @@ function ProductDetail({
     [term, setTerm] = useState(12),
     [sending, setSending] = useState(false),
     [now] = useState(() => Date.now());
-  const recordedOffers: Offer[] = c.offers.filter(
-    (o: Offer) =>
-      o.productId === p.id &&
-      o.cities.includes(city) &&
-      c.stores.some((s) => s.id === o.storeId && s.active),
-  );
-  let offers: Offer[] = recordedOffers.some((o) => !o.demo)
-    ? recordedOffers.filter((o) => !o.demo)
-    : recordedOffers;
-  if (stockOnly) offers = offers.filter((o) => o.stock);
+  const recordedOffers = bestRecordedOffersFor(c, p.id, city);
+  const availableOffers = validOffers(c, p.id, city);
+  let offers = [...recordedOffers];
+  if (stockOnly) offers = offers.filter((o) => o.stock && o.stockKnown !== false);
   if (free) offers = offers.filter((o) => o.shipping === 0 && o.shippingKnown !== false);
   if (real) offers = offers.filter((o) => !o.demo);
   offers = [...offers].sort(
     (a, b) =>
-      Number(b.stock) - Number(a.stock) ||
+      Number(b.stock && b.stockKnown !== false) - Number(a.stock && a.stockKnown !== false) ||
       (sort === "installment"
         ? (a.installmentOptions?.find((o) => o.months === term)?.total ||
             (a.months === term ? a.installmentTotal : 0) ||
@@ -1304,9 +1347,9 @@ function ProductDetail({
           (b.installmentOptions?.find((o) => o.months === term)?.total ||
             (b.months === term ? b.installmentTotal : 0) ||
             Infinity)
-        : a.price + a.shipping - (b.price + b.shipping)),
+        : a.price - b.price),
   );
-  const low = offers[0],
+  const low = availableOffers[0] || recordedOffers[0],
     allHistory = c.history
       .filter((h) => h.productId === p.id)
       .sort((a, b) => a.date.localeCompare(b.date));
@@ -1368,7 +1411,7 @@ function ProductDetail({
                 onChange={(e) => nav("/mehsul/" + e.target.value)}
               >
                 {c.products
-                  .filter((other) => other.familyId === p.familyId)
+                  .filter((other) => other.active && other.familyId === p.familyId)
                   .map((other) => (
                     <option key={other.id} value={other.id}>
                       {other.variant}
@@ -1386,7 +1429,7 @@ function ProductDetail({
                 </span>
               ))}
           </div>
-          <div className="detail-price">
+          <div className={"detail-price" + (availableOffers.length ? " has-live-price" : "")}>
             <span>
               {!low
                 ? "Qiymət mağazada dəqiqləşdirilir"
@@ -1394,13 +1437,14 @@ function ProductDetail({
                   ? "Mənbədəki qiymət · stok mağazada yoxlanmalıdır"
                   : low && !low.stock
                     ? "Son bildirilən qiymət"
-                    : low?.shippingKnown === false
-                      ? "Ən aşağı nağd qiymət · çatdırılmanı yoxla"
-                      : "Çatdırılma daxil ən aşağı qiymət"}
+                    : "Ən aşağı nağd qiymət"}
             </span>
-            <strong>{low ? money(low.price + low.shipping) : "Qiymət soruş"}</strong>
+            <strong className={availableOffers.length ? "price-current" : undefined}>
+              {low ? money(low.price) : "Qiymət soruş"}
+            </strong>
             <small>
-              {offers.length} mağaza təklifi · {city}
+              {availableOffers.length} mağazada stokda · {recordedOffers.length} qiymət mənbəyi ·{" "}
+              {city}
               {low?.stockKnown === false
                 ? " · Stok açıqlanmayıb"
                 : low && !low.stock
@@ -1502,17 +1546,17 @@ function ProductDetail({
               value={sort}
               onChange={(e) => setSort(e.target.value)}
             >
-              <option value="total">Ən aşağı məlum qiymət</option>
+              <option value="total">Ən aşağı nağd qiymət</option>
               <option value="installment">Taksit yekununa görə</option>
             </select>
           </div>
           <p className="micro muted">
-            Sıralama məlum qiymətə əsaslanır. Çatdırılma məlum deyilsə nağd qiymət göstərilir.
-            Reklam etiketi sıranı dəyişmir.
+            Sıralama nağd qiymətə əsaslanır. Çatdırılma və taksit yekunu ayrıca göstərilir. Reklam
+            etiketi sıranı dəyişmir.
           </p>
           <div className="offer-list">
             {offers.length ? (
-              offers.map((o, i) => {
+              offers.map((o) => {
                 // recordedOffers only keeps offers whose store is known and active.
                 const s = c.stores.find((s) => s.id === o.storeId)!;
                 const finance = o.installmentOptions?.find((x) => x.months === term);
@@ -1522,8 +1566,12 @@ function ProductDetail({
                   <article
                     className={
                       "offer-row " +
-                      (i === 0 && o.stock ? "best" : "") +
-                      (o.stock ? "" : " unavailable")
+                      (o.id === availableOffers[0]?.id ? "best" : "") +
+                      (o.stockKnown === false
+                        ? " stock-unknown"
+                        : o.stock
+                          ? ""
+                          : " unavailable stock-out")
                     }
                     key={o.id}
                   >
@@ -1531,18 +1579,34 @@ function ProductDetail({
                       <strong style={{ color: s.color }}>
                         <StoreLogo store={s} />
                       </strong>
-                      <span className={"badge " + (o.demo ? "neutral" : "green")}>
+                      <span
+                        className={
+                          "badge " +
+                          (o.demo || now - Date.parse(o.checkedAt) > 86400000 ? "neutral" : "green")
+                        }
+                      >
                         {o.demo
                           ? "Nümunə təklif"
                           : now - Date.parse(o.checkedAt) > 86400000
                             ? "Yoxlanma köhnədir"
                             : "Mənbədən yoxlanıb"}
                       </span>
+                      {o.id === availableOffers[0]?.id && (
+                        <span className="badge green">Ən yaxşı qiymət</span>
+                      )}
                       {o.sponsored && <span className="badge yellow">Reklam</span>}
                     </div>
                     <div className="offer-terms">
                       <b>{p.variant}</b>
-                      <span>
+                      <span
+                        className={
+                          o.stockKnown === false
+                            ? "stock-unknown"
+                            : o.stock
+                              ? "stock-in"
+                              : "stock-out"
+                        }
+                      >
                         <CheckCircle2 size={13} />
                         {o.warranty} ·{" "}
                         {o.stockKnown === false
@@ -1578,18 +1642,16 @@ function ProductDetail({
                       )}
                     </div>
                     <div className="offer-price">
-                      <small>
+                      <small>Nağd qiymət</small>
+                      <strong>{money(o.price)}</strong>
+                      <span>
                         {o.shippingKnown === false
-                          ? "Nağd qiymət"
-                          : i === 0
-                            ? "Ən aşağı yekun"
-                            : "Çatdırılma daxil"}
-                      </small>
-                      <strong>{money(o.price + o.shipping)}</strong>
-                      <span>Nağd: {money(o.price)}</span>
+                          ? "Çatdırılmanı dəqiqləşdir"
+                          : "Çatdırılma ilə: " + money(o.price + o.shipping)}
+                      </span>
                     </div>
                     <a
-                      className={i === 0 ? "dark-button" : "outline-button"}
+                      className={o.id === availableOffers[0]?.id ? "dark-button" : "outline-button"}
                       href={o.demo ? undefined : o.url}
                       target="_blank"
                       rel="noopener noreferrer"

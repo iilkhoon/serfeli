@@ -61,7 +61,7 @@ assert.equal(feed.warnings.length, 0);
 assert.equal(failed.length, 0, JSON.stringify(failed));
 // The public endpoint serves slices; ask for the products under test in batches.
 async function publicCatalog(ids) {
-  const out = { products: [], offers: [], liveSource: undefined };
+  const out = { products: [], offers: [], liveSource: undefined, productAliases: {} };
   for (let i = 0; i < ids.length; i += 60) {
     const q = new URLSearchParams({ path: "/verify", ids: ids.slice(i, i + 60).join(",") });
     const r = await fetch("http://127.0.0.1:5173/api/v1/catalog?" + q);
@@ -70,14 +70,32 @@ async function publicCatalog(ids) {
     out.products.push(...slice.products);
     out.offers.push(...slice.offers);
     out.liveSource = slice.liveSource;
+    Object.assign(out.productAliases, slice.productAliases);
   }
   return out;
 }
+// Visitors no longer trigger the feed; store it the way the admin sync and cron do.
+const sign = await fetch("http://127.0.0.1:5173/signin-with-chatgpt?return_to=/admin", {
+  redirect: "manual",
+});
+const sync = await fetch("http://127.0.0.1:5173/api/v1/admin/feed-sync", {
+  method: "POST",
+  headers: {
+    cookie: sign.headers.get("set-cookie").split(";")[0],
+    "content-type": "application/json",
+    origin: "http://127.0.0.1:5173",
+  },
+  body: "{}",
+});
+assert.equal(sync.status, 200);
 const api = await publicCatalog([...new Set(feed.offers.map((o) => o.productId))]);
 assert.equal(api.liveSource.state, "fresh");
 assert(
-  feed.offers.every((o) =>
-    api.offers.some((x) => x.id === o.id && x.price === o.price && x.stock === o.stock),
+  feed.offers.every(
+    (o) =>
+      api.offers.some((x) => x.id === o.id && x.price === o.price && x.stock === o.stock) ||
+      // A store's second copy of a listing is hidden together with its offer.
+      (api.productAliases[o.productId] && !api.offers.some((x) => x.id === o.id)),
   ),
 );
 console.log(

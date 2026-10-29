@@ -18,17 +18,19 @@ import {
   MoveUpRight,
 } from "lucide-react";
 import { categories, validOffers, money, type Product } from "../lib/catalog";
-import { HOME_HERO_IDS, type CatalogSlice } from "../lib/catalog-query";
+import { rankProductsByStoreCount, type CatalogSlice } from "../lib/catalog-query";
 import { CategoryIcon, StoreLogo } from "./ui";
 const tones = ["#eee6f4", "#f9e7db", "#e4efeb", "#f8edcd", "#e7ebf5", "#f4e4ec"];
 const number = (n: number) => n.toLocaleString("az-AZ");
 export default function Home({
   catalog: c,
+  city,
   cards,
   onAlert,
   onInfo,
 }: {
   catalog: CatalogSlice;
+  city: string;
   cards: (products: Product[]) => ReactNode;
   onAlert: (p: Product) => void;
   onInfo: (topic: string) => void;
@@ -40,28 +42,23 @@ export default function Home({
     [focused, setFocused] = useState(false),
     [category, setCategory] = useState("telefon");
   const availableCategories = categories.filter((cat) => (c.categoryStats[cat.id]?.count || 0) > 0);
-  const heroIds = HOME_HERO_IDS.filter((id) =>
-    c.products.some((p) => p.id === id && p.active && validOffers(c, p.id).some((o) => !o.demo)),
+  const ranked = rankProductsByStoreCount(
+    c,
+    c.products.filter((p) => p.active && validOffers(c, p.id, city).length > 0),
+    city,
   );
-  const heroes = heroIds.map((id) => c.products.find((p) => p.id === id)!);
+  const heroes = ranked.slice(0, 3);
   const selected = heroes[index % Math.max(heroes.length, 1)];
-  const selectedOffers = selected ? validOffers(c, selected.id).filter((o) => !o.demo) : [];
+  const selectedOffers = selected ? validOffers(c, selected.id, city) : [];
   const selectedStore = c.stores.find((s) => s.id === selectedOffers[0]?.storeId);
-  const pick = (id: string) =>
-    c.products
-      .filter((p) => p.active && p.category === id && validOffers(c, p.id).some((o) => !o.demo))
-      .slice(0, 4);
+  // Number of stores selling a product now; the product found in the most stores leads.
+  const storeCount = (id: string) => validOffers(c, id, city).length;
+  const pick = (id: string) => ranked.filter((p) => p.category === id).slice(0, 4);
   const tabCategories = availableCategories.filter((cat) => pick(cat.id).length).slice(0, 8);
   const activeCategory = tabCategories.find((cat) => cat.id === category) || tabCategories[0];
   const items = activeCategory ? pick(activeCategory.id) : [];
-  const comparison = c.products.find(
-    (p) => p.active && validOffers(c, p.id).filter((o) => !o.demo).length > 1,
-  );
-  const comparisonOffers = comparison
-    ? validOffers(c, comparison.id)
-        .filter((o) => !o.demo)
-        .slice(0, 3)
-    : [];
+  const comparison = ranked.find((p) => storeCount(p.id) > 1);
+  const comparisonOffers = comparison ? validOffers(c, comparison.id, city).slice(0, 3) : [];
   const difference =
     comparisonOffers.length > 1
       ? Math.max(...comparisonOffers.map((o) => o.price)) -
@@ -69,7 +66,13 @@ export default function Home({
       : 0;
   // Only stores whose prices are connected, largest catalogs first.
   const stores = c.stores
-    .filter((s) => s.active && (c.storeStats[s.id]?.count || 0) > 0 && !s.id.startsWith("tap-"))
+    .filter(
+      (s) =>
+        s.active &&
+        c.storeStats[s.id]?.real &&
+        (c.storeStats[s.id]?.count || 0) > 0 &&
+        !s.id.startsWith("tap-"),
+    )
     .sort((a, b) => (c.storeStats[b.id]?.count || 0) - (c.storeStats[a.id]?.count || 0))
     .slice(0, 8);
   useEffect(() => {
@@ -222,7 +225,7 @@ export default function Home({
                 </div>
                 <div className="q-spotlight-bottom">
                   <span>
-                    {selectedStore?.name} · {selectedOffers.length} təklif
+                    {selectedOffers.length} mağazada · {selectedStore?.name}
                   </span>
                   <a
                     href={"/mehsul/" + selected.id}
@@ -289,6 +292,20 @@ export default function Home({
           <p>Yoxlanma vaxtı ilə</p>
         </div>
       </section>
+      {ranked.length > 0 && (
+        <section className="q-discovery q-reveal" aria-labelledby="home-popular-title">
+          <div className="q-section-title">
+            <div>
+              <span className="q-kicker">DAHA ÇOX MAĞAZA, DAHA AYDIN MÜQAYİSƏ</span>
+              <h2 id="home-popular-title">Ən çox mağazada satılanlar</h2>
+            </div>
+            <a href="/kataloq">
+              Hamısına bax <ArrowRight size={18} />
+            </a>
+          </div>
+          {cards(ranked.slice(0, 8))}
+        </section>
+      )}
       <section className="q-categories q-reveal" id="kateqoriyalar">
         <div className="q-section-title">
           <div>

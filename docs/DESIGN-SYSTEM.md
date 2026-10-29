@@ -1,40 +1,69 @@
 # Qəpik dizayn sistemi
 
-İstiqamət: isti fon, aydın qiymətlər, iri başlıqlar və məhsul fotoqrafiyası. Brend işarəsi bütün ölçülərdə `public/favicon.svg` faylıdır; başlıq və altlıq eyni işarədən istifadə edir.
+Qəpik qiymət müqayisəsi üçündür. İnterfeys ilk növbədə məhsulu, həqiqi qiyməti və məlumatın mənbəyini aydın göstərir. Süni təcililik və mənbədə təsdiqlənməmiş endirim faizi dizaynın tərkibi deyil. Mağazaların öz loqoları və rəngləri dəyişdirilmir; Qəpik-in başlıq, altlıq və admin işarəsi `/favicon.svg` faylıdır.
 
-## Rənglər
+## Rənglər və istifadə
 
-| Token | Rəng | İstifadə |
+Vahid semantik tokenlər son yüklənən `app/production.css` faylında müəyyən edilir. Mövcud səhifə kompozisiyaları saxlanır; digər CSS fayllarındakı mətn rəngləri eyni tokenləri oxuyur.
+
+| Token | Rəng | Məqsəd |
 |---|---|---|
-| paper | #FAF8F5 | Səhifə fonu |
-| ink | #352640 | Əsas mətn və başlıqlar |
-| accent | #73518C | Düymələr, aktiv seçimlər |
-| peach | #FFC49D | Loqo və məhdud vurğu |
-| lilac | #EEE6F4 | Ana səhifənin əsas paneli |
-| muted | #75667D | Köməkçi mətn |
+| `--paper` | #FAF8F5 | İsti, təmiz əsas fon |
+| `--surface` | #FFFFFF | Məhsul kartları, formalar və məlumat səthləri |
+| `--ink` | #352640 | Əsas mətn və başlıq |
+| `--muted` | #5F5468 | Mağaza adları, tarix və köməkçi mətn |
+| `--primary` | #73518C | Dərin bənövşəyi brend, aktiv naviqasiya, fokus halqası |
+| `--primary-soft` | #EEE6F4 | Yüngül vurğu, informasiya panelləri |
+| `--action` | #F5AB78 | Əsas hərəkət düymələri, axtarış, mağazaya keçid |
+| `--action-soft` | #FFF0E6 | Kartdakı ikinci dərəcəli qiymət düyməsi |
+| `--success` | #17633E | Həqiqi ən aşağı cari qiymət, qənaət və təsdiqlənmiş stok |
+| `--success-soft` | #EAF5EE | Qiymət və stok nişanının fonu |
+| `--danger` | #9B2D3A | Xəta, xəbərdarlıq və stokda olmayan məhsulun etiketi |
+| `--danger-soft` | #FFF1F1 | Xəta fonu |
+| `--warning` | #805413 | Yoxlama tələb edən və ya köhnə məlumat |
+| `--warning-soft` | #FFF3DF | Həmin vəziyyətlərin yüngül fonu |
+| `--control-line` | #8B7B95 | İdarəetmə sahələrinin görünən sərhədi |
 
-İsti şaftalı tonu və yumşaq bənövşəyi platformaya tanınan alış-veriş xarakteri verir. Bu, dizayn niyyətidir; universal psixoloji təsir iddiası deyil. Mağazaların orijinal loqo rəngləri saxlanır.
+Bənövşəyi sabit brend və sakit seçim mühiti, yaşıl qiymət və stok məlumatının tez seçilməsi, isti şaftalı isə əsas hərəkətin tapılması üçün seçilib. Bunlar dizayn niyyətləridir; rəngin bütün insanlara universal psixoloji təsiri barədə iddia deyil. Qırmızı dekorativ vurğu və ya seçilmiş məhsul nişanı kimi istifadə edilmir.
 
-## Tipoqrafiya və düzüm
+## Kontrast yoxlaması
 
-Onest interfeys və Azərbaycan dili mətni, Bricolage Grotesque başlıqlar və qiymətlər üçündür. Əsas mətn 15 px, məhsul başlığı masaüstündə 14 px, telefonda 13 px-dir. Kart başlıqları iki sətirdə eyni hündürlükdə, qiymət və hərəkətlər eyni səviyyədə yerləşir. Qiymətlər Azərbaycan formatındadır: 1 799,99 ₼.
+Aşağıdakı cütlər WCAG nisbi parlaqlıq düsturu ilə hesablanıb. Normal mətn üçün AA həddi 4.5:1-dir. Bu nəticələr token cütlərini yoxlayır; bütün səhifələrdəki hər pikselin avtomatik tam AA auditi sayılmır. Mağaza loqoları üçün orijinal brend rəngləri qorunur.
 
-## Ana səhifə
+Meyar: [W3C — WCAG 2.2, Contrast Minimum](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html).
 
-İki hissəli əsas panel, həqiqi məhsullarla idarə olunan karusel, tam kataloqdan hesablanan kateqoriya sayları, kateqoriya seçimləri, təsdiqlənmiş eyni variant üzrə çoxmağazalı müqayisə, mağazalar, məhsul lentləri və sual-cavab bölməsi. Mağaza profili sayı canlı qiyməti olan mağaza sayı kimi təqdim edilmir.
+| Mətn / fon | Kontrast |
+|---|---|
+| Əsas mətn / əsas fon | 13.18:1 |
+| Köməkçi mətn / ağ | 7.11:1 |
+| Köməkçi mətn / yüngül bənövşəyi | 5.84:1 |
+| Bənövşəyi / ağ | 6.39:1 |
+| Ağ / bənövşəyi aktiv naviqasiya | 6.39:1 |
+| Yaşıl / ağ | 7.26:1 |
+| Yaşıl / yüngül yaşıl | 6.50:1 |
+| Tünd mətn / isti hərəkət düyməsi | 7.31:1 |
+| Xəta mətni / yüngül qırmızı | 6.75:1 |
+
+## Tipoqrafiya və vizual iyerarxiya
+
+Yalnız iki şrift ailəsi istənilir: Onest interfeys, Bricolage Grotesque başlıq və qiymət rəqəmləri üçün. Sistem şriftləri yüklənmə vaxtı fallback-dır. Əsas mətn 15 px-dir. Məhsul başlığı masaüstündə 15 px, mobil ölçüdə 14 px; mağaza mənbələri və yoxlanma vaxtı 12 px-dir.
+
+Kartın məzmun ardıcıllığı: brend, məhsul adı və variant; iri qiymət; mağaza sayı və adları; mənbənin yoxlanma vaxtı; qiymətlərə keçid. Qiymət masaüstündə 29 px, telefonda ekran eninə uyğun 20–24 px-dir. Cari stokda olan real qiymət yaşıl, son bildirilən və ya naməlum qiymət neytral qalır. Ən yaxşı təklif ayrıca nişanla göstərilir; stokda olmayan təklif bu üstünlüyü almır. Rəqəmlər Azərbaycan formatındadır: 1 799,99 ₼.
+
+Kart şəkilləri eyni nisbətli sahədə `object-fit: contain` ilə göstərilir. Başlıq, variant və mağaza adları üçün sətir sahələri ayrılıb, hərəkətlər kartın sonunda hizalanır. Mağaza adları iki sətirdə oxuna bilər; tam mətn keçidin/title təsvirində saxlanır.
+
+## Mobil və əlçatanlıq
+
+Əsas idarəetmə düymələri və ikonlar ən azı 44 × 44 CSS px toxunma sahəsinə malikdir. Əsas formalar 14 px, köməkçi izahlar 12–13 px-dir. Telefon ölçüsündə müqayisə ikonu qiymətin altına keçir ki, qiymət sıxılmasın. Kartlar iki sütunda qalır; böyük cədvəllər öz daxilində sürüşür. Dialoqlar fokus və Escape dəstəyini saxlayır. Görünən fokus halqası brend rəngindədir.
+
+Dizayn `--space-1`–`--space-6`, `--radius-control`, `--radius-card` və `--touch-target` dəyişənləri ilə ümumi ölçü və boşluq dilini verir. Yeni komponentlər bu dəyişənlərdən istifadə etməlidir. 320/390 px və masaüstü ölçülərdə brauzer yoxlaması ayrıca aparılmalıdır; token kontrast testi onu əvəz etmir.
 
 ## Hərəkət
 
-Məhsul karuseli 6,5 saniyədən bir dəyişir; fokus, hover və gizli pəncərədə dayanır. İstifadəçi keçidləri dayandıra və əl ilə seçə bilər. Bölmələr ekrana daxil olduqda yumşaq görünür; kartlar və düymələr toxunuşa reaksiya verir. `prefers-reduced-motion` animasiyaları və avtomatik keçidləri dayandırır. Serverdə yaradılmış məzmun JavaScript olmadan da görünür.
+Daimi dekorativ halqa fırlanması, məhsulun yellənməsi, zəng və siqnal animasiyaları söndürülüb. Qısa hover keçidləri 160 ms, bölmə və məhsul görünməsi 320 ms-dir. Karuselin avtomatik keçidi yalnız görünən səhifədə, istifadəçi onu dayandırmadıqda işləyir. `prefers-reduced-motion` bütün səhifələr üzrə animasiya və keçidləri azaldır; gizli giriş animasiyası məzmunu görünməz saxlamır.
 
-## Mobil davranış
+## Fayllar və mobil tətbiq
 
-760 px altında ayrıca kompozisiya, iki sütun məhsul və kateqoriya kartları, sürüşən seçimlər və alt naviqasiya. Əsas paneldə mətn və məhsul şəkli ayrı sahələrdədir. Dialoqlar telefonda aşağı panelə çevrilir; fokus və Escape dəstəyi saxlanır. Safe-area nəzərə alınır. 320 və 390 px ölçülərdə səhifənin üfüqi daşması yoxlanılır.
+`app/production.css` son semantik dizayn qatıdır. `app/design.css`, `app/pages.css`, `app/responsive.css`, `app/commerce.css`, `app/home.css`, `app/matching.css` mövcud düzüm və komponentləri saxlayır. `app/ui.tsx` ümumi komponentlər və mağaza loqolarıdır.
 
-## Fayllar
-
-`app/design.css`, `app/pages.css`, `app/responsive.css`, `app/commerce.css` mövcud ümumi üslublardır. Son yüklənən `app/home.css` cari brend, tipoqrafiya və ana səhifə komponentlərini tənzimləyir. `app/home.tsx` ana səhifədir; `lib/catalog-query.ts` tam kataloqdan yığcam səhifə məlumatı və saylar hazırlayır. `app/ui.tsx` ümumi komponentlər və mağaza loqolarıdır.
-
-## Mobil tətbiqə hazırlıq
-
-Ayrı məhsul, mağaza və təklif ID-ləri, `/api/v1` marşrutları, hesabdan asılı məlumat və web manifest mövcuddur. Native iOS/Android tətbiqi, offline rejim və mobil push bu buraxılışa daxil deyil.
+Ayrı məhsul, mağaza və təklif ID-ləri, `/api/v1` marşrutları və web manifest gələcək mobil müştəri üçün əsasdır. Native iOS/Android tətbiqi, offline rejim və mobil push yalnız bu veb dizaynının olması ilə hazır sayılmır.
