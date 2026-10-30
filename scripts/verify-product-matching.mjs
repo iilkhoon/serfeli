@@ -821,6 +821,45 @@ const titled = m.mergeDuplicateProducts({
   ],
 });
 assert.equal(titled.products.filter((p) => p.active).length, 1);
+
+// Listings left apart under one title show what tells them apart: the part number, pack size.
+const iphoneTitle = "iPhone 17 Pro, 256 GB, Gümüş";
+const sameTitles = m.labelSameTitleProducts(
+  m.mergeDuplicateProducts({
+    ...catalog(),
+    products: [
+      named("ip-zd", iphoneTitle, "ISPACE", { specs: { "Mənbə SKU": "MG8G4ZD/A" } }),
+      named("ip-hx", iphoneTitle, "ISPACE", { specs: { "Mənbə SKU": "MG8G4HX/A-OD" } }),
+      named("ip-od", iphoneTitle, "ISPACE", { specs: { "Mənbə SKU": "MG8G4ZD/A-OD" } }),
+      named("cable-1", "Belkin USB-C Cable 1m", "Belkin", { specs: { SKU: "CAB001bt1MWH" } }),
+      named("cable-2", "Belkin USB-C Cable 1m", "Belkin", {
+        specs: { SKU: "CAB001bt1MWH2PK", "Paketdə ədəd": "2" },
+      }),
+      named("reader-1", "Hikvision Card Reader", "Hikvision"),
+      named("reader-2", "Hikvision Card Reader", "Hikvision"),
+      named("solo", "Apple AirTag 4 Pack (MX542ZM/A)", "Apple"),
+    ],
+    offers: [
+      offer("ip-zd", "ispace"),
+      offer("ip-hx", "ispace"),
+      offer("ip-od", "ispace"),
+      offer("cable-1", "ispace"),
+      offer("cable-2", "ispace"),
+      offer("reader-1", "one"),
+      offer("reader-2", "two", { price: 140 }),
+      offer("solo", "one"),
+    ],
+  }),
+);
+const labelOf = (id) => sameTitles.products.find((p) => p.id === id).distinction;
+assert.equal(sameTitles.products.filter((p) => p.active).length, 8, "different codes stay apart");
+assert.equal(labelOf("ip-zd"), "MG8G4ZD/A");
+assert.equal(labelOf("ip-hx"), "MG8G4HX/A-OD");
+assert.equal(labelOf("ip-od"), "MG8G4ZD/A-OD");
+assert.equal(labelOf("cable-1"), "CAB001bt1MWH");
+assert.equal(labelOf("cable-2"), "CAB001bt1MWH2PK · 2 ədəd");
+assert.equal(labelOf("reader-1"), undefined, "no code: nothing to tell apart");
+assert.equal(labelOf("solo"), undefined, "a unique title needs no label");
 console.log(
-  "PASS: matching identity/variant/condition guards, valid identifier checks, merchant SKU exclusion, reversible aliases/history, duplicate-store/chain rejection, stale identity invalidation, RSC-compatible aliases, serialized fenced mutations and atomic rollback, cross-store model keys (storage, RAM, colour, retailer brand), automatic duplicate merge (same store and across stores). In-memory SQLite; no network.",
+  "PASS: matching identity/variant/condition guards, valid identifier checks, merchant SKU exclusion, reversible aliases/history, duplicate-store/chain rejection, stale identity invalidation, RSC-compatible aliases, serialized fenced mutations and atomic rollback, cross-store model keys (storage, RAM, colour, retailer brand), automatic duplicate merge (same store and across stores), same-title part number labels. In-memory SQLite; no network.",
 );

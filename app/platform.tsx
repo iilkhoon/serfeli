@@ -357,6 +357,11 @@ export default function Platform({
             {p.name}
           </a>
           <p className="variant">{p.variant}</p>
+          {p.distinction && (
+            <p className="product-code" title="Eyni adlı başqa məhsuldan fərqi">
+              {p.distinction}
+            </p>
+          )}
           <div className="card-offer-count">
             <span className="tiny-dots">
               <i />
@@ -1402,6 +1407,11 @@ function ProductDetail({
           </span>
           <h1>{p.name}</h1>
           <p className="detail-variant">{p.variant}</p>
+          {p.distinction && (
+            <p className="product-code" title="Eyni adlı başqa məhsuldan fərqi">
+              {p.distinction}
+            </p>
+          )}
           {p.familyId && (
             <label className="variant-selector">
               Rəng / variant seç

@@ -48,7 +48,7 @@ Meyar: [W3C — WCAG 2.2, Contrast Minimum](https://www.w3.org/WAI/WCAG22/Unders
 
 Yalnız iki şrift ailəsi istənilir: Onest interfeys, Bricolage Grotesque başlıq və qiymət rəqəmləri üçün. Sistem şriftləri yüklənmə vaxtı fallback-dır. Əsas mətn 15 px-dir. Məhsul başlığı masaüstündə 15 px, mobil ölçüdə 14 px; mağaza mənbələri və yoxlanma vaxtı 12 px-dir.
 
-Kartın məzmun ardıcıllığı: brend, məhsul adı və variant; iri qiymət; mağaza sayı və adları; mənbənin yoxlanma vaxtı; qiymətlərə keçid. Qiymət masaüstündə 29 px, telefonda ekran eninə uyğun 20–24 px-dir. Cari stokda olan real qiymət yaşıl, son bildirilən və ya naməlum qiymət neytral qalır. Ən yaxşı təklif ayrıca nişanla göstərilir; stokda olmayan təklif bu üstünlüyü almır. Rəqəmlər Azərbaycan formatındadır: 1 799,99 ₼.
+Kartın məzmun ardıcıllığı: brend, məhsul adı və variant; ad eyni olan ayrı məhsullarda istehsalçı kodu və paket ölçüsü (12 px, çərçivəli `.product-code`); iri qiymət; mağaza sayı və adları; mənbənin yoxlanma vaxtı; qiymətlərə keçid. Qiymət masaüstündə 29 px, telefonda ekran eninə uyğun 20–24 px-dir. Cari stokda olan real qiymət yaşıl, son bildirilən və ya naməlum qiymət neytral qalır. Ən yaxşı təklif ayrıca nişanla göstərilir; stokda olmayan təklif bu üstünlüyü almır. Rəqəmlər Azərbaycan formatındadır: 1 799,99 ₼.
 
 Kart şəkilləri eyni nisbətli sahədə `object-fit: contain` ilə göstərilir. Başlıq, variant və mağaza adları üçün sətir sahələri ayrılıb, hərəkətlər kartın sonunda hizalanır. Mağaza adları iki sətirdə oxuna bilər; tam mətn keçidin/title təsvirində saxlanır.
 

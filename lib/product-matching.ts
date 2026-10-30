@@ -212,26 +212,30 @@ function titledModelCodes(p: Product) {
         /[a-z]/i.test(value) &&
         /\d/.test(value) &&
         !/^\d+(?:[.,]\d+)?\s*(?:gb|tb|mb)$/i.test(value),
-    )
-    .map(matchText);
+    );
 }
 // Manufacturer part numbers wherever a store writes them: "(MXP93ZE/A)" in the title, a bare
 // "MKFW4ZE/A", or the source SKU field when it holds a code rather than the shop's own number.
-// Short codes such as "(Gen.4)" or "(S948)" name a family, not one trade item.
-function partNumbers(p: Product) {
+// Short codes such as "(Gen.4)" or "(S948)" name a family, not one trade item. Kept as written
+// for display; partNumbers() is the comparable form.
+function writtenPartNumbers(p: Product) {
   const codes = [
     ...titledModelCodes(p),
     ...[...p.name.matchAll(/(?:^|[\s,(])([A-Z0-9]{4,7}\/A)(?=$|[\s,)])/g)].map((m) => m[1]),
   ];
   for (const [key, value] of Object.entries(p.specs))
-    if (/^(mənbə sku|sku)$/i.test(key.trim()) && /[a-z]/i.test(value)) codes.push(value);
-  return [
-    ...new Set(
-      codes
-        .map(matchText)
-        .filter((v) => v.length >= 8 || (v.length >= 6 && (v.match(/\d/g) || []).length >= 2)),
-    ),
-  ];
+    if (/^(mənbə sku|sku)$/i.test(key.trim()) && /[a-z]/i.test(value)) codes.push(value.trim());
+  const seen = new Set<string>();
+  return codes.filter((code) => {
+    const v = matchText(code);
+    if (seen.has(v) || !(v.length >= 8 || (v.length >= 6 && (v.match(/\d/g) || []).length >= 2)))
+      return false;
+    seen.add(v);
+    return true;
+  });
+}
+function partNumbers(p: Product) {
+  return writtenPartNumbers(p).map(matchText);
 }
 function samePartNumber(a: Product, b: Product) {
   const right = partNumbers(b);
@@ -885,6 +889,47 @@ export function mergeDuplicateProducts(c: Catalog, matches: ProductMatch[] = [])
     ),
     reviews: c.reviews.map((r) =>
       aliases[r.productId] ? { ...r, productId: aliases[r.productId] } : r,
+    ),
+  };
+}
+// Pack size from a quantity field ("Paketdə ədəd: 2") or a "2 ədədlik paket" / "2-pack" phrase.
+function packSize(p: Product) {
+  for (const [key, value] of Object.entries(p.specs)) {
+    if (!/ədəd|say|miqdar|komplekt|paket|quantity|pack|pcs/i.test(key)) continue;
+    const count = value.match(/^\s*(\d{1,3})\s*(?:ədəd|əd\.?|pcs|pc|ad)?\s*$/i);
+    if (count && Number(count[1]) > 1) return Number(count[1]);
+  }
+  const phrase = (p.name + " " + p.description).match(
+    /\b(\d{1,3})\s*(?:ədədlik\s+(?:paket|dəst)|-?\s*pack\b|pk\b)/i,
+  );
+  return phrase && Number(phrase[1]) > 1 ? Number(phrase[1]) : 0;
+}
+// Listings that stay separate yet share a title (iSpace sells MG8G4ZD/A and MG8G4HX/A-OD as
+// "iPhone 17 Pro, 256 GB, Gümüş") get their part number and pack size under the title. A group
+// whose members cannot be told apart this way keeps its plain cards.
+export function labelSameTitleProducts(c: Catalog): Catalog {
+  const priced = new Set(c.offers.filter((o) => !o.demo).map((o) => o.productId));
+  const groups = new Map<string, Product[]>();
+  for (const p of c.products) {
+    if (!p.active || p.marketplace || !priced.has(p.id)) continue;
+    const key = sameTitleKey(p);
+    if (key) groups.set(key, [...(groups.get(key) || []), p]);
+  }
+  const labels = new Map<string, string>();
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    const labelled = group.map((p) => {
+      const pack = packSize(p);
+      return [p.id, [writtenPartNumbers(p)[0], pack && pack + " ədəd"].filter(Boolean).join(" · ")];
+    });
+    if (new Set(labelled.map(([, label]) => label)).size < 2) continue;
+    for (const [id, label] of labelled) if (label) labels.set(id, label);
+  }
+  if (!labels.size) return c;
+  return {
+    ...c,
+    products: c.products.map((p) =>
+      labels.has(p.id) ? { ...p, distinction: labels.get(p.id) } : p,
     ),
   };
 }

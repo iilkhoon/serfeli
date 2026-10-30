@@ -1,5 +1,10 @@
 import { catalog, list } from "./api/records";
-import { applyProductMatches, mergeDuplicateProducts, type ProductMatch } from "./product-matching";
+import {
+  applyProductMatches,
+  labelSameTitleProducts,
+  mergeDuplicateProducts,
+  type ProductMatch,
+} from "./product-matching";
 import type { Catalog } from "./catalog";
 
 // Rebuilding the merged catalog reads every D1 record and ~13k bundled products, so each worker
@@ -29,7 +34,9 @@ async function build(): Promise<{ value: Catalog; fallback: boolean }> {
     const [raw, matches] = await Promise.all([catalog(), list<ProductMatch>("productMatch")]);
     // Admin-approved matches first, then the duplicates that need no review.
     return {
-      value: mergeDuplicateProducts(applyProductMatches(raw, matches), matches),
+      value: labelSameTitleProducts(
+        mergeDuplicateProducts(applyProductMatches(raw, matches), matches),
+      ),
       fallback: false,
     };
   } catch (e) {

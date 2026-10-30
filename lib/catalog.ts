@@ -15,6 +15,8 @@ export type Product = {
   active: boolean;
   featured: boolean;
   familyId?: string;
+  // Part number and pack size shown under the title when another listing has the same title.
+  distinction?: string;
 };
 export type Store = {
   id: string;
