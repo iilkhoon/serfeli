@@ -237,10 +237,16 @@ function samePartNumber(a: Product, b: Product) {
   const right = partNumbers(b);
   return partNumbers(a).some((code) => right.includes(code));
 }
+const ancPattern = /\bANC\b|active noise cancel|aktiv səsboğma|aktiv səs.?küy.*boğ/i;
+const titleOf = (p: Product) => p.name + " " + (generic(p.variant) ? "" : p.variant);
+// Listings whose title is the plain model while the same store lists the ANC model separately;
+// their spec sheet was copied from the ANC model. Set by mergeDuplicateProducts.
+let plainModel = new WeakSet<Product>();
 function ancStates(p: Product) {
+  if (plainModel.has(p)) return [0];
   const states = new Set<number>();
-  const title = p.name + " " + (generic(p.variant) ? "" : p.variant);
-  if (/\bANC\b|active noise cancel|aktiv səsboğma|aktiv səs.?küy.*boğ/i.test(title))
+  const title = titleOf(p);
+  if (ancPattern.test(title))
     states.add(
       /without\s+(?:ANC|active noise)|non[- ]ANC|ANC\s*(?:yoxdur|yox|xeyr)/i.test(title) ? 0 : 1,
     );
@@ -695,6 +701,23 @@ export function mergeDuplicateProducts(c: Catalog, matches: ProductMatch[] = [])
     (p) => p.active && !p.marketplace && offers.has(p.id) && !c.productAliases?.[p.id],
   );
   const storesOf = (id: string) => new Set(offers.get(id)!.map((o) => o.storeId));
+  // A store that lists "AirPods 4" and "AirPods 4 Active Noise Cancellation" separately sells the
+  // plain model under the first title, whatever its copied spec sheet says.
+  const withoutAnc = (p: Product) =>
+    modelKey(p)
+      .split("|")
+      .map((part, i) => (i === 1 ? part.replace(/(^| )anc(?= |$)/, "").trim() : part))
+      .join("|");
+  plainModel = new WeakSet();
+  const ancTitled = new Set(
+    candidates
+      .filter((p) => ancPattern.test(titleOf(p)) && modelKey(p))
+      .flatMap((p) => [...storesOf(p.id)].map((s) => s + "\n" + withoutAnc(p))),
+  );
+  for (const p of candidates) {
+    if (ancPattern.test(titleOf(p)) || !modelKey(p)) continue;
+    if ([...storesOf(p.id)].some((s) => ancTitled.has(s + "\n" + modelKey(p)))) plainModel.add(p);
+  }
   const best = (p: Product) => {
     const selected = [...offers.get(p.id)!].sort(compareOffer)[0];
     return [availableOffer(selected) ? 0 : 1, selected.price];

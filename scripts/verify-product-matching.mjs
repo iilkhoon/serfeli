@@ -778,6 +778,12 @@ const podsFolded = m.mergeDuplicateProducts({
     pods("baku-plain", "Simsiz qulaqlıq Apple AirPods 4 White (MXP63ZE/A)"),
     pods("irshad-5", "Apple AirPods 5 MKFW4ZE/A"),
     pods("baku-5", "Simsiz qulaqlıq Apple AirPods 5 (MKFW4ZE/A)"),
+    // One store lists both models; the plain one carries the ANC model's spec sheet.
+    pods("tm-plain", "Apple AirPods 4", {
+      variant: "Ağ",
+      specs: { "Aktiv Səs-küy Boğucu (ANC)": "Adaptiv ANC" },
+    }),
+    pods("tm-anc", "Apple AirPods 4 Active Noise Cancellation", { variant: "Ağ" }),
   ],
   offers: [
     offer("baku-anc", "one"),
@@ -786,6 +792,8 @@ const podsFolded = m.mergeDuplicateProducts({
     offer("baku-plain", "one"),
     offer("irshad-5", "two"),
     offer("baku-5", "one"),
+    offer("tm-plain", "four"),
+    offer("tm-anc", "four"),
   ],
 });
 assert.deepEqual(
@@ -798,6 +806,8 @@ assert.deepEqual(
 assert.equal(podsFolded.productAliases["ispace-anc"], "baku-anc");
 assert.equal(podsFolded.productAliases["soliton-anc"], "baku-anc");
 assert.equal(podsFolded.productAliases["irshad-5"], "baku-5");
+assert.equal(podsFolded.productAliases["tm-plain"], "baku-plain");
+assert.equal(podsFolded.productAliases["tm-anc"], "baku-anc");
 // A store's own brand field does not split two copies of one model title.
 const titled = m.mergeDuplicateProducts({
   ...catalog(),
