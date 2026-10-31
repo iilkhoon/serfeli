@@ -20,8 +20,10 @@ import {
 import { categories, validOffers, money, type Product } from "../lib/catalog";
 import { rankProductsByStoreCount, type CatalogSlice } from "../lib/catalog-query";
 import { CategoryIcon, StoreLogo } from "./ui";
+import { ProductImage } from "../components/product-image";
+import { azNumber } from "../components/format";
 const tones = ["#eee6f4", "#f9e7db", "#e4efeb", "#f8edcd", "#e7ebf5", "#f4e4ec"];
-const number = (n: number) => n.toLocaleString("az-AZ");
+const number = azNumber;
 export default function Home({
   catalog: c,
   city,
@@ -205,16 +207,18 @@ export default function Home({
               <a href={"/mehsul/" + selected.id} className="q-spotlight-image">
                 <span className="q-ring q-ring-one" />
                 <span className="q-ring q-ring-two" />
-                <img
+                <ProductImage
                   src={selected.image}
                   alt={selected.name}
-                  width="260"
-                  height="240"
+                  width={260}
+                  height={240}
                   fetchPriority="high"
                 />
               </a>
               <div className="q-spotlight-copy">
-                <span className="q-product-brand">{selected.brand}</span>
+                <span className="q-product-brand" lang="en">
+                  {selected.brand}
+                </span>
                 <a href={"/mehsul/" + selected.id}>
                   <h2>{selected.name}</h2>
                 </a>

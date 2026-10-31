@@ -6,12 +6,14 @@ import {
   isProductCandidate,
   parseSitemap,
   discoverCategoryLinks,
+  categoryPagesFromSitemap,
 } from "./crawl-sources";
 import {
   scanProduct,
   readMerchantSitemap,
   merchantPage,
   SourceAccessError,
+  crawlDelayMs,
   type ScannedProduct,
 } from "./extractor";
 import { brandFromName, extractListing, listingCategories } from "./listing-sources";
@@ -23,8 +25,12 @@ export type CrawlJob = {
   sourceId: string;
   status: Status;
   phase: "discovering" | "importing";
-  queue: { url: string; html?: boolean }[];
+  // advertised: a sitemap listed by a sitemap index (robots.txt rules were applied to the index).
+  queue: { url: string; html?: boolean; advertised?: boolean }[];
   seen: string[];
+  // Product URLs already queued from category pages, so overlapping categories are read once.
+  found?: string[];
+  listingPages?: number;
   chunkCount: number;
   cursorChunk: number;
   cursorOffset: number;
@@ -75,7 +81,7 @@ async function getJob(db: D1Database, id: string) {
   return JSON.parse(row.payload) as CrawlJob;
 }
 export function jobSummary(j: CrawlJob) {
-  const { queue, seen, recent, leaseToken, ...value } = j;
+  const { queue, seen, recent, leaseToken, found, ...value } = j;
   return { ...value, pendingMaps: queue.length, readMaps: seen.length, recent: recent.slice(-6) };
 }
 export type CrawlRuntime = {
@@ -181,9 +187,37 @@ export async function controlCrawlJob(
   }
   return jobSummary(await getJob(db, id));
 }
+// Offers of this store that a finished run did not see again are no longer known to be in stock.
+// Skipped when the run imported (almost) nothing, so a broken parser or an empty sitemap cannot
+// wipe a store; the age sweep in tickDueCrawlJobs covers those cases later.
+function expireUnseenOffers(db: D1Database, j: CrawlJob) {
+  if (!(j.imported > 0 && j.imported * 10 >= j.imported + j.failed)) return [];
+  return [
+    db
+      .prepare(
+        "UPDATE records SET payload=json_set(payload,'$.stock',json('false'),'$.stockKnown',json('false')),updated_at=? WHERE kind='offer' AND json_extract(payload,'$.storeId')=? AND coalesce(json_extract(payload,'$.demo'),0)=0 AND json_extract(payload,'$.checkedAt')<? AND (coalesce(json_extract(payload,'$.stock'),0)=1 OR coalesce(json_extract(payload,'$.stockKnown'),1)=1) AND EXISTS(SELECT 1 FROM records WHERE id=? AND json_extract(payload,'$.leaseToken')=?)",
+      )
+      .bind(Date.now(), j.sourceId, j.createdAt, key(j.id), j.leaseToken || ""),
+  ];
+}
+// Offers of a crawled store older than this are shown as unknown stock even when no run finished
+// (blocked or paused source).
+export const offerMaxAgeMs = (refreshHours: number) => Math.max(7 * 24, refreshHours * 3) * 3600000;
+export async function expireStaleOffers(db: D1Database, now = Date.now()) {
+  const statements = crawlSources.map((source) =>
+    db
+      .prepare(
+        "UPDATE records SET payload=json_set(payload,'$.stock',json('false'),'$.stockKnown',json('false')),updated_at=? WHERE kind='offer' AND json_extract(payload,'$.storeId')=? AND coalesce(json_extract(payload,'$.demo'),0)=0 AND json_extract(payload,'$.checkedAt')<? AND (coalesce(json_extract(payload,'$.stock'),0)=1 OR coalesce(json_extract(payload,'$.stockKnown'),1)=1)",
+      )
+      .bind(now, source.id, new Date(now - offerMaxAgeMs(source.refreshHours)).toISOString()),
+  );
+  const results = await db.batch(statements);
+  return results.reduce((n, r) => n + (r.meta?.changes || 0), 0);
+}
 async function saveJob(db: D1Database, j: CrawlJob, statements: D1PreparedStatement[] = []) {
   j.updatedAt = new Date().toISOString();
   j.leaseUntil = 0;
+  if (j.status === "complete") statements = [...statements, ...expireUnseenOffers(db, j)];
   const value = encode(j);
   const update = db
     .prepare(
@@ -244,6 +278,13 @@ async function identity(sourceId: string, url: string) {
       .join("")
   );
 }
+// A single product that must not be written (its identity changed); the run continues.
+class SkipItemError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SkipItemError";
+  }
+}
 function remember(j: CrawlJob, url: string, message: string) {
   j.lastError = message;
   j.recent = [...j.recent, { url, error: message }].slice(-20);
@@ -260,7 +301,7 @@ async function productStatements(
   const source = crawlSources.find((s) => s.id === j.sourceId)!;
   const known = knownSourceProduct(j.sourceId, url);
   if (known?.offer.sourceSku && rich.sku && known.offer.sourceSku !== rich.sku)
-    throw new Error("Mənbə SKU-su dəyişib; variantın uyğunluğu yoxlanmalıdır.");
+    throw new SkipItemError("Mənbə SKU-su dəyişib; variantın uyğunluğu yoxlanmalıdır.");
   const pid =
     known?.product?.id ||
     (await identity(j.sourceId, url + (rich.variantId ? "#variant-" + rich.variantId : "")));
@@ -418,14 +459,19 @@ export async function tickCrawlJob(db: D1Database, id: string) {
   j = await getJob(db, id);
   if (j.leaseToken !== leaseToken) return jobSummary(j);
   const guard = { id, token: leaseToken };
-  const source = crawlSources.find((s) => s.id === j.sourceId)!;
+  const source = crawlSources.find((s) => s.id === j.sourceId);
+  if (!source) {
+    j.status = "blocked";
+    remember(j, j.sourceId, "Mənbə konfiqurasiyadan çıxarılıb.");
+    return await saveJob(db, j);
+  }
   const host = new URL(source.root).hostname;
   const statements: D1PreparedStatement[] = [];
   if (!(await acquireHost(db, host, leaseToken))) {
     j.nextRunAt = Date.now() + 2000;
     return await saveJob(db, j);
   }
-  const minimumDelay = source.intervalMs ?? 1500;
+  let minimumDelay = Math.max(source.intervalMs ?? 1500, crawlDelayMs(host));
   let nextDelay: number = minimumDelay;
   let stage: "fetch" | "persist" = "fetch";
   try {
@@ -447,6 +493,9 @@ export async function tickCrawlJob(db: D1Database, id: string) {
       j.lastUrl = current.url;
       let products: string[] = [];
       if (current.html && source.listing) {
+        // Category pages are not remembered in seen; this cap ends a run whose pages never stop.
+        j.listingPages = (j.listingPages || 0) + 1;
+        if (j.listingPages > 5000) throw new Error("Kateqoriya səhifəsi limitinə çatıldı.");
         const listing = extractListing(
           j.sourceId,
           await merchantPage(current.url, {
@@ -456,12 +505,28 @@ export async function tickCrawlJob(db: D1Database, id: string) {
           current.url,
         );
         stage = "persist";
-        for (const item of listing.items)
-          statements.push(
-            ...(await productStatements(db, j, item.url!, item, j.id + "-" + item.sku, guard)),
-          );
+        let skipped = 0;
+        for (const item of listing.items) {
+          try {
+            statements.push(
+              ...(await productStatements(
+                db,
+                j,
+                item.url!,
+                item,
+                j.id + "-" + (item.sku || item.url) + (item.variantId ? "-" + item.variantId : ""),
+                guard,
+              )),
+            );
+          } catch (error) {
+            if (!(error instanceof SkipItemError)) throw error;
+            skipped++;
+            j.failed++;
+            remember(j, item.url!, error.message);
+          }
+        }
         statements.push(...(await recordStatements(db, j, listing.records, guard)));
-        const rows = listing.items.length + (listing.records?.products.length || 0);
+        const rows = listing.items.length - skipped + (listing.records?.products.length || 0);
         while (statements.length > 40) await db.batch(statements.splice(0, 40));
         for (const url of listing.pages)
           if (!j.queue.some((x) => x.url === url)) j.queue.push({ url, html: true });
@@ -474,28 +539,33 @@ export async function tickCrawlJob(db: D1Database, id: string) {
           current.url,
           await merchantPage(current.url),
         );
-        products = links.products;
+        const found = new Set(j.found || []);
+        products = links.products.filter((u) => !found.has(u));
+        j.found = [...found, ...products].slice(-10000);
         for (const url of links.pages)
           if (!j.seen.includes(url) && !j.queue.some((x) => x.url === url))
             j.queue.push({ url, html: true });
       } else {
-        const parsed = parseSitemap(await readMerchantSitemap(current.url));
+        const parsed = parseSitemap(
+          await readMerchantSitemap(current.url, { advertised: current.advertised }),
+        );
         const locs = [...new Set(parsed.locs.filter((u) => sourceUrlAllowed(j.sourceId, u)))];
         if (parsed.index) {
           for (const url of locs)
-            if (!j.seen.includes(url) && !j.queue.some((x) => x.url === url)) j.queue.push({ url });
+            if (!j.seen.includes(url) && !j.queue.some((x) => x.url === url))
+              j.queue.push({ url, advertised: true });
         } else if (source.listing) {
           for (const url of listingCategories(j.sourceId, locs))
             if (!j.queue.some((x) => x.url === url)) j.queue.push({ url, html: true });
         } else {
           products = locs.filter((u) => isProductCandidate(j.sourceId, u));
-          if (j.sourceId === "bytelecom")
-            for (const url of locs.filter((u) => new URL(u).pathname.startsWith("/category/")))
-              if (!j.seen.includes(url) && !j.queue.some((x) => x.url === url))
-                j.queue.push({ url, html: true });
+          for (const url of categoryPagesFromSitemap(j.sourceId, locs))
+            if (!j.seen.includes(url) && !j.queue.some((x) => x.url === url))
+              j.queue.push({ url, html: true });
         }
       }
       stage = "persist";
+      nextDelay = minimumDelay = Math.max(minimumDelay, crawlDelayMs(host));
       const chunks: D1PreparedStatement[] = [];
       for (let i = 0; i < products.length; i += 1000) {
         chunks.push(
@@ -538,6 +608,7 @@ export async function tickCrawlJob(db: D1Database, id: string) {
     const parsed = await scanProduct(url, { variants: true });
     const variants = parsed.variants || [parsed];
     if (variants.some((p) => !String(p.name || "").trim())) throw new Error("Məhsul adı boşdur.");
+    nextDelay = minimumDelay = Math.max(minimumDelay, crawlDelayMs(host));
     stage = "persist";
     for (let variantIndex = 0; variantIndex < variants.length; variantIndex++)
       statements.push(
@@ -569,24 +640,28 @@ export async function tickCrawlJob(db: D1Database, id: string) {
     const latest = await getJob(db, id);
     if (latest.leaseToken !== leaseToken) return jobSummary(latest);
     const message = e.message || "Mənbə oxunmadı.";
-    if (stage === "persist") {
+    minimumDelay = Math.max(minimumDelay, crawlDelayMs(host));
+    nextDelay = minimumDelay;
+    if (stage === "persist" && !(e instanceof SkipItemError)) {
       const restored = await getJob(db, id);
       restored.status = "blocked";
       remember(restored, j.lastUrl || source.root, "Saxlama xətası: " + message);
       return await saveJob(db, restored);
     }
     remember(j, j.lastUrl || source.root, message);
-    if (access && (access.status === 403 || access.status === 401)) {
+    // Owner rule: 401/403/429 and bot challenges stop the source; it is never retried around them.
+    if (access && ([401, 403, 429].includes(access.status) || access.challenge)) {
       j.status = "blocked";
     } else if (
-      (access && (access.status === 429 || access.status >= 500)) ||
+      (access && access.status >= 500) ||
       ["AbortError", "TimeoutError", "TypeError"].includes(e.name)
     ) {
       j.retryCount++;
-      nextDelay =
-        access?.status === 429
-          ? Math.max(minimumDelay, access.retryAfterMs)
-          : Math.max(minimumDelay, Math.min(60000, 2000 * 2 ** j.retryCount));
+      nextDelay = Math.max(
+        minimumDelay,
+        access?.retryAfterMs || 0,
+        Math.min(60000, 2000 * 2 ** j.retryCount),
+      );
       j.status = j.retryCount >= 5 ? "blocked" : "waiting";
       j.nextRunAt = Date.now() + nextDelay;
     } else {
@@ -618,8 +693,8 @@ export async function tickCrawlJob(db: D1Database, id: string) {
   }
 }
 const activeStatuses: Status[] = ["discovering", "importing", "waiting"];
-// Starts a new run for every source whose latest run finished more than refreshHours ago. Paused or
-// blocked runs are left for the admin to decide.
+// Starts the first run of every configured source and a new run for every source whose latest run
+// finished more than refreshHours ago. Paused or blocked runs are left for the admin to decide.
 export async function startDueRefreshes(db: D1Database, now = Date.now()) {
   const rows = await db
     .prepare(
@@ -631,8 +706,8 @@ export async function startDueRefreshes(db: D1Database, now = Date.now()) {
   const started: string[] = [];
   for (const source of crawlSources) {
     const last = latest.get(source.id);
-    if (!last || last.status !== "complete") continue;
-    if (now - Date.parse(last.updatedAt) < source.refreshHours * 3600000) continue;
+    if (last && last.status !== "complete") continue;
+    if (last && now - Date.parse(last.updatedAt) < source.refreshHours * 3600000) continue;
     await startCrawlJob(db, source.id);
     started.push(source.id);
   }
@@ -653,6 +728,7 @@ export async function tickDueCrawlJobs(db: D1Database, budgetMs = 45000) {
   await put(db, "crawlRuntime", "scheduled", runtime).run();
   try {
     await materializeCatalog(db);
+    await expireStaleOffers(db);
     await startDueRefreshes(db);
     const rows = await db
       .prepare(

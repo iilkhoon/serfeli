@@ -197,7 +197,9 @@ export function extractIrshadListingPage(html: string, pageUrl: string): Listing
   const { products } = extractIrshadListing(html);
   const next = html.match(/<button\b[^>]*\bid=["']loadMore["'][^>]*\bdata-page=["'](\d+)["']/i);
   const pages: string[] = [];
-  if (next) {
+  const current = Number(new URL(pageUrl).searchParams.get("page") || "1");
+  // Only forward: a button that points back (or to the same page) would loop the run.
+  if (next && Number(next[1]) > current) {
     const url = new URL(pageUrl);
     url.searchParams.set("page", next[1]);
     pages.push(url.href);

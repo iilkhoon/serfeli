@@ -14,7 +14,7 @@ async function call(path, body, auth = true) {
   });
   return { status: r.status, data: await r.json() };
 }
-assert.equal((await call("admin/jobs", undefined, false)).status, 403);
+assert.equal((await call("admin/jobs", undefined, false)).status, 401);
 assert.equal((await call("admin/jobs/start", { sourceId: "soliton" }, false)).status, 401);
 assert.equal((await call("admin/jobs/start", { sourceId: "evil" })).status, 400);
 const starts = await Promise.all([

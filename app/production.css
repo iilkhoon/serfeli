@@ -590,3 +590,260 @@ input[type="radio"] {
     transform: none;
   }
 }
+
+/* ---- Production polish layer (accessibility, empty/loading states, offers on phones) ---- */
+.skip-link {
+  position: absolute;
+  left: var(--space-4);
+  top: -60px;
+  z-index: 100;
+  padding: 10px var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--primary);
+  color: var(--on-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: var(--space-2);
+}
+#main-content:focus {
+  outline: none;
+}
+/* Brand labels carry lang="en": Azerbaijani uppercase would turn "Xiaomi" into "XİAOMİ". */
+.top-strip .locale {
+  cursor: default;
+}
+/* Missing or blocked store photo keeps the card height instead of showing broken alt text. */
+.image-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin: auto;
+  aspect-ratio: 1;
+  border-radius: var(--radius-control);
+  background: var(--primary-soft);
+  color: var(--muted);
+}
+.image-fallback small {
+  font-size: 12px;
+}
+.alert-row .image-fallback,
+.alert-product .image-fallback,
+.compare-table .image-fallback {
+  width: 64px;
+  height: 64px;
+  aspect-ratio: auto;
+}
+:is(.alert-row, .alert-product, .compare-table) .image-fallback small {
+  display: none;
+}
+.merchant-logo.symbol-logo > span:not([hidden]) {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+/* Badges and prices never break mid-amount. */
+.badge,
+.card-price strong,
+.offer-price > strong,
+.detail-price > strong {
+  white-space: nowrap;
+}
+.q-section-title > a,
+.section-heading > a {
+  white-space: nowrap;
+}
+/* Listing: visible sort label, loading feedback, empty state without dead controls. */
+.sort-control {
+  display: grid;
+  gap: var(--space-1);
+  font-size: 13px;
+  color: var(--muted);
+}
+.sort-control > select {
+  min-width: 220px;
+  min-height: var(--touch-target);
+}
+.page-heading .text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--primary);
+}
+.catalog-results[aria-busy="true"] .product-grid {
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity var(--motion-fast);
+}
+.mobile-filterbar.is-hidden {
+  display: none;
+}
+.catalog-layout.no-filters {
+  grid-template-columns: minmax(0, 1fr);
+}
+.empty-suggestions {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+}
+.empty-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+.empty-chips > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  text-decoration: none;
+}
+.empty-chips > a:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.catalog-page-actions > .is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+/* Offers: stock state reads by icon and color, not by color alone. */
+.offer-terms > .stock-out {
+  color: var(--danger);
+}
+.offer-terms > .stock-unknown {
+  color: var(--warning);
+}
+/* Price history chart uses the semantic tokens. */
+.price-chart .chart-grid {
+  stroke: var(--line);
+}
+.price-chart .chart-line {
+  stroke: var(--success);
+}
+.price-chart .chart-dot {
+  fill: var(--success);
+}
+.price-chart .chart-label {
+  fill: var(--muted);
+  font-size: 9px;
+  font-family: var(--body);
+}
+@media (max-width: 760px) {
+  .sort-control {
+    width: 100%;
+  }
+  .sort-control > select {
+    width: 100%;
+    min-width: 0;
+    font-size: 14px;
+  }
+  /* Tabs scroll sideways instead of squeezing four labels into 360 px. */
+  .detail-tabs {
+    justify-content: flex-start;
+    gap: var(--space-4);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .detail-tabs > :is(button, a) {
+    flex: 0 0 auto;
+    font-size: 13px;
+    min-height: var(--touch-target);
+  }
+  .detail-tabs > :is(button, a) > span {
+    font-size: 11px;
+  }
+  .detail-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--touch-target);
+  }
+  .detail-actions .dark-button,
+  .detail-actions .outline-button {
+    padding-inline: var(--space-2);
+    font-size: 13px;
+  }
+  .offer-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+  .offer-toolbar > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+  }
+  .offer-toolbar .check-label {
+    font-size: 13px;
+    min-height: var(--touch-target);
+  }
+  .offer-toolbar > select {
+    width: 100%;
+    font-size: 14px;
+    min-height: var(--touch-target);
+  }
+  /* Phone offer card: store + price on top, terms full width, button last. */
+  .offer-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+  .offer-store > .badge {
+    font-size: 11px;
+  }
+  .offer-price > small,
+  .offer-price > span {
+    font-size: 12px;
+  }
+  .offer-terms {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .offer-terms > b {
+    font-size: 12px;
+  }
+  .offer-terms > span {
+    font-size: 13px;
+    gap: 6px;
+  }
+  .offer-installment {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    text-align: left;
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--line);
+  }
+  .offer-installment > span {
+    font-size: 13px;
+  }
+  .offer-installment > small {
+    font-size: 12px;
+  }
+  .offer-row > .dark-button,
+  .offer-row > .outline-button {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    font-size: 14px;
+    min-height: var(--touch-target);
+  }
+  .price-chart .chart-label {
+    font-size: 24px;
+  }
+}
+.history-note {
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--primary-soft);
+  font-size: 13px;
+}

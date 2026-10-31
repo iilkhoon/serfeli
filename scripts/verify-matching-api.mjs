@@ -24,7 +24,7 @@ async function api(path, body, authenticated = true, origin = base) {
   return { status: response.status, data };
 }
 assert.equal((await api("bootstrap", {})).status, 200);
-assert.equal((await api("admin/matches", undefined, false)).status, 403);
+assert.equal((await api("admin/matches", undefined, false)).status, 401);
 assert.equal(
   (await api("admin/matches", { action: "revoke", id: "qa-match-b" }, false)).status,
   401,
@@ -62,7 +62,9 @@ const products = ids.map((id) => ({
   brand: "QA Matching",
   category: "telefon",
   variant: "128 GB · Black",
-  specs: { MPN: "QAMATCH-ZX128-BLACK", Yaddaş: "128 GB", Rəng: "Black" },
+  // A shared MPN or a full variant would be folded automatically; RAM stated by only one store
+  // keeps the pair in manual review.
+  specs: { ...(id === "qa-match-b" ? { RAM: "8 GB" } : {}), Yaddaş: "128 GB", Rəng: "Black" },
   image: "/favicon.svg",
   description: "Local automated fixture; removed after verification.",
   active: true,

@@ -32,10 +32,12 @@
     "pageTitle": "Almali.az - Telefonlar, Elektronika, Məişət Texnikası Bakida",
     "logoSource": "https://almali.az/wp-content/uploads/2021/06/newlogo.png",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "crawl_connected",
     "isPartner": false,
     "logo": "/logos/almali.png",
-    "logoBytes": 4832
+    "logoBytes": 4832,
+    "priceSource": "sitemap_index.xml + məhsul səhifəsinin AZN qiymət bloku (JSON-LD USD göstərir)",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "aztech",
@@ -51,10 +53,12 @@
     "pageTitle": "Noutbuklar, Kompüterlər və Aksesuarların satışı - Aztech.az",
     "logoSource": "https://aztech.az/wp-content/uploads/aztech-logo-98.svg",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "no_public_data",
     "isPartner": false,
     "logo": "/logos/aztech.svg",
-    "logoBytes": 23129
+    "logoBytes": 23129,
+    "sourceNote": "aztech.az korporativ blogdur (məhsul yoxdur); mağaza ayrıca aztechshop.az domenindədir və sitemap-i boşdur.",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "barkod",
@@ -70,10 +74,12 @@
     "pageTitle": "Barkod Electronics – Elektronika Mağazası | Telefon, Noutbuk, TV və Məişət Texnikası | Barkod Electronics",
     "logoSource": "https://www.barkodelectronics.az/images/barkodLogo.png",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "no_public_data",
     "isPartner": false,
     "logo": "/logos/barkod.png",
-    "logoBytes": 25194
+    "logoBytes": 25194,
+    "sourceNote": "Sitemap yoxdur (404); kateqoriya siyahısı brauzerdə JavaScript ilə yüklənir, açıq kəşf yolu yoxdur.",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "bestel",
@@ -89,10 +95,12 @@
     "pageTitle": "Bestel - onlayn elektronika mağazası",
     "logoSource": "https://bestel.az/_nuxt/img/logo.d8d4e8f.svg",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "crawl_connected",
     "isPartner": false,
     "logo": "/logos/bestel.svg",
-    "logoBytes": 5000
+    "logoBytes": 5000,
+    "priceSource": "Kateqoriya səhifələri (?page=N) + məhsul səhifəsinin HTML qiymət bloku (sitemap yoxdur)",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "bytelecom",
@@ -165,11 +173,13 @@
     "pageTitle": "Digital home",
     "logoSource": "https://onexshops.com/onex-logo.png",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "crawl_connected",
     "isPartner": false,
     "logo": "/logos/digitalhome.png",
     "logoBytes": 246932,
-    "verificationNote": "Current digitalhome.az HTTP200 homepage displays oneX mark from onexshops.com and oneX products; directory name reflects current rendered brand."
+    "verificationNote": "Current digitalhome.az HTTP200 homepage displays oneX mark from onexshops.com and oneX products; directory name reflects current rendered brand.",
+    "priceSource": "sitemap.xml + məhsul səhifəsinin JSON-LD məlumatı",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "elitoptimal",
@@ -185,10 +195,12 @@
     "pageTitle": "Elit Optimal",
     "logoSource": "https://www.elitoptimal.az/images/logo.svg",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "blocked",
     "isPartner": false,
     "logo": "/logos/elitoptimal.svg",
-    "logoBytes": 4782
+    "logoBytes": 4782,
+    "sourceNote": "Cloudflare yoxlaması (challenge); keçilmir.",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "eraelectronics",
@@ -204,10 +216,12 @@
     "pageTitle": "ERA Electronics - Məişət texnikasının asan seçimi",
     "logoSource": "https://eraelectronics.az/image/catalog/eraf21-kopija.png",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "crawl_connected",
     "isPartner": false,
     "logo": "/logos/eraelectronics.png",
-    "logoBytes": 51051
+    "logoBytes": 51051,
+    "priceSource": "Sitemap (OpenCart google_sitemap) + məhsul səhifəsinin HTML qiymət bloku",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "eurolux",
@@ -261,10 +275,12 @@
     "pageTitle": "Aylıq ödənişlə məişət texnikası və elektronika | Minor Electronics | Minorstore",
     "logoSource": "https://minorstore.az/uploads/30f152b12a6658683733f621fa46f76f.png",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "crawl_connected",
     "isPartner": false,
     "logo": "/logos/minorstore.png",
-    "logoBytes": 112114
+    "logoBytes": 112114,
+    "priceSource": "sitemap.xml + məhsul səhifəsinin JSON-LD məlumatı",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "mobifon",
@@ -280,10 +296,12 @@
     "pageTitle": "MOBİFON",
     "logoSource": "https://www.mobifon.az/assets/img/png-electronics2.png?1",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "crawl_connected",
     "isPartner": false,
     "logo": "/logos/mobifon.png",
-    "logoBytes": 10204
+    "logoBytes": 10204,
+    "priceSource": "Kateqoriya səhifələri + məhsul səhifəsinin HTML qiymət bloku (sitemap yoxdur)",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "mgstore",
@@ -318,11 +336,13 @@
     "pageTitle": "MyShops",
     "logoSource": "https://myshops.az/images/favicon.png",
     "logoKind": "official_site_favicon",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "blocked",
     "isPartner": false,
     "logo": "/logos/myshops-official.png",
     "logoBytes": 615,
-    "verificationNote": "Company official page links myshops.az; /az responds200 and declares this favicon."
+    "verificationNote": "Company official page links myshops.az; /az responds200 and declares this favicon.",
+    "sourceNote": "Cloudflare yoxlaması (challenge); keçilmir.",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "nano",
@@ -338,10 +358,12 @@
     "pageTitle": "NANO ICT — noutbuk, kompüter və interaktiv lövhələr Bakıda",
     "logoSource": "https://nano.az/images/logo.png",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "crawl_connected",
     "isPartner": false,
     "logo": "/logos/nano.png",
-    "logoBytes": 38602
+    "logoBytes": 38602,
+    "priceSource": "sitemap.xml + məhsul səhifəsinin JSON-LD məlumatı",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "okim",
@@ -357,10 +379,12 @@
     "pageTitle": "✈️Elektronika, məişət texnikası, konsidionerlər, robot tozsoranların satışı",
     "logoSource": "https://okim.az/image/catalog/logo/logos.png",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "crawl_connected",
     "isPartner": false,
     "logo": "/logos/okim.png",
-    "logoBytes": 5470
+    "logoBytes": 5470,
+    "priceSource": "sitemap.xml + məhsul səhifəsinin HTML qiymət bloku",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "playroom",
@@ -376,10 +400,12 @@
     "pageTitle": "PlayRoom | Playstation Aləmi",
     "logoSource": "https://cdn.playroom.az/era_cms_assets/site_fb_logo.jpg",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "no_public_data",
     "isPartner": false,
     "logo": "/logos/playroom.jpg",
-    "logoBytes": 12708
+    "logoBytes": 12708,
+    "sourceNote": "Sitemap yoxdur; vitrin JavaScript ilə api.playroom.az-dan (başqa host) doldurulur, HTML-də məhsul yoxdur.",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "seehome",
@@ -434,10 +460,12 @@
     "pageTitle": "Smarton - Məişət texnikası və elektronika satışı.  Baku, Azərbaycan.",
     "logoSource": "https://smarton.az/images/svg-icons/logo.svg",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "crawl_connected",
     "isPartner": false,
     "logo": "/logos/smarton.svg",
-    "logoBytes": 6321
+    "logoBytes": 6321,
+    "priceSource": "sitemap.xml + məhsul səhifəsinin JSON-LD məlumatı; Crawl-delay: 30 saxlanılır",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "smeg",
@@ -453,11 +481,13 @@
     "pageTitle": "Smeg Azərbaycan",
     "logoSource": "https://static.tildacdn.net/tild6338-6664-4163-a564-613931303565/new_menu_logo_bianco.png",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "crawl_connected",
     "isPartner": false,
     "logo": "/logos/smeg.png",
     "logoBytes": 12700,
-    "logoBackground": "#202020"
+    "logoBackground": "#202020",
+    "priceSource": "sitemap-store.xml + məhsul səhifəsinin schema.org mikrodatası",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "techbar",
@@ -492,10 +522,12 @@
     "pageTitle": "Technolife.az - Texnoloji Fürsətlər Dünyası!",
     "logoSource": "https://technolife.az/wp-content/uploads/2023/09/technolife_logo_new.png",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "blocked",
     "isPartner": false,
     "logo": "/logos/technolife.png",
-    "logoBytes": 4005
+    "logoBytes": 4005,
+    "sourceNote": "Ana səhifədən başqa bütün ünvanlar (sitemap, kateqoriya, məhsul) bota HTTP 404 qaytarır; keçilmir.",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "telehome",
@@ -511,10 +543,12 @@
     "pageTitle": "Telehome Azerbaijan | Elektronika və məişət texnikası",
     "logoSource": "https://telehome.az/brand/optimized/nav-logo.webp",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "crawl_connected",
     "isPartner": false,
     "logo": "/logos/telehome.webp",
-    "logoBytes": 8666
+    "logoBytes": 8666,
+    "priceSource": "sitemap.xml + məhsul səhifəsinin JSON-LD məlumatı",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "texnohome",
@@ -530,10 +564,12 @@
     "pageTitle": "Texno Home — Onlayn Elektronika və Məişət Texnikası Mağazası",
     "logoSource": "https://texnohome.az/icon.svg?5c027b7a04c0f3a4",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "crawl_connected",
     "isPartner": false,
     "logo": "/logos/texnohome.svg",
-    "logoBytes": 952
+    "logoBytes": 952,
+    "priceSource": "sitemap.xml + məhsul səhifəsinin JSON-LD məlumatı (/api/ istifadə olunmur)",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "ultrastore",
@@ -549,10 +585,12 @@
     "pageTitle": "Ultrastore - Onlayn satış mərkəzi",
     "logoSource": "https://ultrastore.az/image/catalog/LOGO/Ultrastore/logo - черный 180х180.jpg",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "crawl_connected",
     "isPartner": false,
     "logo": "/logos/ultrastore.jpg",
-    "logoBytes": 11305
+    "logoBytes": 11305,
+    "priceSource": "sitemap.xml + məhsul səhifəsinin JSON-LD Product/Offer məlumatı",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "worldtelecom",
@@ -568,10 +606,12 @@
     "pageTitle": "World Telecom w-t.az",
     "logoSource": "https://w-t.az/img/logo-main.svg",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "crawl_connected",
     "isPartner": false,
     "logo": "/logos/worldtelecom.svg",
-    "logoBytes": 2184
+    "logoBytes": 2184,
+    "priceSource": "Kateqoriya səhifələri (?page=N) + məhsul səhifəsinin HTML qiymət bloku (sitemap köhnədir)",
+    "sourceCheckedAt": "2026-10-31"
   },
   {
     "id": "xiaomi-store",
@@ -587,9 +627,11 @@
     "pageTitle": "Xiaomi Aləmi",
     "logoSource": "https://xiaomi.az/image/catalog/xiaomi-logo4.jpg",
     "logoKind": "official_site_asset",
-    "priceIntegration": "not_connected",
+    "priceIntegration": "crawl_connected",
     "isPartner": false,
     "logo": "/logos/xiaomi-store.jpg",
-    "logoBytes": 11348
+    "logoBytes": 11348,
+    "priceSource": "Sitemap (OpenCart google_sitemap) + məhsul səhifəsinin schema.org mikrodatası",
+    "sourceCheckedAt": "2026-10-31"
   }
 ]

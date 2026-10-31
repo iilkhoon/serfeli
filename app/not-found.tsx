@@ -1,3 +1,9 @@
+import type { Metadata } from "next";
+export const metadata: Metadata = {
+  title: "Səhifə tapılmadı | Qəpik",
+  description: "Axtardığınız səhifə Qəpik-də mövcud deyil.",
+  robots: { index: false, follow: true },
+};
 export default function NotFound() {
   return (
     <main className="shell empty" style={{ marginTop: 60, marginBottom: 60 }}>

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   X,
   BookOpen,
@@ -28,27 +28,29 @@ import { merchantLogos } from "../lib/merchants";
 export function StoreLogo({ store }: { store: Store }) {
   const asset = merchantLogos[store.id];
   const wordmark = asset?.wordmark ?? (logoTypes as Record<string, boolean>)[store.id] ?? false;
+  const src = store.logo || asset?.src;
+  const ref = useRef<HTMLImageElement>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const img = ref.current;
+    // A server-rendered logo can fail before hydration, when onError is not attached yet.
+    if (img && img.complete && img.naturalWidth === 0) setFailed(true);
+  }, [src]);
+  const showImage = !!src && !failed;
   return (
     <span
-      className={"merchant-logo " + (wordmark ? "wordmark" : "symbol-logo")}
+      className={"merchant-logo " + (wordmark && showImage ? "wordmark" : "symbol-logo")}
       title={store.name}
       style={
-        store.logoBackground
+        store.logoBackground && showImage
           ? { background: store.logoBackground, padding: "8px", borderRadius: "6px" }
           : undefined
       }
     >
-      {(store.logo || asset?.src) && (
-        <img
-          src={store.logo || asset?.src}
-          alt={store.name + " loqosu"}
-          onError={(e) => {
-            e.currentTarget.style.display = "none";
-            e.currentTarget.nextElementSibling?.removeAttribute("hidden");
-          }}
-        />
+      {showImage && (
+        <img ref={ref} src={src} alt={store.name + " loqosu"} onError={() => setFailed(true)} />
       )}
-      <span hidden={wordmark}>{store.name}</span>
+      <span hidden={wordmark && showImage}>{store.name}</span>
     </span>
   );
 }

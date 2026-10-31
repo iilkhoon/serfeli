@@ -860,6 +860,302 @@ assert.equal(labelOf("cable-1"), "CAB001bt1MWH");
 assert.equal(labelOf("cable-2"), "CAB001bt1MWH2PK · 2 ədəd");
 assert.equal(labelOf("reader-1"), undefined, "no code: nothing to tell apart");
 assert.equal(labelOf("solo"), undefined, "a unique title needs no label");
+
+// Normalization: one model key whatever the store's language, unit spelling, quotes or noise.
+const key = (name, brand = "Apple", extra = {}) =>
+  m.modelKey(named("k-" + name, name, brand, extra));
+const silverPro = key("Smartfon Apple iPhone 17 Pro 256GB Silver");
+assert.ok(silverPro);
+for (const [name, brand] of [
+  ["iPhone 17 Pro, 256 GB, Gümüş", "ISPACE"],
+  ["Apple iPhone 17 Pro 256 ГБ серебристый", "Apple"],
+  ["Apple iPhone 17 Pro 256Gb SILVER rəsmi zəmanət", "Apple"],
+  ["Apple iPhone 17 Pro 256 GB Silver Original Yeni", "Apple"],
+  ['Apple "iPhone 17 Pro" 256GB, Silver', "Apple"],
+  ["Smartfon iPhone 17 Pro 256 QB Gümüşü", "Apple iPhone"],
+  ["iPhone 17 Pro 256GB Silver", "Telefon"],
+])
+  assert.equal(key(name, brand), silverPro, name);
+// Every difference that makes another product keeps another key.
+for (const name of [
+  "Apple iPhone 17 256GB Silver",
+  "Apple iPhone 17 Pro Max 256GB Silver",
+  "Apple iPhone 17 Pro 512GB Silver",
+  "Apple iPhone 17 Pro 1TB Silver",
+  "Apple iPhone 17 Pro 256GB Deep Blue",
+  "Apple iPhone 17 Pro 256GB Cosmic Orange",
+  "Apple iPhone 16 Pro 256GB Silver",
+])
+  assert.notEqual(key(name), silverPro, name);
+assert.equal(m.canonicalBrand(named("q", "Apple AirPods 4", "Qulaqlıq")), "apple");
+assert.equal(m.canonicalBrand(named("q2", "Apple MacBook Air 13 M4", "Apple Macbook")), "apple");
+assert.equal(key("Qulaqlıq Simsiz", "Qulaqlıq"), "", "a product type is not a brand");
+assert.notEqual(key("Apple AirPods 4"), key("Apple AirPods 4 ANC"));
+assert.equal(key("Apple AirPods 4 ANC"), key("Apple AirPods 4 Active Noise Cancellation"));
+assert.equal(
+  key("Apple AirPods 4 ANC"),
+  key("Qulaqlıq Apple Airpods 4 (Active Noice Cancellation)"),
+);
+assert.equal(key("Apple AirPods Pro (2nd generation)"), key("Apple AirPods Pro 2"));
+assert.equal(key("Apple AirPods Pro 2-ci nəsil"), key("Apple AirPods Pro 2"));
+assert.equal(key("Apple Watch Series 11 42 mm Black"), key("Apple Watch Series 11 42mm Qara"));
+assert.notEqual(key("Apple Watch Series 11 42mm Black"), key("Apple Watch Series 11 46mm Black"));
+assert.equal(
+  key('Apple iPad Air 11" M3 128GB Wi-Fi Blue'),
+  key("Apple iPad Air 11″ M3 128GB WiFi Mavi"),
+);
+assert.notEqual(
+  key("Apple iPad Air 11 M3 128GB Wi-Fi Blue"),
+  key("Apple iPad Air 11 M3 128GB Wi-Fi + Cellular Blue"),
+);
+assert.notEqual(
+  key("Xiaomi Redmi Note 15 Pro 12GB/512GB Black", "Xiaomi"),
+  key("Xiaomi Redmi Note 15 Pro+ 12GB/512GB Black", "Xiaomi"),
+  '"Pro+" is not "Pro"',
+);
+assert.equal(
+  key("Xiaomi Redmi Note 15 Pro+ 12GB/512GB Black", "Xiaomi"),
+  key("Xiaomi Redmi Note 15 Pro Plus 12/512GB Qara", "Xiaomi"),
+);
+assert.equal(
+  key("Televizor Samsung UE43DU7100UXRU", "Samsung"),
+  key("Televizor Samsung 43″ UE43DU7100UXRU", "Samsung"),
+  "a screen size spelled by the model code adds nothing",
+);
+assert.notEqual(key('Apple iPad Air 11" M3 128GB Blue'), key('Apple iPad Air 13" M3 128GB Blue'));
+
+// iPhone 17 Pro across five stores: one card per storage and colour, nothing across them.
+const iphones = (id, name, brand = "Apple", extra = {}) =>
+  named(id, name, brand, { category: "telefon", ...extra });
+const iphoneFold = m.mergeDuplicateProducts({
+  ...catalog(),
+  products: [
+    iphones("baku-s256", "Smartfon Apple iPhone 17 Pro 256GB SILVER"),
+    iphones("ispace-s256", "iPhone 17 Pro, 256 GB, Gümüş", "ISPACE", { sourceStoreId: "ispace" }),
+    // The variant names only the storage; the colour is in the title.
+    iphones("irshad-s256", "iPhone 17 Pro 256 GB Silver", "Apple", { variant: "256 GB" }),
+    // A store that adds the RAM size Apple does not state still sells the same phone.
+    iphones("kontakt-s256", "Apple iPhone 17 Pro 256 ГБ серебристый", "Apple", {
+      specs: { "Operativ yaddaş (RAM)": "12 GB" },
+    }),
+    iphones("tm-s256", "Apple iPhone 17 Pro 256GB", "Apple", { variant: "256 GB · Gümüşü" }),
+    iphones("baku-b256", "Smartfon Apple iPhone 17 Pro 256GB DEEP BLUE"),
+    iphones("tm-b256", "Apple iPhone 17 Pro 256GB", "Apple", { variant: "256 GB · Göy" }),
+    iphones("baku-s512", "Smartfon Apple iPhone 17 Pro 512GB SILVER"),
+    iphones("ispace-s512", "iPhone 17 Pro, 512 GB, Gümüş", "ISPACE", { sourceStoreId: "ispace" }),
+    iphones("baku-max", "Smartfon Apple iPhone 17 Pro Max 256GB SILVER"),
+    iphones("baku-17", "Smartfon Apple iPhone 17 256GB SILVER"),
+    iphones("irshad-nocolour", "iPhone 17 Pro 256 GB", "Apple", { variant: "256 GB" }),
+  ],
+  offers: [
+    offer("baku-s256", "baku"),
+    offer("ispace-s256", "ispace"),
+    offer("irshad-s256", "irshad"),
+    offer("kontakt-s256", "kontakt"),
+    offer("tm-s256", "technomania"),
+    offer("baku-b256", "baku"),
+    offer("tm-b256", "technomania"),
+    offer("baku-s512", "baku"),
+    offer("ispace-s512", "ispace"),
+    offer("baku-max", "baku"),
+    offer("baku-17", "baku"),
+    offer("irshad-nocolour", "irshad2"),
+  ],
+});
+const rootOf = (c, id) => c.productAliases[id] || id;
+const silverRoot = rootOf(iphoneFold, "baku-s256");
+for (const id of ["ispace-s256", "irshad-s256", "kontakt-s256", "tm-s256"])
+  assert.equal(rootOf(iphoneFold, id), silverRoot, id + " joins the 256 GB silver card");
+assert.equal(rootOf(iphoneFold, "ispace-s512"), "baku-s512", "512 GB silver is its own card");
+assert.equal(
+  new Set(iphoneFold.offers.filter((o) => o.productId === silverRoot).map((o) => o.storeId)).size,
+  5,
+);
+// "Deep Blue" and "Göy" are not proven the same shade; Pro Max, iPhone 17 and 512 GB stay apart.
+for (const id of ["baku-b256", "tm-b256", "baku-max", "baku-17", "irshad-nocolour"])
+  assert.notEqual(rootOf(iphoneFold, id), silverRoot, id);
+assert.notEqual(rootOf(iphoneFold, "baku-s512"), silverRoot);
+assert.equal(activeIds(iphoneFold).length, 7);
+
+// AirPods 4 and AirPods 4 ANC as stores write them without part numbers: a type word in the brand
+// field, "Noice" in brackets. The ANC listings fold together, the plain model stays apart.
+const pods4 = m.mergeDuplicateProducts({
+  ...catalog(),
+  products: [
+    pods("tm-anc4", "Apple AirPods 4 Active Noise Cancellation", { variant: "Ağ" }),
+    pods("soliton-anc4", "Qulaqlıq Apple Airpods 4 (Active Noice Cancellation) Ağ", {
+      brand: "Qulaqlıq",
+    }),
+    pods("irshad-plain4", "Apple AirPods 4", { variant: "White" }),
+    pods("baku-plain4", "Simsiz qulaqlıq Apple AirPods 4 White"),
+  ],
+  offers: [
+    offer("tm-anc4", "technomania"),
+    offer("soliton-anc4", "soliton"),
+    offer("irshad-plain4", "irshad"),
+    offer("baku-plain4", "baku"),
+  ],
+});
+assert.equal(rootOf(pods4, "soliton-anc4"), rootOf(pods4, "tm-anc4"));
+assert.equal(rootOf(pods4, "baku-plain4"), rootOf(pods4, "irshad-plain4"));
+assert.notEqual(rootOf(pods4, "tm-anc4"), rootOf(pods4, "irshad-plain4"));
+assert.equal(activeIds(pods4).length, 2);
+
+// Colours: a capitalised Azerbaijani name folds like the lower-case one ("QIRMIZI" = "Qırmızı").
+const reds = pairCatalog([
+  named("red-a", "JBL Go 4 QIRMIZI", "JBL", { category: "audio" }),
+  named("red-b", "JBL Go 4 Red", "JBL", { category: "audio" }),
+  named("blue-c", "JBL Go 4 Mavi", "JBL", { category: "audio" }),
+]);
+assert.deepEqual(activeIds(m.mergeDuplicateProducts(reds)), ["blue-c", "red-a"]);
+
+// Pack size: a 4-pack is not a single item, while "SIM Kart Sayı: 2" counts no items in the box.
+const packPair = pairCatalog([
+  named("tag-1", "Apple AirTag White", "Apple", { category: "aksesuar" }),
+  named("tag-4", "Apple AirTag 4 Pack White", "Apple", { category: "aksesuar" }),
+]);
+assert(m.checkProductPair(packPair, "tag-1", "tag-4").reasons.includes("Paketdəki say fərqlidir."));
+assert(
+  !m
+    .checkProductPair(
+      pairCatalog([
+        named("sim-a", "Samsung Galaxy A26 8GB/256GB Black", "Samsung", {
+          specs: { "SIM Kart Sayı": "2" },
+        }),
+        named("sim-b", "Samsung Galaxy A26 8GB/256GB Black", "Samsung"),
+      ]),
+      "sim-a",
+      "sim-b",
+    )
+    .reasons.includes("Paketdəki say fərqlidir."),
+);
+const twoPack = pairCatalog([
+  named("cable-a", "Belkin USB-C Cable 1m Black", "Belkin", { category: "aksesuar" }),
+  named("cable-b", "Belkin USB-C Cable 1m Black 2-pack", "Belkin", { category: "aksesuar" }),
+  named("cable-c", "Belkin USB-C Cable 1m Black 2'li paket", "Belkin", { category: "aksesuar" }),
+]);
+const twoFold = m.mergeDuplicateProducts(twoPack);
+assert.notEqual(rootOf(twoFold, "cable-a"), rootOf(twoFold, "cable-b"));
+assert.notEqual(rootOf(twoFold, "cable-a"), rootOf(twoFold, "cable-c"));
+
+// A same-store pair whose titles differ only by "+" stays apart.
+const plusStore = m.mergeDuplicateProducts({
+  ...catalog(),
+  products: [
+    named("note-pro", "Xiaomi Redmi Note 15 Pro 12GB/512GB Black", "Xiaomi", {
+      category: "telefon",
+      variant: "Black",
+    }),
+    named("note-plus", "Xiaomi Redmi Note 15 Pro+ 12GB/512GB Black", "Xiaomi", {
+      category: "telefon",
+      variant: "Black",
+    }),
+  ],
+  offers: [offer("note-pro", "seehome"), offer("note-plus", "seehome", { id: "offer-plus" })],
+});
+assert.equal(activeIds(plusStore).length, 2);
+
+// Bracketed codes: different shop codes are different SKUs, a shared measure is not a code, and
+// Samsung's "(SM-A175)" names a family, not one colour and size.
+const sameStore = (products) => ({
+  ...catalog(),
+  products,
+  offers: products.map((p) => offer(p.id, "techbar", { id: "offer-" + p.id })),
+});
+assert.equal(
+  activeIds(
+    m.mergeDuplicateProducts(
+      sameStore([
+        named("ug-1", "Cable UGREEN US304 (Silver) (70523)", "UGREEN", { category: "aksesuar" }),
+        named("ug-2", "Cable UGREEN US304 (Silver) (70525)", "UGREEN", { category: "aksesuar" }),
+      ]),
+    ),
+  ).length,
+  2,
+);
+assert.equal(
+  activeIds(
+    m.mergeDuplicateProducts(
+      sameStore([
+        named("pad-5", "2E Mouse Pad Speed D05, XL (800x450x3mm) (2E-SPEED-XL-D05-PRO)", "2E", {
+          category: "aksesuar",
+        }),
+        named("pad-7", "2E Mouse Pad Speed D07, XL (800x450x3mm) (2E-SPEED-XL-D07-PRO)", "2E", {
+          category: "aksesuar",
+        }),
+      ]),
+    ),
+  ).length,
+  2,
+);
+assert.equal(
+  activeIds(
+    m.mergeDuplicateProducts(
+      pairCatalog([
+        named("cool-bk", "DeepCool LS520 (TDP 280W) Maye Soyuducu", "Deepcool", { category: "ev" }),
+        named("cool-wh", "DeepCool LS520 WH (TDP 280W) Maye Soyuducu", "Deepcool", {
+          category: "ev",
+        }),
+      ]),
+    ),
+  ).length,
+  2,
+  '"(TDP 280W)" is not a part number',
+);
+assert.equal(
+  activeIds(
+    m.mergeDuplicateProducts(
+      pairCatalog([
+        named("a17-black", "Samsung Galaxy A17 (SM-A175) 4GB/128GB Black", "Samsung", {
+          category: "telefon",
+        }),
+        named("a17-unknown", "Samsung Galaxy A17 (SM-A175) 4GB/128GB", "Samsung", {
+          category: "telefon",
+        }),
+      ]),
+    ),
+  ).length,
+  2,
+);
+assert.equal(
+  activeIds(
+    m.mergeDuplicateProducts(
+      sameStore([
+        named("cpu-tray", "Intel Core i7-12700KF (TRAY)", "Intel", { category: "aksesuar" }),
+        named("cpu-box", "Intel Core i7-12700KF (BX8071512700KF)", "Intel", {
+          category: "aksesuar",
+        }),
+      ]),
+    ),
+  ).length,
+  2,
+  "a tray processor is not the boxed one",
+);
+
+// A model code with no colour or memory: one television from two stores, whatever category each
+// store files it under.
+const tvs = m.mergeDuplicateProducts(
+  pairCatalog([
+    named("tv-eurolux", "Televizor Samsung UE43DU7100UXRU", "Samsung", { category: "ev" }),
+    named("tv-seehome", "Televizor Samsung 43″ UE43DU7100UXRU", "Samsung", { category: "tv" }),
+    named("tv-other", "Televizor Samsung 50″ UE50DU7100UXRU", "Samsung", { category: "tv" }),
+  ]),
+);
+assert.equal(rootOf(tvs, "tv-seehome"), rootOf(tvs, "tv-eurolux"));
+assert.equal(activeIds(tvs).length, 2);
+
+// Measured spec fields compare by their figure, not their wording.
+const screens = (a, b) =>
+  m.checkProductPair(
+    pairCatalog([
+      named("scr-a", "Apple iPhone 17 256GB Black", "Apple", { specs: { "Ekran ölçüsü": a } }),
+      named("scr-b", "Apple iPhone 17 256GB Black", "Apple", { specs: { "Ekran ölçüsü": b } }),
+    ]),
+    "scr-a",
+    "scr-b",
+  ).reasons;
+assert(!screens("6.3 inches, 96.4 cm2", "6.3 düym").includes("Ekran ölçüsü fərqlidir."));
+assert(screens("6.3 inches", "6.1 düym").includes("Ekran ölçüsü fərqlidir."));
 console.log(
-  "PASS: matching identity/variant/condition guards, valid identifier checks, merchant SKU exclusion, reversible aliases/history, duplicate-store/chain rejection, stale identity invalidation, RSC-compatible aliases, serialized fenced mutations and atomic rollback, cross-store model keys (storage, RAM, colour, retailer brand), automatic duplicate merge (same store and across stores), same-title part number labels. In-memory SQLite; no network.",
+  "PASS: matching identity/variant/condition guards, valid identifier checks, merchant SKU exclusion, reversible aliases/history, duplicate-store/chain rejection, stale identity invalidation, RSC-compatible aliases, serialized fenced mutations and atomic rollback, cross-store model keys (storage, RAM, colour, retailer brand), automatic duplicate merge (same store and across stores), same-title part number labels, az/ru/en normalization (units, colours, quotes, noise, brand fields, generations), iPhone 17 Pro and AirPods 4/ANC across stores, pack size, bracketed and family codes, coded models without variants, measured spec fields. In-memory SQLite; no network.",
 );

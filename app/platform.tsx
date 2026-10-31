@@ -22,7 +22,6 @@ import {
   X,
   Check,
   ShieldCheck,
-  ArrowDownUp,
   LayoutGrid,
   TrendingDown,
   Store as StoreIcon,
@@ -30,6 +29,8 @@ import {
   Plus,
   Trash2,
   CheckCircle2,
+  XCircle,
+  HelpCircle,
   Info,
   Clock,
   Send,
@@ -53,6 +54,8 @@ import { api, errorMessage, Modal, Empty, CategoryIcon, StoreLogo } from "./ui";
 import type { Act, Personal, Session } from "./types";
 import Admin from "./admin";
 import Home from "./home";
+import { ProductImage } from "../components/product-image";
+import { azDate, azDateTime, azNumber } from "../components/format";
 type ModalState =
   | { type: "login" }
   | { type: "city" }
@@ -104,6 +107,12 @@ export default function Platform({
   const setFilter = (next: typeof filter) => {
     setPageOffset(0);
     updateFilter(next);
+    // A new filter starts from the first page, so drop a stale ?page=N from the address bar.
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("page")) {
+      url.searchParams.delete("page");
+      window.history.replaceState(null, "", url.pathname + url.search);
+    }
   };
   const aliases = c.productAliases;
   const comp = useMemo(
@@ -260,10 +269,26 @@ export default function Platform({
   }, [c]);
   const listingTop = useRef<HTMLDivElement>(null);
   const listingLoading = sliceQuery !== loadedQuery && !error;
+  const filtersActive = !!(filter.brand || filter.store || filter.min || filter.max || filter.real);
+  // Nothing to narrow down: the sort and filter controls would only add noise to the empty state.
+  const nothingToFilter = !listingLoading && !filtersActive && c.matchedTotal === 0;
+  const currentStore = storeId ? c.stores.find((s) => s.id === storeId) : undefined;
   const totalPages = Math.max(1, Math.ceil(c.matchedTotal / PAGE_SIZE));
   const currentPage = Math.floor(c.pageOffset / PAGE_SIZE) + 1;
+  // Crawlable ?page=N URLs; the server renders the same slice for them.
+  const pageHref = (n: number) => {
+    const [base, qs = ""] = path.split("?");
+    const q = new URLSearchParams(qs);
+    if (n > 1) q.set("page", String(n));
+    else q.delete("page");
+    return base + (q.size ? "?" + q.toString() : "");
+  };
   const goToPage = (offset: number) => {
-    setPageOffset(Math.max(0, offset));
+    const next = Math.max(0, offset);
+    setPageOffset(next);
+    // replaceState keeps `path` (and so the slice request) unchanged while the address bar
+    // shows a shareable page URL.
+    window.history.replaceState(null, "", pageHref(Math.floor(next / PAGE_SIZE) + 1));
     listingTop.current?.scrollIntoView({
       block: "start",
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -342,17 +367,19 @@ export default function Platform({
           </button>
         </div>
         <a className="product-image" href={"/mehsul/" + p.id}>
-          <img
+          <ProductImage
             src={p.image}
             alt={p.name}
+            width={240}
+            height={240}
             loading="lazy"
-            onError={(e) => {
-              e.currentTarget.src = "/favicon.svg";
-            }}
+            decoding="async"
           />
         </a>
         <div className="product-copy">
-          <span className="brand-label">{p.brand}</span>
+          <span className="brand-label" lang="en">
+            {p.brand}
+          </span>
           <a className="product-title" href={"/mehsul/" + p.id}>
             {p.name}
           </a>
@@ -383,10 +410,7 @@ export default function Platform({
           )}
           {low && (
             <p className="card-source-date micro muted">
-              Yoxlanıb:{" "}
-              <time dateTime={low.checkedAt}>
-                {new Date(low.checkedAt).toLocaleDateString("az-AZ", { timeZone: "Asia/Baku" })}
-              </time>
+              Yoxlanıb: <time dateTime={low.checkedAt}>{azDate(low.checkedAt)}</time>
             </p>
           )}
           <div className="card-price">
@@ -409,7 +433,7 @@ export default function Platform({
               aria-label={p.name + " müqayisəyə əlavə et"}
               onClick={() => compare(p)}
             >
-              <ArrowDownUp size={17} />
+              <Scale size={17} />
             </button>
           </div>
           <a className="card-button" href={"/mehsul/" + p.id}>
@@ -495,6 +519,9 @@ export default function Platform({
   );
   return (
     <div>
+      <a className="skip-link" href="#main-content">
+        Əsas məzmuna keç
+      </a>
       <div className="top-strip">
         <div className="shell">
           <span>{c.settings.announcement}</span>
@@ -505,8 +532,8 @@ export default function Platform({
             <a href={"/magaza-qeydiyyat"}>
               Mağazanı əlavə et <ArrowUpRight size={12} />
             </a>
-            <span className="locale">
-              AZ <ChevronDown size={11} />
+            <span className="locale" lang="az" title="Sayt dili: Azərbaycan dili">
+              AZ
             </span>
           </div>
         </div>
@@ -523,7 +550,7 @@ export default function Platform({
               name="q"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Nə axtarırsan? Qiymətini müqayisə et."
+              placeholder="Məhsul və ya brend axtar"
               aria-label="Məhsul axtar"
             />
             <button type="submit">
@@ -533,7 +560,7 @@ export default function Platform({
           <div className="header-actions">
             <a aria-label="Müqayisə" href={"/muqayise"}>
               <span className="action-icon">
-                <ArrowDownUp size={22} />
+                <Scale size={22} />
                 {comp.length > 0 && <b>{comp.length}</b>}
               </span>
               <small>Müqayisə</small>
@@ -561,15 +588,23 @@ export default function Platform({
           <button
             className={"category-toggle " + (menu ? "open" : "")}
             onClick={() => setMenu(!menu)}
+            aria-expanded={menu}
+            aria-controls="category-menu"
           >
             <Menu size={19} /> Bütün kateqoriyalar <ChevronDown size={13} />
           </button>
-          <a href={"/endirimler"}>
+          <a href={"/endirimler"} aria-current={page === "endirimler" ? "page" : undefined}>
             <TrendingDown size={17} /> Qiyməti düşənlər
           </a>
-          <a href={"/kataloq"}>Populyar məhsullar</a>
-          <a href={"/magazalar"}>Mağazalar</a>
-          <a href={"/rehber"}>Alış-veriş bələdçisi</a>
+          <a href={"/kataloq"} aria-current={page === "kataloq" ? "page" : undefined}>
+            Populyar məhsullar
+          </a>
+          <a href={"/magazalar"} aria-current={page === "magazalar" ? "page" : undefined}>
+            Mağazalar
+          </a>
+          <a href={"/rehber"} aria-current={page === "rehber" ? "page" : undefined}>
+            Alış-veriş bələdçisi
+          </a>
           <button className="location" onClick={() => setModal({ type: "city" })}>
             <MapPin size={15} />
             {city}
@@ -577,7 +612,13 @@ export default function Platform({
           </button>
         </div>
         {menu && (
-          <div className="shell mega-menu">
+          <div
+            className="shell mega-menu"
+            id="category-menu"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setMenu(false);
+            }}
+          >
             {categories.map((cat) => (
               <a key={cat.id} href={"/kateqoriya/" + cat.id}>
                 <CategoryIcon name={cat.icon} />
@@ -614,7 +655,7 @@ export default function Platform({
           <button onClick={refresh}>Yenidən yoxla</button>
         </div>
       )}
-      <main className="shell main-content">
+      <main className="shell main-content" id="main-content" tabIndex={-1}>
         {page === "home" && (
           <Home
             catalog={c}
@@ -626,93 +667,153 @@ export default function Platform({
         )}
         {(isCatalog || storeId) && (
           <>
-            <div className="breadcrumb">
+            <nav className="breadcrumb" aria-label="Səhifə yolu">
               <a href={"/"}>Ana səhifə</a>
-              <ChevronRight size={13} />
-              <span>{storeId ? "Mağaza təklifləri" : title}</span>
-            </div>
+              <ChevronRight size={13} aria-hidden="true" />
+              {storeId && (
+                <>
+                  <a href={"/magazalar"}>Mağazalar</a>
+                  <ChevronRight size={13} aria-hidden="true" />
+                </>
+              )}
+              <span aria-current="page">{storeId ? currentStore?.name : title}</span>
+            </nav>
             <div className="page-heading" ref={listingTop}>
               <div>
-                <span className="eyebrow">QIYMƏTİ BİL, AĞILLI SEÇ</span>
-                <h1>{storeId ? c.stores.find((s) => s.id === storeId)?.name : title}</h1>
+                <span className="eyebrow">
+                  {storeId ? "MAĞAZA TƏKLİFLƏRİ" : "QİYMƏTİ BİL, AĞILLI SEÇ"}
+                </span>
+                <h1>{storeId ? currentStore?.name : title}</h1>
                 <p>
-                  {c.matchedTotal} məhsul · {city} üçün müqayisə
+                  {azNumber(c.matchedTotal)} məhsul · {city} üçün müqayisə
+                  {currentStore?.domain && (
+                    <>
+                      {" · "}
+                      <a
+                        className="text-link"
+                        href={"https://" + currentStore.domain}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {currentStore.domain} <ArrowUpRight size={13} aria-hidden="true" />
+                      </a>
+                    </>
+                  )}
                 </p>
               </div>
-              <select
-                aria-label="Sıralama"
-                value={filter.sort}
-                onChange={(e) => setFilter({ ...filter, sort: e.target.value })}
-              >
-                <option value="popular">Ən çox mağazada</option>
-                <option value="low">Ən ucuzdan bahaya</option>
-                <option value="high">Ən bahadan ucuza</option>
-                <option value="saving">Ən böyük qiymət fərqi</option>
-                <option value="name">Ada görə</option>
-              </select>
+              {!nothingToFilter && (
+                <label className="sort-control">
+                  <span>Sırala</span>
+                  <select
+                    value={filter.sort}
+                    onChange={(e) => setFilter({ ...filter, sort: e.target.value })}
+                  >
+                    <option value="popular">Ən çox mağazada</option>
+                    <option value="low">Ən ucuzdan bahaya</option>
+                    <option value="high">Ən bahadan ucuza</option>
+                    <option value="saving">Ən böyük qiymət fərqi</option>
+                    <option value="name">Ada görə</option>
+                  </select>
+                </label>
+              )}
             </div>
-            <div className="mobile-filterbar">
-              <button className="outline-button" onClick={() => setMobileFilters(!mobileFilters)}>
+            <div className={"mobile-filterbar" + (nothingToFilter ? " is-hidden" : "")}>
+              <button
+                className="outline-button"
+                onClick={() => setMobileFilters(!mobileFilters)}
+                aria-expanded={mobileFilters}
+              >
                 <SlidersHorizontal size={17} />
                 Filtrlər{" "}
-                {(filter.brand || filter.store || filter.min || filter.max || filter.real) && (
-                  <span className="live-dot" />
-                )}
+                {filtersActive && <span className="live-dot" aria-label="aktiv filtr var" />}
                 <ChevronDown size={15} />
               </button>
-              <span>{c.matchedTotal} nəticə</span>
+              <span>{azNumber(c.matchedTotal)} nəticə</span>
             </div>
-            <div className="catalog-layout">
-              {Filter()}
-              <div aria-busy={listingLoading}>
-                <div className="data-notice">
-                  <Info size={15} />
-                  <span>
-                    Rəsmi mənbə qiymətləri göstərilir. Stokda olmayan məhsullar da kataloqda qalır;
-                    son qiyməti mağazada təsdiqləyin.
-                  </span>
-                </div>
+            <div className={"catalog-layout" + (nothingToFilter ? " no-filters" : "")}>
+              {!nothingToFilter && Filter()}
+              <div aria-busy={listingLoading} className="catalog-results">
+                {!nothingToFilter && (
+                  <div className="data-notice">
+                    <Info size={15} />
+                    <span>
+                      Rəsmi mənbə qiymətləri göstərilir. Stokda olmayan məhsullar da kataloqda
+                      qalır; son qiyməti mağazada təsdiqləyin.
+                    </span>
+                  </div>
+                )}
                 {products.length ? (
                   <>
                     <p className="catalog-range" role="status" aria-live="polite">
                       {listingLoading
                         ? "Məhsullar yüklənir…"
-                        : `${c.pageOffset + 1}–${c.pageOffset + products.length} / ${c.matchedTotal} məhsul`}
+                        : `${azNumber(c.pageOffset + 1)}–${azNumber(c.pageOffset + products.length)} / ${azNumber(c.matchedTotal)} məhsul`}
                     </p>
                     {cards(products)}
                     {totalPages > 1 && (
                       <nav className="catalog-pagination" aria-label="Məhsul səhifələri">
                         <div className="catalog-page-actions">
-                          <button
-                            className="outline-button"
-                            disabled={listingLoading || currentPage === 1}
-                            onClick={() => goToPage(0)}
-                            aria-label="İlk məhsul səhifəsi"
-                          >
-                            «
-                          </button>
-                          <button
-                            className="outline-button"
-                            disabled={listingLoading || currentPage === 1}
-                            onClick={() => goToPage(c.pageOffset - PAGE_SIZE)}
-                          >
-                            Əvvəlki
-                          </button>
-                          <button
-                            className="dark-button"
-                            disabled={listingLoading || currentPage >= totalPages}
-                            onClick={() => goToPage(c.pageOffset + PAGE_SIZE)}
-                          >
-                            Növbəti <ArrowRight size={16} />
-                          </button>
-                          <button
-                            className="outline-button"
-                            disabled={listingLoading || currentPage >= totalPages}
-                            onClick={() => goToPage((totalPages - 1) * PAGE_SIZE)}
-                            aria-label="Son məhsul səhifəsi"
-                          >
-                            »
-                          </button>
+                          {(
+                            [
+                              ["«", 1, currentPage === 1, "İlk məhsul səhifəsi", "outline-button"],
+                              [
+                                "Əvvəlki",
+                                currentPage - 1,
+                                currentPage === 1,
+                                "Əvvəlki səhifə",
+                                "outline-button",
+                              ],
+                              [
+                                "Növbəti",
+                                currentPage + 1,
+                                currentPage >= totalPages,
+                                "Növbəti səhifə",
+                                "dark-button",
+                              ],
+                              [
+                                "»",
+                                totalPages,
+                                currentPage >= totalPages,
+                                "Son məhsul səhifəsi",
+                                "outline-button",
+                              ],
+                            ] as const
+                          ).map(([text, n, off, label, cls]) =>
+                            off || listingLoading ? (
+                              <span
+                                key={label}
+                                className={cls + " is-disabled"}
+                                aria-disabled="true"
+                                aria-label={label}
+                              >
+                                {text}
+                                {text === "Növbəti" && <ArrowRight size={16} />}
+                              </span>
+                            ) : (
+                              <a
+                                key={label}
+                                className={cls}
+                                href={pageHref(n)}
+                                rel={
+                                  text === "Əvvəlki"
+                                    ? "prev"
+                                    : text === "Növbəti"
+                                      ? "next"
+                                      : undefined
+                                }
+                                aria-label={label}
+                                onClick={(e) => {
+                                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0)
+                                    return;
+                                  e.preventDefault();
+                                  goToPage((n - 1) * PAGE_SIZE);
+                                }}
+                              >
+                                {text}
+                                {text === "Növbəti" && <ArrowRight size={16} />}
+                              </a>
+                            ),
+                          )}
                         </div>
                         <form
                           key={currentPage}
@@ -761,15 +862,43 @@ export default function Platform({
                       </a>
                     }
                   />
+                ) : listingLoading ? (
+                  <p className="catalog-range" role="status">
+                    Məhsullar yüklənir…
+                  </p>
+                ) : filtersActive ? (
+                  <Empty
+                    icon={SlidersHorizontal}
+                    title="Bu filtrlərə uyğun məhsul yoxdur"
+                    text="Qiymət aralığını genişləndir, brend və ya mağaza seçimini sıfırla."
+                    action={
+                      <button className="dark-button" onClick={reset}>
+                        Filtrləri sıfırla
+                      </button>
+                    }
+                  />
                 ) : (
                   <Empty
                     icon={Search}
-                    title="Uyğun məhsul tapılmadı"
-                    text="Axtarış sözünü və ya filtrləri dəyişərək yenidən yoxla."
+                    title={
+                      searchTerm
+                        ? `“${searchTerm}” üzrə məhsul tapılmadı`
+                        : "Uyğun məhsul tapılmadı"
+                    }
+                    text="Yazılışı yoxla, daha qısa söz və ya yalnız model adını yaz. Məsələn: “iPhone 16”, “Galaxy S25”."
                     action={
-                      <a className="dark-button" href={"/kataloq"}>
-                        Bütün məhsullara bax
-                      </a>
+                      <div className="empty-suggestions">
+                        <a className="dark-button" href={"/kataloq"}>
+                          Bütün məhsullara bax
+                        </a>
+                        <div className="empty-chips" aria-label="Populyar kateqoriyalar">
+                          {categories.slice(0, 5).map((cat) => (
+                            <a key={cat.id} href={"/kateqoriya/" + cat.id}>
+                              {cat.name}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
                     }
                   />
                 )}
@@ -855,7 +984,7 @@ export default function Platform({
                     <p>{s.description}</p>
                     <span className={"badge " + (c.storeStats[s.id]?.count ? "neutral" : "red")}>
                       {c.storeStats[s.id]?.count
-                        ? c.storeStats[s.id].count.toLocaleString("az-AZ") + " məhsul"
+                        ? azNumber(c.storeStats[s.id].count) + " məhsul"
                         : "Qiymətlər hələ qoşulmayıb"}
                     </span>
                     <p className="micro muted">
@@ -909,7 +1038,7 @@ export default function Platform({
                                 >
                                   <X size={17} />
                                 </button>
-                                <img src={p.image} alt="" />
+                                <ProductImage src={p.image} alt="" />
                                 <a className="product-title" href={"/mehsul/" + p.id}>
                                   {p.name}
                                 </a>
@@ -997,7 +1126,7 @@ export default function Platform({
                     validOffers(c, p.id, city).length > 0 && priceOf(c, p.id) <= a.target;
                   return (
                     <article className="alert-row" key={p.id}>
-                      <img src={p.image} alt="" />
+                      <ProductImage src={p.image} alt="" />
                       <div>
                         <a className="product-title" href={"/mehsul/" + p.id}>
                           {p.name}
@@ -1134,7 +1263,7 @@ export default function Platform({
       {comp.length > 0 && page !== "muqayise" && page !== "admin" && (
         <div className="compare-tray">
           <span>
-            <ArrowDownUp size={17} /> {comp.length} məhsul seçilib
+            <Scale size={17} /> {comp.length} məhsul seçilib
           </span>
           <a href={"/muqayise"}>
             Müqayisə et <ArrowRight size={16} />
@@ -1151,28 +1280,48 @@ export default function Platform({
           </button>
         </div>
       )}
-      <div className="mobile-nav">
-        <a className={page === "home" ? "current" : ""} href={"/"}>
+      <nav className="mobile-nav" aria-label="Əsas bölmələr">
+        <a
+          className={page === "home" ? "current" : ""}
+          aria-current={page === "home" ? "page" : undefined}
+          href={"/"}
+        >
           <Compass size={21} />
           Kəşf et
         </a>
-        <a className={isCatalog ? "current" : ""} href={"/kataloq"}>
+        <a
+          className={isCatalog ? "current" : ""}
+          aria-current={isCatalog ? "page" : undefined}
+          href={"/kataloq"}
+        >
           <LayoutGrid size={21} />
           Kataloq
         </a>
-        <a className={page === "muqayise" ? "current" : ""} href={"/muqayise"}>
+        <a
+          className={page === "muqayise" ? "current" : ""}
+          aria-current={page === "muqayise" ? "page" : undefined}
+          href={"/muqayise"}
+        >
           <Scale size={21} />
           Müqayisə
         </a>
-        <a className={page === "secilmisler" ? "current" : ""} href={"/secilmisler"}>
+        <a
+          className={page === "secilmisler" ? "current" : ""}
+          aria-current={page === "secilmisler" ? "page" : undefined}
+          href={"/secilmisler"}
+        >
           <Heart size={21} />
           Seçilmişlər
         </a>
-        <a className={page === "bildirisler" ? "current" : ""} href={"/bildirisler"}>
+        <a
+          className={page === "bildirisler" ? "current" : ""}
+          aria-current={page === "bildirisler" ? "page" : undefined}
+          href={"/bildirisler"}
+        >
           <Bell size={21} />
           Bildirişlər
         </a>
-      </div>
+      </nav>
       {toast && (
         <div className="toast" role="status">
           <Info size={18} />
@@ -1266,7 +1415,7 @@ export default function Platform({
               }}
             >
               <div className="alert-product">
-                <img src={modal.p.image} alt="" />
+                <ProductImage src={modal.p.image} alt="" />
                 <div>
                   <h3>{modal.p.name}</h3>
                   <span>Hazırda {money(priceOf(c, modal.p.id))}</span>
@@ -1380,19 +1529,19 @@ function ProductDetail({
   };
   return (
     <>
-      <div className="breadcrumb">
+      <nav className="breadcrumb" aria-label="Səhifə yolu">
         <a href={"/"}>Ana səhifə</a>
-        <ChevronRight size={13} />
+        <ChevronRight size={13} aria-hidden="true" />
         <a href={"/kateqoriya/" + p.category}>
           {categories.find((x) => x.id === p.category)?.name}
         </a>
-        <ChevronRight size={13} />
-        <span>{p.name}</span>
-      </div>
+        <ChevronRight size={13} aria-hidden="true" />
+        <span aria-current="page">{p.name}</span>
+      </nav>
       <div className="detail-top">
         <div className="detail-picture">
           <span className="badge neutral">{p.brand}</span>
-          <img src={p.image} alt={p.name} />
+          <ProductImage src={p.image} alt={p.name} width={320} height={320} fetchPriority="high" />
           <span className="micro muted">
             {recordedOffers.length > 0 && recordedOffers.every((o) => o.demo)
               ? "Nümunə kataloq görsəli"
@@ -1504,7 +1653,7 @@ function ProductDetail({
           </div>
         </div>
       </div>
-      <div className="detail-tabs">
+      <div className="detail-tabs" role="tablist" aria-label="Məhsul məlumatı">
         {[
           ["offers", "Mağaza təklifləri", offers.length],
           ["history", "Qiymət tarixçəsi", ""],
@@ -1514,7 +1663,22 @@ function ProductDetail({
           <button
             className={tab === v[0] ? "active" : ""}
             key={v[0]}
+            role="tab"
+            id={"tab-" + v[0]}
+            aria-selected={tab === v[0]}
+            aria-controls={"panel-" + v[0]}
+            tabIndex={tab === v[0] ? 0 : -1}
             onClick={() => setTab(v[0] as string)}
+            onKeyDown={(e) => {
+              const ids = ["offers", "history", "specs", "reviews"];
+              const i = ids.indexOf(v[0] as string);
+              const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+              if (!step) return;
+              e.preventDefault();
+              const next = ids[(i + step + ids.length) % ids.length];
+              setTab(next);
+              document.getElementById("tab-" + next)?.focus();
+            }}
           >
             {v[1]}
             {v[2] !== "" && <span>{v[2]}</span>}
@@ -1522,7 +1686,7 @@ function ProductDetail({
         ))}
       </div>
       {tab === "offers" && (
-        <>
+        <div role="tabpanel" id="panel-offers" aria-labelledby="tab-offers">
           <div className="offer-toolbar">
             <div>
               <label className="check-label">
@@ -1617,17 +1781,28 @@ function ProductDetail({
                               : "stock-out"
                         }
                       >
-                        <CheckCircle2 size={13} />
-                        {o.warranty} ·{" "}
+                        {o.stockKnown === false ? (
+                          <HelpCircle size={13} aria-hidden="true" />
+                        ) : o.stock ? (
+                          <CheckCircle2 size={13} aria-hidden="true" />
+                        ) : (
+                          <XCircle size={13} aria-hidden="true" />
+                        )}
                         {o.stockKnown === false
                           ? "Stok satıcıda yoxlanmalıdır"
                           : o.stock
-                            ? "Stokda"
+                            ? "Stokda var"
                             : "Stokda yoxdur"}
                       </span>
+                      {o.warranty && (
+                        <span>
+                          <ShieldCheck size={13} aria-hidden="true" />
+                          Zəmanət: {o.warranty}
+                        </span>
+                      )}
                       <span>
-                        <Clock size={13} />
-                        {new Date(o.checkedAt).toLocaleString("az-AZ", { timeZone: "Asia/Baku" })}
+                        <Clock size={13} aria-hidden="true" />
+                        Yoxlanıb: <time dateTime={o.checkedAt}>{azDateTime(o.checkedAt)}</time>
                       </span>
                       <span>
                         Çatdırılma:{" "}
@@ -1681,10 +1856,15 @@ function ProductDetail({
               />
             )}
           </div>
-        </>
+        </div>
       )}
       {tab === "history" && (
-        <section className="history-panel">
+        <section
+          className="history-panel"
+          role="tabpanel"
+          id="panel-history"
+          aria-labelledby="tab-history"
+        >
           <div className="section-heading">
             <div>
               <h2>Qiymətin hekayəsi</h2>
@@ -1698,6 +1878,7 @@ function ProductDetail({
                 <button
                   key={d}
                   className={period === d ? "active" : ""}
+                  aria-pressed={period === d}
                   onClick={() => setPeriod(d)}
                 >
                   {d} gün
@@ -1723,32 +1904,55 @@ function ProductDetail({
                   </strong>
                 </div>
               </div>
-              <svg
-                viewBox="0 0 800 200"
-                className="price-chart"
-                role="img"
-                aria-label="Qiymət tarixçəsi qrafiki"
-              >
-                <path
-                  d="M30 40H770 M30 100H770 M30 160H770"
-                  stroke="#e3e7de"
-                  strokeDasharray="4 5"
-                />
-                <polyline points={points} fill="none" stroke="#398366" strokeWidth="3" />
-                {history.map((h, i) => (
-                  <circle
-                    key={h.id}
-                    cx={30 + (i / Math.max(history.length - 1, 1)) * 740}
-                    cy={160 - ((h.price - min) / Math.max(max - min, 1)) * 120}
-                    r="4"
-                    fill="#398366"
-                  >
-                    <title>
-                      {new Date(h.date).toLocaleDateString("az-AZ")}: {money(h.price)}
-                    </title>
-                  </circle>
-                ))}
-              </svg>
+              {history.length < 2 ? (
+                <p className="history-note muted">
+                  Hələlik bu dövr üçün yalnız bir qiymət qeydi var ({azDate(history[0].date)}).
+                  Qrafik ikinci qeyddən sonra görünəcək.
+                </p>
+              ) : (
+                <svg
+                  viewBox="0 0 800 200"
+                  className="price-chart"
+                  role="img"
+                  aria-label="Qiymət tarixçəsi qrafiki"
+                >
+                  <path
+                    d="M30 40H770 M30 100H770 M30 160H770"
+                    className="chart-grid"
+                    strokeDasharray="4 5"
+                  />
+                  <text x="30" y="32" className="chart-label">
+                    {money(max)}
+                  </text>
+                  {max > min && (
+                    <text x="30" y="176" className="chart-label">
+                      {money(min)}
+                    </text>
+                  )}
+                  <text x="30" y="196" className="chart-label">
+                    {azDate(history[0].date)}
+                  </text>
+                  {history.length > 1 && (
+                    <text x="770" y="196" className="chart-label" textAnchor="end">
+                      {azDate(history[history.length - 1].date)}
+                    </text>
+                  )}
+                  <polyline points={points} fill="none" className="chart-line" strokeWidth="3" />
+                  {history.map((h, i) => (
+                    <circle
+                      key={h.id}
+                      cx={30 + (i / Math.max(history.length - 1, 1)) * 740}
+                      cy={160 - ((h.price - min) / Math.max(max - min, 1)) * 120}
+                      r="4"
+                      className="chart-dot"
+                    >
+                      <title>
+                        {azDate(h.date)}: {money(h.price)}
+                      </title>
+                    </circle>
+                  ))}
+                </svg>
+              )}
               <details>
                 <summary>Bütün qiymət qeydləri</summary>
                 <table className="data-table">
@@ -1762,7 +1966,7 @@ function ProductDetail({
                   <tbody>
                     {history.map((h) => (
                       <tr key={h.id}>
-                        <td>{new Date(h.date).toLocaleDateString("az-AZ")}</td>
+                        <td>{azDate(h.date)}</td>
                         <td>{money(h.price)}</td>
                         <td>{h.demo ? "Nümunə" : "Real təklif"}</td>
                       </tr>
@@ -1780,7 +1984,12 @@ function ProductDetail({
         </section>
       )}
       {tab === "specs" && (
-        <section className="specs-panel">
+        <section
+          className="specs-panel"
+          role="tabpanel"
+          id="panel-specs"
+          aria-labelledby="tab-specs"
+        >
           <h2>Məhsul haqqında</h2>
           <p>{p.description}</p>
           <table className="data-table">
@@ -1796,7 +2005,12 @@ function ProductDetail({
         </section>
       )}
       {tab === "reviews" && (
-        <section className="reviews-panel">
+        <section
+          className="reviews-panel"
+          role="tabpanel"
+          id="panel-reviews"
+          aria-labelledby="tab-reviews"
+        >
           <div className="section-heading">
             <div>
               <h2>İstifadəçi rəyləri</h2>

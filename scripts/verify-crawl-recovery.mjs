@@ -27,7 +27,7 @@ code = code.replace(
   () =>
     "const extractListing=()=>({items:[],pages:[]}),listingCategories=()=>[],brandFromName=()=>'';",
 );
-const fake = `let scenario='ok',hook;let calls=0;export function configure(s,h){scenario=s;hook=h;}export function callCount(){return calls;}class SourceAccessError extends Error{constructor(message,status,retryAfterMs=0){super(message);this.status=status;this.retryAfterMs=retryAfterMs;}}async function readMerchantSitemap(){return '<urlset><url><loc>https://bakuelectronics.az/mehsul/test-123</loc></url></urlset>';}async function merchantPage(){return '';}async function scanProduct(url){calls++;if(scenario==='timeout'){const e=new Error('Timed out');e.name='TimeoutError';throw e;}if(scenario==='403')throw new SourceAccessError('HTTP 403',403);if(scenario==='429')throw new SourceAccessError('HTTP 429',429,120000);if(hook)await hook();return{name:'Fixture Product',price:scenario==='stale'?999:123.45,currency:'AZN',sku:'123',stock:true,stockKnown:true,image:'https://bakuelectronics.az/image.jpg',checkedAt:new Date().toISOString()};}`;
+const fake = `let scenario='ok',hook;let calls=0;export function configure(s,h){scenario=s;hook=h;}export function callCount(){return calls;}const crawlDelayMs=()=>0;class SourceAccessError extends Error{constructor(message,status,retryAfterMs=0,challenge=false){super(message);this.status=status;this.retryAfterMs=retryAfterMs;this.challenge=challenge;}}async function readMerchantSitemap(){return '<urlset><url><loc>https://bakuelectronics.az/mehsul/test-123</loc></url></urlset>';}async function merchantPage(){return '';}async function scanProduct(url){calls++;if(scenario==='timeout'){const e=new Error('Timed out');e.name='TimeoutError';throw e;}if(scenario==='403')throw new SourceAccessError('HTTP 403',403);if(scenario==='429')throw new SourceAccessError('HTTP 429',429,120000);if(scenario==='503')throw new SourceAccessError('HTTP 503',503,0);if(scenario==='challenge')throw new SourceAccessError('challenge',403,0,true);if(hook)await hook();return{name:'Fixture Product',price:scenario==='stale'?999:123.45,currency:'AZN',sku:'123',stock:true,stockKnown:true,image:'https://bakuelectronics.az/image.jpg',checkedAt:new Date().toISOString()};}`;
 code = code.replace(/import \{[^}]*\} from ["'].\/extractor["'];/, () => fake);
 const crawlJobs = await import(
   "data:text/javascript;base64," + Buffer.from(code).toString("base64")
@@ -100,15 +100,28 @@ assert.equal(job.status, "blocked");
 assert.equal(job.processed, 0);
 await crawlJobs.controlCrawlJob(db, job.id, "resume");
 ready(job.id);
+// Owner rule: 429 stops the source like 401/403; it is not retried automatically.
 crawlJobs.configure("429");
+job = await crawlJobs.tickCrawlJob(db, job.id);
+assert.equal(job.status, "blocked");
+assert.equal(job.processed, 0);
+const calls = crawlJobs.callCount();
+ready(job.id);
+await crawlJobs.tickCrawlJob(db, job.id);
+assert.equal(crawlJobs.callCount(), calls, "a blocked source makes no requests");
+await crawlJobs.controlCrawlJob(db, job.id, "resume");
+ready(job.id);
+crawlJobs.configure("challenge");
+job = await crawlJobs.tickCrawlJob(db, job.id);
+assert.equal(job.status, "blocked", "a bot challenge stops the source");
+await crawlJobs.controlCrawlJob(db, job.id, "resume");
+ready(job.id);
+crawlJobs.configure("503");
 const before = Date.now();
 job = await crawlJobs.tickCrawlJob(db, job.id);
 assert.equal(job.status, "waiting");
-assert(job.nextRunAt >= before + 120000);
+assert(job.nextRunAt >= before + 2000);
 assert.equal(job.processed, 0);
-const calls = crawlJobs.callCount();
-await crawlJobs.tickCrawlJob(db, job.id);
-assert.equal(crawlJobs.callCount(), calls);
 await crawlJobs.controlCrawlJob(db, job.id, "resume");
 ready(job.id);
 crawlJobs.configure("timeout");
@@ -178,10 +191,30 @@ assert(
     Date.now() + 100000,
 );
 assert.equal("leaseToken" in third, false);
-// Cron driver: finishes a fresh job on its own and leaves paused jobs alone.
+// Cron driver: finishes a fresh job on its own and leaves paused jobs alone. Every other source
+// gets a recently finished run so the driver does not start their first runs here.
 sqlite.exec(
   "UPDATE records SET payload=json_set(payload,'$.status','complete') WHERE kind='crawlJob'",
 );
+const allSources = (await crawlJobs.listCrawlJobs(db)).sources.map((s) => s.id);
+function seedFinished(except = []) {
+  for (const sourceId of allSources.filter((id) => !except.includes(id)))
+    sqlite.prepare("INSERT INTO records(id,kind,payload,updated_at) VALUES(?,?,?,?)").run(
+      "crawlJob:seed-" + sourceId + "-" + Math.random(),
+      "crawlJob",
+      JSON.stringify({
+        id: "seed",
+        sourceId,
+        status: "complete",
+        queue: [],
+        seen: [],
+        recent: [],
+        updatedAt: new Date().toISOString(),
+      }),
+      Date.now() - 1000,
+    );
+}
+seedFinished();
 sqlite.exec("DELETE FROM records WHERE kind='crawlLock'");
 crawlJobs.configure("ok");
 const cronJob = await crawlJobs.startCrawlJob(db, "baku");
@@ -253,11 +286,79 @@ assert(
   "one active run per source",
 );
 
+// A configured source that never ran gets its first run from the scheduler; active runs do not.
+sqlite.exec(
+  "DELETE FROM records WHERE kind='crawlJob' AND json_extract(payload,'$.sourceId')='compstore'",
+);
+const firstRuns = await crawlJobs.startDueRefreshes(db);
+assert(firstRuns.includes("compstore"), "never-run sources start automatically");
+assert(!firstRuns.includes("baku"));
+assert(!(await crawlJobs.startDueRefreshes(db)).includes("compstore"));
+
+// A finished run marks this store's offers it did not see again as unknown stock; demo offers and
+// other stores stay as they were.
+sqlite.exec(
+  "UPDATE records SET payload=json_set(payload,'$.status','complete') WHERE kind='crawlJob'",
+);
+sqlite.exec("DELETE FROM records WHERE kind='crawlLock'");
+const putOffer = (id, storeId, checkedAt, extra = {}) =>
+  sqlite.prepare("INSERT OR REPLACE INTO records(id,kind,payload,updated_at) VALUES(?,?,?,?)").run(
+    "offer:" + id,
+    "offer",
+    JSON.stringify({
+      id,
+      storeId,
+      productId: "p-" + id,
+      price: 10,
+      stock: true,
+      stockKnown: true,
+      demo: false,
+      checkedAt,
+      ...extra,
+    }),
+    Date.now(),
+  );
+const offerOf = (id) =>
+  JSON.parse(sqlite.prepare("SELECT payload FROM records WHERE id=?").get("offer:" + id).payload);
+const hourAgo = new Date(Date.now() - 3600000).toISOString();
+putOffer("gone-baku", "baku", hourAgo);
+putOffer("demo-baku", "baku", hourAgo, { demo: true });
+putOffer("other-store", "soliton", hourAgo);
+crawlJobs.configure("ok");
+let expiring = await crawlJobs.startCrawlJob(db, "baku");
+for (let i = 0; i < 5 && expiring.status !== "complete"; i++) {
+  ready(expiring.id);
+  expiring = await crawlJobs.tickCrawlJob(db, expiring.id);
+}
+assert.equal(expiring.status, "complete");
+assert.deepEqual([offerOf("gone-baku").stock, offerOf("gone-baku").stockKnown], [false, false]);
+assert.equal(offerOf("demo-baku").stock, true);
+assert.equal(offerOf("other-store").stock, true);
+const seenAgain = sqlite
+  .prepare(
+    "SELECT payload FROM records WHERE kind='offer' AND json_extract(payload,'$.storeId')='baku' AND json_extract(payload,'$.checkedAt')>=?",
+  )
+  .all(expiring.createdAt)
+  .map((r) => JSON.parse(r.payload));
+assert(seenAgain.length >= 1 && seenAgain.every((o) => o.stock && o.stockKnown));
+// Age sweep: a crawled store's offer older than max(7 days, 3 × refreshHours) becomes unknown even
+// without a finished run; fresh offers and stores outside crawlSources are untouched.
+putOffer("ancient-soliton", "soliton", new Date(Date.now() - 30 * 86400000).toISOString());
+putOffer("recent-soliton", "soliton", new Date(Date.now() - 86400000).toISOString());
+putOffer("ancient-tap", "tap-shop", new Date(Date.now() - 30 * 86400000).toISOString());
+assert.equal(await crawlJobs.expireStaleOffers(db), 1);
+assert.equal(offerOf("ancient-soliton").stockKnown, false);
+assert.equal(offerOf("recent-soliton").stock, true);
+assert.equal(offerOf("ancient-tap").stock, true);
+sqlite.exec(
+  "UPDATE records SET payload=json_set(payload,'$.status','complete') WHERE kind='crawlJob'",
+);
+
 // Category-page sources store every row of a page and follow the page links they return.
 const listingRules =
   "data:text/javascript;base64," +
   Buffer.from(compile(fs.readFileSync("lib/crawl-sources.ts", "utf8"))).toString("base64");
-const listingFake = `class SourceAccessError extends Error{constructor(m,s){super(m);this.status=s;}}async function readMerchantSitemap(){throw new Error('no sitemap');}async function merchantPage(url){return url;}async function scanProduct(){throw new Error('product pages are not read');}`;
+const listingFake = `const crawlDelayMs=()=>0;class SourceAccessError extends Error{constructor(m,s){super(m);this.status=s;}}async function readMerchantSitemap(){throw new Error('no sitemap');}async function merchantPage(url){return url;}async function scanProduct(){throw new Error('product pages are not read');}`;
 const listingStub = `const listingCategories=()=>[],brandFromName=()=>"";function extractListing(source,html,url){const page=new URL(url).searchParams.get('page')||'1';const row=(n)=>({name:'Listing '+n,sku:'sku-'+n,price:100+Number(n),currency:'AZN',stock:true,stockKnown:true,checkedAt:new Date().toISOString(),url:'https://irshad.az/az/mehsullar/item-'+n,variantId:'v'+n});return page==='1'?{items:[row(1),row(2)],pages:[url+'&page=2']}:{items:[row(3)],pages:[]};}`;
 const listingCode = compile(fs.readFileSync("lib/crawl-jobs.ts", "utf8"))
   .replace(
@@ -266,7 +367,9 @@ const listingCode = compile(fs.readFileSync("lib/crawl-jobs.ts", "utf8"))
   )
   .replace(
     /import \{ knownSourceProduct \} from ["'].\/store-snapshots["'];/,
-    () => "const knownSourceProduct=()=>undefined;",
+    // item-2 is a known snapshot product whose SKU changed: it is skipped, the run continues.
+    () =>
+      "const knownSourceProduct=(s,u)=>u.endsWith('item-2')?{offer:{id:'snap-2',sourceSku:'other'}}:undefined;",
   )
   .replace(/from ["'].\/crawl-sources["']/, () => `from '${listingRules}'`)
   .replace(/import \{[^}]*\} from ["'].\/listing-sources["'];/, () => listingStub)
@@ -281,15 +384,16 @@ for (let i = 0; i < 5 && listingJob.status !== "complete"; i++) {
   listingJob = await listingJobs.tickCrawlJob(db, listingJob.id);
 }
 assert.equal(listingJob.status, "complete");
-assert.equal(listingJob.imported, 3);
+assert.equal(listingJob.imported, 2);
+assert.equal(listingJob.failed, 1);
 const listed = sqlite
   .prepare(
     "SELECT payload FROM records WHERE kind='offer' AND json_extract(payload,'$.storeId')='irshad'",
   )
   .all()
   .map((r) => JSON.parse(r.payload));
-assert.deepEqual(listed.map((o) => o.price).sort(), [101, 102, 103]);
+assert.deepEqual(listed.map((o) => o.price).sort(), [101, 103]);
 assert(listed.every((o) => o.stock && !o.demo && o.url.startsWith("https://irshad.az/")));
 console.log(
-  "PASS: 403/429 recovery, atomic D1 retry, pause and stale leases, background driver completion, paused/future job exclusion, per-job error isolation, persisted heartbeat and newer-run fencing, cancel, scheduled refresh, category-page paging. In-memory SQLite; no network.",
+  "PASS: 403/429 recovery, atomic D1 retry, pause and stale leases, background driver completion, paused/future job exclusion, per-job error isolation, persisted heartbeat and newer-run fencing, cancel, scheduled refresh, first runs, 429/challenge stop, unseen and aged offer expiry, skipped SKU-changed rows, category-page paging. In-memory SQLite; no network.",
 );

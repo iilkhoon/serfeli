@@ -21,6 +21,15 @@ import { canonicalProductId } from "../../../../lib/catalog";
 import { env } from "cloudflare:workers";
 import { getChatGPTUser, type ChatGPTUser } from "../../../chatgpt-auth";
 import { scanProduct, safeMerchantUrl } from "../../../../lib/extractor";
+import {
+  ApiError,
+  MAX_BODY,
+  bareHost,
+  crossSite,
+  errorResponse,
+  rateLimited,
+  readJson,
+} from "../../../../lib/api/http";
 import { id, offer, saveRequest } from "../../../../lib/api/schemas";
 import {
   audit,
@@ -40,14 +49,13 @@ const json = (v: unknown, status = 200) =>
     headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
   });
 
-// Browsers always send Origin and/or Sec-Fetch-Site on cross-site writes; reject either signal.
-// Requests with neither header come from non-browser clients, which cannot ride the viewer's session.
-function crossSite(req: Request, url: URL) {
-  const origin = req.headers.get("origin");
-  if (origin && origin !== url.origin) return true;
-  const site = req.headers.get("sec-fetch-site");
-  return !!site && site !== "same-origin" && site !== "none";
-}
+const clientKey = (req: Request, user: ChatGPTUser | null) =>
+  user?.userId || req.headers.get("cf-connecting-ip") || "anonymous";
+const tooMany = () =>
+  Response.json(
+    { error: "Çox sayda sorğu. Bir az sonra yenidən cəhd edin." },
+    { status: 429, headers: { "Cache-Control": "no-store", "Retry-After": "60" } },
+  );
 
 // When OWNER_EMAIL is configured only that account may claim the first-owner slot.
 function mayClaimOwner(user: ChatGPTUser) {
@@ -100,10 +108,10 @@ async function personalPost(req: Request, user: ChatGPTUser) {
     .object({
       kind: z.enum(["favorite", "alert"]),
       productId: id,
-      target: z.number().positive().optional(),
+      target: z.number().positive().max(10000000).optional(),
       remove: z.boolean().optional(),
     })
-    .parse(await req.json());
+    .parse(await readJson(req));
   const c = await publicCatalog();
   b.productId = canonicalProductId(c, b.productId);
   if (!b.remove && !c.products.some((p) => p.id === b.productId && p.active))
@@ -148,7 +156,7 @@ async function reviewPost(req: Request, user: ChatGPTUser) {
       rating: z.number().int().min(1).max(5),
       text: z.string().min(10).max(2000),
     })
-    .parse(await req.json());
+    .parse(await readJson(req));
   const c = await catalog();
   if (!c.products.some((p) => p.id === b.productId))
     return json({ error: "Məhsul tapılmadı." }, 404);
@@ -176,7 +184,7 @@ async function applicationPost(req: Request) {
       voen: z.string().regex(/^\d{10}$/),
       note: z.string().max(2000),
     })
-    .parse(await req.json());
+    .parse(await readJson(req));
   await statement("application", {
     ...b,
     id: crypto.randomUUID(),
@@ -187,10 +195,11 @@ async function applicationPost(req: Request) {
 }
 
 async function clickPost(req: Request) {
-  const b = z.object({ offerId: id }).parse(await req.json());
+  const b = z.object({ offerId: id }).parse(await readJson(req));
   const c = await catalog();
   const o = c.offers.find((o) => o.id === b.offerId);
-  if (!o || o.demo) return json({ error: "Nümunə təklifdən alış edilmir." }, 400);
+  if (!o) return json({ error: "Təklif tapılmadı." }, 404);
+  if (o.demo) return json({ error: "Nümunə təklifdən alış edilmir." }, 400);
   safeMerchantUrl(o.url);
   await statement("click", {
     id: crypto.randomUUID(),
@@ -287,16 +296,18 @@ async function feedSync(user: ChatGPTUser) {
 async function checkOffer(v: z.infer<typeof offer>, messages: { missing: string; domain: string }) {
   const c = await catalog();
   const s = c.stores.find((s) => s.id === v.storeId);
-  if (!s || !c.products.some((p) => p.id === v.productId)) throw new Error(messages.missing);
-  if (safeMerchantUrl(v.url).hostname.replace(/^www\./, "") !== s.domain)
-    throw new Error(messages.domain);
+  if (!s || !c.products.some((p) => p.id === v.productId))
+    throw new ApiError(400, messages.missing);
+  // Store domains may be saved with "www." (e.g. www.barkodelectronics.az).
+  if (bareHost(safeMerchantUrl(v.url).hostname) !== bareHost(s.domain))
+    throw new ApiError(400, messages.domain);
   if (v.months > 0 && v.installmentTotal < v.price)
-    throw new Error("Taksit yekunu nağd qiymətdən az ola bilməz.");
+    throw new ApiError(400, "Taksit yekunu nağd qiymətdən az ola bilməz.");
   v.checkedAt = new Date().toISOString();
 }
 
 async function adminSave(req: Request, user: ChatGPTUser) {
-  const b = saveRequest.parse(await req.json());
+  const b = saveRequest.parse(await readJson(req));
   if (b.kind === "offer")
     await checkOffer(b.value, {
       missing: "Məhsul və mağaza mövcud olmalıdır.",
@@ -314,7 +325,7 @@ async function adminSave(req: Request, user: ChatGPTUser) {
 }
 
 async function adminImport(req: Request, user: ChatGPTUser) {
-  const b = z.object({ offers: z.array(offer).min(1).max(100) }).parse(await req.json());
+  const b = z.object({ offers: z.array(offer).min(1).max(100) }).parse(await readJson(req));
   for (const v of b.offers)
     await checkOffer(v, {
       missing: `Naməlum məhsul və ya mağaza: ${v.id}`,
@@ -337,7 +348,7 @@ async function adminModerate(req: Request, user: ChatGPTUser) {
       id: z.string().max(100),
       status: z.enum(["approved", "rejected"]),
     })
-    .parse(await req.json());
+    .parse(await readJson(req));
   const r = await db()
     .prepare("SELECT payload FROM records WHERE id=? AND kind=?")
     .bind(`${b.kind}:${b.id}`, b.kind)
@@ -349,15 +360,18 @@ async function adminModerate(req: Request, user: ChatGPTUser) {
 }
 
 async function adminDelete(req: Request, user: ChatGPTUser) {
-  const b = z.object({ kind: z.enum(["product", "store", "offer"]), id }).parse(await req.json());
+  const b = z
+    .object({ kind: z.enum(["product", "store", "offer"]), id })
+    .parse(await readJson(req));
   if (/^(wc-|tap-|soliton-)/.test(b.id))
-    throw new Error(
+    throw new ApiError(
+      409,
       "Bu qeyd mənbə kataloqundan gəlir. Məhsulu redaktə edərək deaktiv edin və ya mağazanı deaktiv edin.",
     );
   if (b.kind !== "offer") {
     const c = await catalog();
     if (c.offers.some((o) => (b.kind === "product" ? o.productId === b.id : o.storeId === b.id)))
-      throw new Error("Əvvəlcə bu qeydə bağlı təklifləri silin və ya qeydi deaktiv edin.");
+      throw new ApiError(409, "Əvvəlcə bu qeydə bağlı təklifləri silin və ya qeydi deaktiv edin.");
   }
   await db()
     .prepare("DELETE FROM records WHERE id=? AND kind=?")
@@ -430,7 +444,7 @@ async function matchesPost(req: Request, user: ChatGPTUser) {
       }),
       z.object({ action: z.literal("revoke"), id }),
     ])
-    .parse(await req.json());
+    .parse(await readJson(req));
   try {
     return await withProductMatchLock(db(), async (save) => {
       const matches = await list<ProductMatch>("productMatch");
@@ -491,17 +505,17 @@ async function admin(req: Request, path: string, user: ChatGPTUser) {
     case "GET admin/jobs":
       return json(await listCrawlJobs(db()));
     case "POST admin/jobs/start": {
-      const b = z.object({ sourceId: z.string().max(50) }).parse(await req.json());
+      const b = z.object({ sourceId: z.string().max(50) }).parse(await readJson(req));
       const job = await startCrawlJob(db(), b.sourceId);
       await audit(user.userId, "Mənbə idxalı hazırlandı: " + b.sourceId);
       return json(job);
     }
     case "POST admin/jobs/tick":
-      return json(await tickCrawlJob(db(), z.object({ id }).parse(await req.json()).id));
+      return json(await tickCrawlJob(db(), z.object({ id }).parse(await readJson(req)).id));
     case "POST admin/jobs/control": {
       const b = z
         .object({ id, action: z.enum(["pause", "resume", "cancel"]) })
-        .parse(await req.json());
+        .parse(await readJson(req));
       return json(await controlCrawlJob(db(), b.id, b.action));
     }
     case "GET admin/catalog":
@@ -514,7 +528,7 @@ async function admin(req: Request, path: string, user: ChatGPTUser) {
       return feedSync(user);
     case "POST admin/scan":
       return json(
-        await scanProduct(z.object({ url: z.string().url() }).parse(await req.json()).url),
+        await scanProduct(z.object({ url: z.string().url() }).parse(await readJson(req)).url),
       );
     case "POST admin/save":
       return adminSave(req, user);
@@ -535,10 +549,19 @@ async function route(req: Request): Promise<Response> {
   const user = await getChatGPTUser();
   if (method !== "GET") {
     if (crossSite(req, url)) return json({ error: "Sorğunun mənbəyi uyğun deyil." }, 403);
-    if (Number(req.headers.get("content-length") || 0) > 500000)
+    if (Number(req.headers.get("content-length") || 0) > MAX_BODY)
       return json({ error: "Məlumat 500 KB limitini keçir." }, 413);
-    if (path === "click" && method === "POST") return clickPost(req);
+    if (path === "click" && method === "POST") {
+      if (rateLimited("click:" + clientKey(req, user), 60)) return tooMany();
+      return clickPost(req);
+    }
     if (!user) return json({ error: "Bu əməliyyat üçün hesabınıza daxil olun." }, 401);
+    // Public writes (favourites, reviews, applications); admin work is owner-only and unlimited.
+    if (!path.startsWith("admin/")) {
+      const strict = path === "reviews" || path === "applications";
+      if (rateLimited(path + ":" + user.userId, strict ? 5 : 60, strict ? 600000 : 60000))
+        return tooMany();
+    }
   }
   if (path === "catalog" && method === "GET")
     return json(catalogSlice(await publicCatalog(), parseCatalogQuery(url.searchParams)));
@@ -558,30 +581,22 @@ async function route(req: Request): Promise<Response> {
     if (path === "applications") return applicationPost(req);
   }
   if (!path.startsWith("admin/")) return json({ error: "Ünvan tapılmadı." }, 404);
-  if (!user || (await ownerId()) !== user.userId)
-    return json({ error: "Admin icazəsi tələb olunur." }, 403);
+  if (!user) return json({ error: "Bu əməliyyat üçün hesabınıza daxil olun." }, 401);
+  if ((await ownerId()) !== user.userId) return json({ error: "Admin icazəsi tələb olunur." }, 403);
   return admin(req, path, user);
 }
 
 async function handle(req: Request) {
+  const admin = new URL(req.url).pathname.startsWith("/api/v1/admin/");
   try {
     // Awaited here so rejections from every delegated handler reach the catch below.
     const res = await route(req);
     if (req.method !== "GET" && res.ok) invalidatePublicCatalog();
     return res;
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    console.error("API:", message);
-    return json(
-      {
-        error:
-          e instanceof z.ZodError
-            ? "Daxil edilən məlumatlar düzgün deyil: " +
-              e.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")
-            : message || "Əməliyyat alınmadı.",
-      },
-      400,
-    );
+    console.error("API:", e instanceof Error ? e.name + ": " + e.message : String(e));
+    const { status, error } = errorResponse(e, admin);
+    return json({ error }, status);
   }
 }
 export const GET = handle;

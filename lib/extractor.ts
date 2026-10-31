@@ -1,7 +1,8 @@
 import { extractAlinino } from "./alinino";
 import { extractIrshad as parseIrshad, extractIrshadVariants } from "./irshad";
-import { robotsAllowed } from "./robots";
+import { robotsAllowed, robotsCrawlDelayMs, robotsSitemaps } from "./robots";
 import { merchantDomains } from "./merchants";
+import { htmlProductReaders, productFixups } from "./html-products";
 // Only known merchant hosts may be fetched. Never bypass access challenges.
 export const allowedHosts = merchantDomains;
 export function safeMerchantUrl(raw: string) {
@@ -21,10 +22,28 @@ export class SourceAccessError extends Error {
     message: string,
     public status: number,
     public retryAfterMs = 0,
+    public challenge = false,
   ) {
     super(message);
+    this.name = "SourceAccessError";
   }
 }
+// Bot-protection interstitials (served with 200 or 403/503). These are never retried or bypassed:
+// the source is stopped and marked blocked.
+const challengeMarkers =
+  /<title>\s*(?:Just a moment\.\.\.|Attention Required! \| Cloudflare|DDoS-Guard|Checking your browser)|window\._cf_chl_opt|cf-browser-verification|id=["']challenge-form["']/i;
+export function isBotChallenge(html: string) {
+  return challengeMarkers.test(html.slice(0, 20000));
+}
+// 401/403/429 and bot challenges stop the source (see lib/crawl-jobs.ts).
+const BLOCKED_STATUSES = new Set([401, 403, 429]);
+const crawlDelays = new Map<string, number>();
+// Crawl-delay announced by the host's robots.txt, as last read by this isolate.
+export function crawlDelayMs(host: string) {
+  return crawlDelays.get(host.replace(/^www\./, "")) || 0;
+}
+// Hosts whose robots.txt asks for a Crawl-delay (seconds × 1000); every other host gets 1 s.
+const slowHosts: Record<string, number> = { "irshad.az": 30000, "smarton.az": 30000 };
 const nextFetch = new Map<string, number>();
 const fetchQueues = new Map<string, Promise<unknown>>();
 async function sourceFetch(url: URL, timeoutMs = 12000, extraHeaders: Record<string, string> = {}) {
@@ -35,7 +54,7 @@ async function sourceFetch(url: URL, timeoutMs = 12000, extraHeaders: Record<str
     .then(async () => {
       const wait = Math.max(0, (nextFetch.get(host) || 0) - Date.now());
       if (wait) await new Promise((r) => setTimeout(r, wait));
-      nextFetch.set(host, Date.now() + (host === "irshad.az" ? 30000 : 1000));
+      nextFetch.set(host, Date.now() + Math.max(slowHosts[host] || 1000, crawlDelayMs(host)));
       return fetch(url, {
         redirect: "manual",
         signal: AbortSignal.timeout(timeoutMs),
@@ -61,7 +80,17 @@ async function sourceResponse(
   let current = url;
   for (let i = 0; i < 4; i++) {
     const r = await sourceFetch(current, timeoutMs, extraHeaders);
+    if (r.headers.get("cf-mitigated")?.toLowerCase() === "challenge") {
+      await r.body?.cancel().catch(() => {});
+      throw new SourceAccessError(
+        "Mağaza bot yoxlaması göstərir; mənbə dayandırıldı.",
+        403,
+        0,
+        true,
+      );
+    }
     if (r.status >= 300 && r.status < 400) {
+      await r.body?.cancel().catch(() => {});
       const location = r.headers.get("location");
       if (!location) throw new Error("Yönləndirmə ünvanı yoxdur.");
       const next = safeMerchantUrl(new URL(location, current).href);
@@ -77,22 +106,29 @@ async function sourceResponse(
 async function readPage(url: URL, extraHeaders: Record<string, string> = {}, json = false) {
   const response = await sourceResponse(url, 12000, extraHeaders);
   const type = response.headers.get("content-type") || "";
-  if (response.ok && !(json ? type.includes("application/json") : type.includes("text/html")))
+  if (response.ok && !(json ? type.includes("application/json") : type.includes("text/html"))) {
+    await response.body?.cancel().catch(() => {});
     throw new Error(json ? "Mənbə JSON cavabı vermədi." : "Mənbə HTML səhifəsi deyil.");
-  return limitedText(response);
+  }
+  const text = await limitedText(response);
+  if (!json && isBotChallenge(text))
+    throw new SourceAccessError("Mağaza bot yoxlaması göstərir; mənbə dayandırıldı.", 403, 0, true);
+  return text;
 }
 async function limitedText(r: Response) {
   if (!r.ok) {
+    await r.body?.cancel().catch(() => {});
     const retry = r.headers.get("retry-after");
+    // Retry-After (seconds or HTTP date), capped at one hour; 0 when the server gives none.
     const delay = retry
-      ? /^\d+$/.test(retry)
-        ? Number(retry) * 1000
+      ? /^\d+$/.test(retry.trim())
+        ? Number(retry.trim()) * 1000
         : Math.max(0, Date.parse(retry) - Date.now())
-      : 60000;
+      : 0;
     throw new SourceAccessError(
       `Mağaza sorğunu qəbul etmədi (HTTP ${r.status}).`,
       r.status,
-      Number.isFinite(delay) ? delay : 60000,
+      Number.isFinite(delay) ? Math.min(delay, 3600000) : 0,
     );
   }
   const reader = r.body?.getReader();
@@ -117,8 +153,20 @@ async function limitedText(r: Response) {
   }
   return new TextDecoder().decode(all);
 }
-export async function readMerchantSitemap(raw: string) {
+// A sitemap is read when robots.txt allows its path, when robots.txt itself advertises it
+// (Sitemap: line), or when it is listed by a sitemap index that was read under those rules.
+export async function readMerchantSitemap(raw: string, options: { advertised?: boolean } = {}) {
   const url = safeMerchantUrl(raw);
+  const policy = await robotsPolicy(url);
+  const listed = robotsSitemaps(policy).some((s) => {
+    try {
+      return new URL(s).href === url.href;
+    } catch {
+      return false;
+    }
+  });
+  if (!options.advertised && !listed && !robotsAllowed(policy, url.pathname + url.search))
+    throw new RobotsDisallowedError();
   const r = await sourceResponse(url, 45000);
   if (!r.ok) await limitedText(r);
   const reader = r.body?.getReader();
@@ -143,39 +191,111 @@ export async function readMerchantSitemap(raw: string) {
   }
   return new TextDecoder().decode(all);
 }
+// Minimal HTML entity decoding for text read from meta tags and JSON-LD.
+export function decodeEntities(value: string) {
+  return value
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#x([0-9a-f]{1,6});/gi, (_, n) =>
+      String.fromCodePoint(Math.min(parseInt(n, 16), 0x10ffff)),
+    )
+    .replace(/&#(\d{1,7});/g, (_, n) => String.fromCodePoint(Math.min(Number(n), 0x10ffff)))
+    .replace(/&amp;/g, "&");
+}
+// Reads a machine price (JSON-LD/meta) or a shelf price ("1 299,99 ₼", "1.299,99 AZN", "1299.00").
+// Returns NaN for anything that is not one positive amount; a foreign currency sign is rejected.
+export function parsePrice(raw: unknown) {
+  if (typeof raw === "number") return Number.isFinite(raw) && raw > 0 ? raw : NaN;
+  if (typeof raw !== "string") return NaN;
+  if (/\b(?:USD|EUR|RUB|RUR|TRY|GBP)\b|[$€£₽₺]/i.test(raw)) return NaN;
+  let amount = raw.replace(/AZN|₼|manat|man\.?/gi, "").replace(/[\s\u00a0\u202f\u2009']/g, "");
+  if (!/^\d[\d.,]*$/.test(amount)) return NaN;
+  const dots = amount.split(".").length - 1,
+    commas = amount.split(",").length - 1;
+  if (dots && commas) {
+    // The last separator is the decimal one: "1.299,99" / "1,299.99".
+    const decimal = amount.lastIndexOf(".") > amount.lastIndexOf(",") ? "." : ",";
+    const [whole, fraction] = [
+      amount.slice(0, amount.lastIndexOf(decimal)),
+      amount.slice(amount.lastIndexOf(decimal) + 1),
+    ];
+    if (!/^\d+$/.test(fraction) || !/^(?:\d+|\d{1,3}(?:[.,]\d{3})+)$/.test(whole)) return NaN;
+    amount = whole.replace(/[.,]/g, "") + "." + fraction;
+  } else if (dots + commas > 1) {
+    // Repeated separator: thousands groups only ("1.299.000", "1,299,000").
+    if (!/^\d{1,3}(?:[.,]\d{3})+$/.test(amount)) return NaN;
+    amount = amount.replace(/[.,]/g, "");
+  } else if (commas) {
+    amount = amount.replace(",", ".");
+  }
+  const price = Number(amount);
+  return Number.isFinite(price) && price > 0 && price <= 10000000
+    ? Math.round(price * 100) / 100
+    : NaN;
+}
+// schema.org ItemAvailability (full URL or bare name) and the common og/meta spellings. Anything
+// unrecognised is unknown stock, never "out of stock".
+export function stockFromAvailability(raw: unknown) {
+  const value = String(raw ?? "")
+    .trim()
+    .replace(/^https?:\/\/schema\.org\//i, "")
+    .replace(/[\s_-]/g, "")
+    .toLowerCase();
+  if (["instock", "limitedavailability", "onlineonly", "instoreonly"].includes(value))
+    return { stock: true, stockKnown: true };
+  if (["outofstock", "soldout", "discontinued", "oos", "preorder", "backorder"].includes(value))
+    return { stock: false, stockKnown: true };
+  return { stock: false, stockKnown: false };
+}
 export function extractMetaProduct(html: string) {
   const fields = new Map<string, string[]>();
   for (const tag of html.matchAll(/<meta\b[^>]*>/gi)) {
     const key = tag[0].match(/(?:property|name)\s*=\s*(["'])(.*?)\1/i)?.[2]?.toLowerCase();
     const value = tag[0].match(/content\s*=\s*(["'])([\s\S]*?)\1/i)?.[2];
     if (key && value !== undefined)
-      fields.set(key, [
-        ...(fields.get(key) || []),
-        value.replace(/&amp;/g, "&").replace(/&quot;/g, '"'),
-      ]);
+      fields.set(key, [...(fields.get(key) || []), decodeEntities(value).trim()]);
   }
-  const amounts = [...new Set(fields.get("product:price:amount") || [])];
-  if (
-    amounts.length !== 1 ||
-    fields.get("product:price:currency")?.[0] !== "AZN" ||
-    !fields.get("og:title")?.[0]
-  )
+  const one = (...keys: string[]) => {
+    for (const k of keys) {
+      const values = [...new Set((fields.get(k) || []).filter(Boolean))];
+      if (values.length) return values;
+    }
+    return [];
+  };
+  const amounts = one("product:price:amount", "og:price:amount");
+  const currency = one("product:price:currency", "og:price:currency")[0] || "";
+  const title = one("og:title")[0];
+  if (amounts.length !== 1 || currency.toUpperCase() !== "AZN" || !title)
     throw new Error("AZN valyutalı tək məhsul qiyməti oxunmadı.");
-  const price = Number(amounts[0].replace(",", "."));
-  if (!Number.isFinite(price) || price <= 0 || price > 10000000)
-    throw new Error("Qiymət formatı düzgün deyil.");
-  const availability = (fields.get("product:availability")?.[0] || "").toLowerCase();
+  const listed = parsePrice(amounts[0]);
+  if (!Number.isFinite(listed)) throw new Error("Qiymət formatı düzgün deyil.");
+  // A sale price below the listed one is what the buyer pays (bytelecom.az prints the regular price
+  // as product:price:amount and the current one as product:discount_price). "0"/empty means none.
+  const sales = one(
+    "product:sale_price:amount",
+    "og:sale_price:amount",
+    "product:discount_price",
+    "og:discount_price",
+  )
+    .map(parsePrice)
+    .filter((v) => Number.isFinite(v) && v < listed);
+  if (new Set(sales).size > 1) throw new Error("Endirimli qiymət birmənalı deyil.");
+  const price = sales[0] ?? listed;
+  const availability = stockFromAvailability(one("product:availability", "og:availability")[0]);
   return {
-    name: fields.get("og:title")![0],
-    image: fields.get("og:image")?.[0],
-    description: fields.get("description")?.[0] || "",
-    brand: fields.get("product:brand")?.[0],
-    sku: fields.get("product:retailer_item_id")?.[0] || "",
+    // Store SEO suffixes ("… qiymeti ve kreditle satisi") are not part of the product name.
+    name: title.replace(/\s+qiym[eə]ti\s+v[eə]\s+kreditl[eə]\s+sat[iı][sş][iı]\s*$/i, "").trim(),
+    image: one("og:image")[0],
+    description: one("description", "og:description")[0] || "",
+    brand: one("product:brand")[0],
+    sku: one("product:retailer_item_id")[0] || "",
     gtin: "",
     price,
     currency: "AZN",
-    stock: ["in stock", "instock"].includes(availability),
-    stockKnown: ["in stock", "instock", "out of stock", "outofstock"].includes(availability),
+    ...availability,
     checkedAt: new Date().toISOString(),
   };
 }
@@ -190,6 +310,7 @@ type LdProduct = {
   description?: unknown;
   sku?: unknown;
   mpn?: unknown;
+  productID?: unknown;
   gtin?: unknown;
   gtin13?: unknown;
   isbn?: unknown;
@@ -216,6 +337,8 @@ export type ScannedProduct = {
   category?: string;
   url?: string;
   variants?: ScannedProduct[];
+  // Crossed-out price shown next to the sale price; never used as the offer price.
+  oldPrice?: number;
 };
 export function extractProduct(html: string) {
   const all: LdProduct[] = [];
@@ -226,7 +349,12 @@ export function extractProduct(html: string) {
       return;
     }
     const o = value as LdProduct;
-    if ([o["@type"]].flat().includes("Product")) all.push(o);
+    if (
+      [o["@type"]]
+        .flat()
+        .some((t) => /^(?:(?:https?:\/\/)?schema\.org\/|schema:)?Product$/.test(String(t)))
+    )
+      all.push(o);
     if (o["@graph"]) walk(o["@graph"]);
     if (o.mainEntity) walk(o.mainEntity);
   };
@@ -237,7 +365,17 @@ export function extractProduct(html: string) {
       walk(JSON.parse(m[1]));
     } catch {}
   }
-  if (!all.length) return extractMetaProduct(html);
+  if (!all.length) {
+    try {
+      return extractMetaProduct(html);
+    } catch (metaError) {
+      try {
+        return extractMicrodataProduct(html);
+      } catch {
+        throw metaError;
+      }
+    }
+  }
   const candidates = all
     .map((p) => {
       const o = Array.isArray(p.offers)
@@ -249,7 +387,7 @@ export function extractProduct(html: string) {
     })
     .filter(
       (v): v is { p: LdProduct; o: LdOffer } =>
-        v.o?.price !== undefined && v.o?.priceCurrency === "AZN",
+        v.o?.price !== undefined && String(v.o?.priceCurrency || "").toUpperCase() === "AZN",
     );
   if (candidates.length !== 1)
     throw new Error(
@@ -258,32 +396,122 @@ export function extractProduct(html: string) {
         : "AZN valyutalı tək məhsul qiyməti oxunmadı. JS/anti-bot səhifəsi ola bilər; manual idxaldan istifadə edin.",
     );
   const { p, o } = candidates[0];
-  const price = Number(String(o.price).replace(",", "."));
-  if (!Number.isFinite(price) || price <= 0 || price > 10000000)
-    throw new Error("Qiymət formatı düzgün deyil.");
+  const price = parsePrice(o.price);
+  if (!Number.isFinite(price)) throw new Error("Qiymət formatı düzgün deyil.");
   const first = Array.isArray(p.image) ? p.image[0] : p.image;
   const image = typeof first === "string" ? first : first?.url;
   const brand = typeof p.brand === "string" ? p.brand : p.brand?.name;
   return {
     image: typeof image === "string" ? image : undefined,
-    brand: brand ? String(brand) : undefined,
-    description: String(p.description || "")
-      .replace(/<[^>]*>/g, " ")
+    brand: brand ? decodeEntities(String(brand)).trim() : undefined,
+    description: decodeEntities(String(p.description || "").replace(/<[^>]*>/g, " "))
+      .replace(/\s+/g, " ")
+      .trim()
       .slice(0, 1500),
     gtin: String(p.gtin13 || p.gtin || p.isbn || ""),
-    name: String(p.name || ""),
-    sku: String(p.sku || p.mpn || p.gtin13 || ""),
+    name: decodeEntities(String(p.name || "")).trim(),
+    sku: decodeEntities(String(p.sku || p.mpn || p.gtin13 || p.productID || "")).trim(),
     price,
     currency: "AZN",
-    stock: String(o.availability || "").endsWith("InStock"),
-    stockKnown: !!o.availability,
+    ...stockFromAvailability(o.availability),
+    checkedAt: new Date().toISOString(),
+  };
+}
+// schema.org Product microdata (itemprop attributes), e.g. OpenCart and Tilda product pages.
+// Exactly one distinct AZN price must be present, so pages listing several products are rejected.
+export function extractMicrodataProduct(html: string): ScannedProduct {
+  const start = html.search(/itemtype\s*=\s*["']https?:\/\/schema\.org\/Product["']/i);
+  if (start < 0) throw new Error("Məhsul mikrodatası tapılmadı.");
+  const scope = html.slice(start);
+  const props = (name: string) =>
+    [
+      ...scope.matchAll(
+        new RegExp("<(\\w+)\\b[^>]*itemprop\\s*=\\s*[\"']" + name + "[\"'][^>]*>", "gi"),
+      ),
+    ].map((m) => {
+      const tag = m[0];
+      const value = tag.match(/(?:content|href|src)\s*=\s*(["'])([\s\S]*?)\1/i)?.[2];
+      if (value !== undefined) return value.replace(/&amp;/g, "&").trim();
+      const close = scope.indexOf("</" + m[1], (m.index || 0) + tag.length);
+      return close < 0
+        ? ""
+        : scope
+            .slice((m.index || 0) + tag.length, close)
+            .replace(/<[^>]*>/g, " ")
+            .replace(/&nbsp;/g, " ")
+            .replace(/&amp;/g, "&")
+            .replace(/\s+/g, " ")
+            .trim();
+    });
+  const prices = [...new Set(props("price").map((v) => Number(v.replace(",", "."))))];
+  const currencies = [...new Set(props("priceCurrency"))];
+  if (prices.length !== 1 || currencies.length !== 1 || currencies[0] !== "AZN")
+    throw new Error("AZN valyutalı tək məhsul qiyməti oxunmadı.");
+  const price = prices[0];
+  if (!Number.isFinite(price) || price <= 0 || price > 10000000)
+    throw new Error("Qiymət formatı düzgün deyil.");
+  // The product name is the heading marked itemprop="name", not a breadcrumb item's name.
+  const heading = scope.match(/<h1\b[^>]*itemprop\s*=\s*["']name["'][^>]*>([\s\S]*?)<\/h1>/i)?.[1];
+  const name = (heading ? heading.replace(/<[^>]*>/g, " ") : props("name")[0] || "")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!name) throw new Error("Məhsul adı oxunmadı.");
+  const brandScope = scope.match(
+    /itemprop\s*=\s*["']brand["'][^>]*itemscope[\s\S]*?itemprop\s*=\s*["']name["'][^>]*>([^<]*)</i,
+  )?.[1];
+  const availability = props("availability")[0] || "";
+  const image =
+    props("image")[0] ||
+    html.match(/<meta\b[^>]*property\s*=\s*["']og:image["'][^>]*content\s*=\s*["']([^"']+)/i)?.[1];
+  return {
+    name,
+    image: image && /^https:\/\//.test(image) ? image : undefined,
+    brand: (brandScope || props("brand")[0] || "").trim() || undefined,
+    description: (props("description")[0] || "").slice(0, 1500),
+    sku: props("sku")[0] || props("mpn")[0] || props("productID")[0] || "",
+    gtin: props("gtin13")[0] || "",
+    price,
+    currency: "AZN",
+    stock: /InStock$/i.test(availability),
+    stockKnown: /(InStock|OutOfStock|SoldOut|Discontinued|PreOrder)$/i.test(availability),
     checkedAt: new Date().toISOString(),
   };
 }
 export function extractIrshad(html: string, requestedUrl?: string) {
   return parseIrshad(html, requestedUrl);
 }
+export class RobotsDisallowedError extends Error {
+  constructor() {
+    super("Mənbə bu ünvanı avtomatik oxumağa açmır.");
+    this.name = "RobotsDisallowedError";
+  }
+}
 const robotsCache = new Map<string, { text: string; at: number }>();
+// robots.txt per origin, cached for 5 minutes. A missing file (404/410 and other 4xx) allows all;
+// 401/403/429 and bot challenges throw SourceAccessError so the source is stopped; 5xx and
+// network errors throw so nothing is fetched until robots.txt can be read.
+async function robotsPolicy(url: URL) {
+  const key = url.origin;
+  let policy = robotsCache.get(key);
+  if (!policy || Date.now() - policy.at > 300000) {
+    const r = await sourceResponse(new URL("/robots.txt", url));
+    if (r.status >= 400 && r.status < 500 && !BLOCKED_STATUSES.has(r.status)) {
+      await r.body?.cancel().catch(() => {});
+      policy = { text: "", at: Date.now() };
+    } else policy = { text: await limitedText(r), at: Date.now() };
+    if (isBotChallenge(policy.text))
+      throw new SourceAccessError(
+        "Mağaza bot yoxlaması göstərir; mənbə dayandırıldı.",
+        403,
+        0,
+        true,
+      );
+    robotsCache.set(key, policy);
+    crawlDelays.set(url.hostname.replace(/^www\./, ""), robotsCrawlDelayMs(policy.text));
+  }
+  return policy.text;
+}
 // fragment: request the HTML fragment a store's own "load more" button fetches (X-Requested-With),
 // for list endpoints that redirect plain page requests. json: a public JSON catalog endpoint.
 // robots.txt still decides.
@@ -292,16 +520,8 @@ export async function merchantPage(
   options: { fragment?: boolean; json?: boolean } = {},
 ) {
   const url = safeMerchantUrl(raw);
-  const key = url.origin;
-  let policy = robotsCache.get(key);
-  if (!policy || Date.now() - policy.at > 300000) {
-    const r = await sourceResponse(new URL("/robots.txt", url));
-    if (r.status === 404) policy = { text: "", at: Date.now() };
-    else policy = { text: await limitedText(r), at: Date.now() };
-    robotsCache.set(key, policy);
-  }
-  if (!robotsAllowed(policy.text, url.pathname + url.search))
-    throw new Error("Mənbə bu ünvanı avtomatik oxumağa açmır.");
+  if (!robotsAllowed(await robotsPolicy(url), url.pathname + url.search))
+    throw new RobotsDisallowedError();
   return readPage(
     url,
     options.json
@@ -331,8 +551,21 @@ export async function scanProduct(
     }
     return extractIrshad(html, url.href);
   }
-  return {
-    ...extractProduct(html),
-    url: url.href,
-  };
+  return parseProductPage(html, url.href);
+}
+// One product page → product: the store's own HTML reader when it has one, otherwise JSON-LD,
+// OpenGraph product tags or microdata, followed by the store's fixup.
+export function parseProductPage(html: string, raw: string): ScannedProduct {
+  const url = new URL(raw);
+  const host = url.hostname.replace(/^www\./, "");
+  const reader = htmlProductReaders[host];
+  const fixup = productFixups[host] || ((p: ScannedProduct) => p);
+  const p = fixup(reader ? reader(html, url.href) : extractProduct(html));
+  // Some stores write their own image URLs as http://; the same host serves them over HTTPS.
+  let image = p.image;
+  try {
+    if (image && new URL(image).protocol === "http:" && new URL(image).hostname === url.hostname)
+      image = "https://" + image.slice("http://".length);
+  } catch {}
+  return { ...p, ...(image ? { image } : {}), url: url.href };
 }

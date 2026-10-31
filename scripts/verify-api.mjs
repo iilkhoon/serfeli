@@ -17,13 +17,13 @@ async function request(path, body, auth = true, origin = base) {
   try {
     data = JSON.parse(text);
   } catch {
-    if (r.status === 403) data = { error: text };
+    if (r.status === 401 || r.status === 403) data = { error: text };
     else throw new Error(path + " status " + r.status + ": " + text.slice(0, 300));
   }
   return { status: r.status, data };
 }
-assert.equal((await request("admin/data", undefined, false)).status, 403);
-assert.equal((await request("admin/catalog", undefined, false)).status, 403);
+assert.equal((await request("admin/data", undefined, false)).status, 401);
+assert.equal((await request("admin/catalog", undefined, false)).status, 401);
 // The storefront gets one page of products, never the whole catalog.
 const listing = (await request("catalog?path=/kataloq&limit=24", undefined, false)).data;
 assert.equal(listing.matched.length, 24);
@@ -156,7 +156,7 @@ assert.equal(
   200,
 );
 assert((await request("catalog?ids=qa-product")).data.reviews.some((r) => r.id === review.id));
-assert.equal((await request("admin/delete", { kind: "product", id: "qa-product" })).status, 400);
+assert.equal((await request("admin/delete", { kind: "product", id: "qa-product" })).status, 409);
 for (const id of ["qa-offer", "qa-bulk"])
   assert.equal((await request("admin/delete", { kind: "offer", id })).status, 200);
 assert.equal((await request("admin/delete", { kind: "product", id: "qa-product" })).status, 200);

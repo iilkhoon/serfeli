@@ -1,7 +1,12 @@
-import { catalogSlice, DEFAULT_CITY } from "../../lib/catalog-query";
+import { catalogSlice, DEFAULT_CITY, PAGE_SIZE } from "../../lib/catalog-query";
 import { publicCatalog } from "../../lib/public-data";
-import { pageSeo, structuredData } from "../../lib/seo";
-import { categories, canonicalProductId } from "../../lib/catalog";
+import {
+  listingPageNumber,
+  pageSeo,
+  parseRoute,
+  routeDecision,
+  structuredData,
+} from "../../lib/seo";
 import { notFound, permanentRedirect } from "next/navigation";
 import Platform from "../platform";
 export const dynamic = "force-dynamic";
@@ -21,38 +26,27 @@ export async function generateMetadata(props: Props) {
 }
 export default async function Page(props: Props) {
   const path = await routePath(props),
-    c = await publicCatalog(),
-    parts = path.split("?")[0].split("/").filter(Boolean);
-  if (parts[0] === "mehsul" && canonicalProductId(c, parts[1]) !== parts[1])
-    permanentRedirect("/mehsul/" + canonicalProductId(c, parts[1]));
-  if (parts[0] === "mehsul" && !c.products.some((p) => p.id === parts[1] && p.active)) notFound();
-  if (parts[0] === "kateqoriya" && !categories.some((cat) => cat.id === parts[1])) notFound();
-  if (parts[0] === "magazalar" && parts[1] && !c.stores.some((s) => s.id === parts[1] && s.active))
+    c = await publicCatalog();
+  const decision = routeDecision(path, c);
+  if (decision.kind === "redirect") permanentRedirect(decision.to);
+  if (decision.kind === "notFound") {
+    // While the database is unreachable the catalog is empty; a 404 would tell search engines
+    // that every product is gone. Failing with a server error keeps the pages in the index.
+    const { page } = parseRoute(path);
+    if (c.dataStatus?.state === "unavailable" && ["mehsul", "magazalar"].includes(page))
+      throw new Error("Kataloq müvəqqəti əlçatan deyil.");
     notFound();
-  if (
-    ![
-      "mehsul",
-      "kateqoriya",
-      "magazalar",
-      "kataloq",
-      "endirimler",
-      "rehber",
-      "magaza-qeydiyyat",
-      "admin",
-      "bildirisler",
-      "secilmisler",
-      "muqayise",
-      "axtaris",
-    ].includes(parts[0])
-  )
-    notFound();
+  }
+  // ?page=N renders that listing page on the server, so paginated URLs have their own content.
+  const pageNo = listingPageNumber(parseRoute(path).params);
+  const offset = pageNo ? (pageNo - 1) * PAGE_SIZE : 0;
+  const slice = catalogSlice(c, { path, city: DEFAULT_CITY, offset });
+  if (pageNo && slice.pageOffset < offset && slice.matchedTotal > 0) notFound();
+  const jsonLd = structuredData(path, c);
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: structuredData(path, c) }}
-      />
-      <Platform initialPath={path} initialCatalog={catalogSlice(c, { path, city: DEFAULT_CITY })} />
+      {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />}
+      <Platform initialPath={path} initialCatalog={slice} />
     </>
   );
 }

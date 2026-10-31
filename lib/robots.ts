@@ -1,35 +1,60 @@
 type Rule = { allow: boolean; path: string };
-export function robotsAllowed(text: string, path: string, agent = "QepikBot") {
-  const groups: { agents: string[]; rules: Rule[] }[] = [];
-  let current: { agents: string[]; rules: Rule[] } | undefined;
-  for (const raw of text.split(/\r?\n/)) {
+type Group = { agents: string[]; rules: Rule[]; crawlDelay?: number };
+// RFC 9309 groups: consecutive User-agent lines share the rules that follow. A group ends at the
+// first User-agent line after any other directive, including an empty "Disallow:" (allow all).
+function parseRobots(text: string) {
+  const groups: Group[] = [];
+  const sitemaps: string[] = [];
+  let current: Group | undefined;
+  let inAgents = false;
+  for (const raw of text.replace(/^﻿/, "").split(/\r?\n|\r/)) {
     const line = raw.split("#")[0].trim();
     const at = line.indexOf(":");
     if (at < 0) continue;
-    const field = line.slice(0, at).toLowerCase(),
+    const field = line.slice(0, at).trim().toLowerCase(),
       value = line.slice(at + 1).trim();
+    if (field === "sitemap") {
+      if (value) sitemaps.push(value);
+      continue;
+    }
     if (field === "user-agent") {
-      if (!current || current.rules.length) {
+      if (!current || !inAgents) {
         current = { agents: [], rules: [] };
         groups.push(current);
       }
       current.agents.push(value.toLowerCase());
-    } else if (current && (field === "allow" || field === "disallow") && value)
+      inAgents = true;
+      continue;
+    }
+    if (!current) continue;
+    inAgents = false;
+    if ((field === "allow" || field === "disallow") && value)
       current.rules.push({ allow: field === "allow", path: value });
+    else if (field === "crawl-delay") {
+      const delay = Number(value.replace(",", "."));
+      if (Number.isFinite(delay) && delay >= 0) current.crawlDelay = delay;
+    }
   }
+  return { groups, sitemaps };
+}
+function groupsFor(text: string, agent: string) {
   const token = agent.toLowerCase();
   let priority = -1;
-  let rules: Rule[] = [];
-  for (const group of groups) {
+  let chosen: Group[] = [];
+  for (const group of parseRobots(text).groups) {
     const specificity = Math.max(
       -1,
-      ...group.agents.map((a) => (a === "*" ? 0 : token.includes(a) ? a.length : -1)),
+      ...group.agents.map((a) => (a === "*" ? 0 : a && token.includes(a) ? a.length : -1)),
     );
     if (specificity > priority) {
       priority = specificity;
-      rules = [...group.rules];
-    } else if (specificity === priority && specificity >= 0) rules.push(...group.rules);
+      chosen = [group];
+    } else if (specificity === priority && specificity >= 0) chosen.push(group);
   }
+  return chosen;
+}
+export function robotsAllowed(text: string, path: string, agent = "QepikBot") {
+  const rules = groupsFor(text, agent).flatMap((g) => g.rules);
   let decision = true,
     length = -1;
   for (const rule of rules) {
@@ -47,4 +72,15 @@ export function robotsAllowed(text: string, path: string, agent = "QepikBot") {
     }
   }
   return decision;
+}
+// Crawl-delay in milliseconds for the group that applies to the agent (0 when none is given).
+export function robotsCrawlDelayMs(text: string, agent = "QepikBot") {
+  const delays = groupsFor(text, agent)
+    .map((g) => g.crawlDelay)
+    .filter((d): d is number => d !== undefined);
+  return delays.length ? Math.round(Math.max(...delays) * 1000) : 0;
+}
+// Sitemap URLs the site owner advertises in robots.txt.
+export function robotsSitemaps(text: string) {
+  return parseRobots(text).sitemaps;
 }

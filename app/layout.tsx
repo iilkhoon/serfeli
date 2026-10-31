@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_NAME, SITE_URL } from "../lib/seo";
 import "./design.css";
 import "./pages.css";
 import "./responsive.css";
@@ -8,7 +9,8 @@ import "./matching.css";
 import "./production.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://qepik-az.mythicfern36.chatgpt.site"),
+  metadataBase: new URL(SITE_URL),
+  applicationName: SITE_NAME,
   title: "Qəpik — Qiyməti bil. Ağıllı seç.",
   description:
     "Azərbaycan mağazalarının qiymətlərini, çatdırılma və ödəniş şərtlərini bir yerdə müqayisə edin.",

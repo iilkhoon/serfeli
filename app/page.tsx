@@ -8,12 +8,10 @@ export async function generateMetadata() {
 }
 export default async function Home() {
   const c = await publicCatalog();
+  const jsonLd = structuredData("/", c);
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: structuredData("/", c) }}
-      />
+      {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />}
       <Platform initialCatalog={catalogSlice(c, { path: "/", city: DEFAULT_CITY })} />
     </>
   );

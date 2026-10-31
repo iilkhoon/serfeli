@@ -147,6 +147,15 @@ assert(
 );
 assert.deepEqual(list.pages, [listUrl + "&page=2"]);
 assert.deepEqual(extractIrshadListingPage('<div id="productGridItems"></div>', listUrl).pages, []);
+// A load-more button that points back (or to the same page) must not loop the run.
+for (const n of ["2", "1"])
+  assert.deepEqual(
+    extractIrshadListingPage(
+      `<div id="productGridItems"></div><button id="loadMore" data-page="${n}">`,
+      listUrl + "&page=2",
+    ).pages,
+    [],
+  );
 
 console.log(
   `PASS: category-page import for Baku Electronics (${baku.items.length} rows, discount, stock, paging, leaf categories), İrşad list fragment (${list.items.length} variants, load-more paging) and WooCommerce Store API pages (snapshot ids, AZN minor units, variable products, paging). No network.`,

@@ -9,12 +9,21 @@ export type ProductMatch = {
   active: boolean;
   approvedAt: string;
 };
-export const matchText = (s: string) =>
-  s
-    .normalize("NFKC")
-    .toLowerCase()
-    .replace(/\u0307/g, "")
-    .replace(/[^\p{L}\p{N}]/gu, "");
+// Folded once per distinct string: the merge compares the same titles and spec values many times.
+const matchTextCache = new Map<string, string>();
+export const matchText = (s: string) => {
+  let folded = matchTextCache.get(s);
+  if (folded === undefined) {
+    folded = s
+      .normalize("NFKC")
+      .toLowerCase()
+      .replace(/\u0307/g, "")
+      .replace(/[^\p{L}\p{N}]/gu, "");
+    if (matchTextCache.size >= 200_000) matchTextCache.clear();
+    matchTextCache.set(s, folded);
+  }
+  return folded;
+};
 const generic = (s: string) => !s || /^(mənbədəki model|standart|default|unknown)$/i.test(s.trim());
 export function productIdentity(c: Catalog, p: Product) {
   const offers = c.offers
@@ -45,20 +54,32 @@ function details(p: Product) {
     p.name + " " + (generic(p.variant) ? "" : p.variant) + " " + Object.values(p.specs).join(" ")
   );
 }
-const colorPatterns = [
-  "black|qara|черный|чёрный",
-  "white|ağ|beyaz|белый",
-  "silver|gümüşü|gümüş|серебристый",
-  "blue|göy|mavi|синий",
-  "red|qırmızı|красный",
-  "green|yaşıl|зеленый",
-  "pink|çəhrayı|розовый",
-  "gold|qızılı|золотой",
-  "purple|bənövşəyi|фиолетовый",
-  "gray|grey|boz|серый",
-  "brown|qəhvəyi|коричневый",
-  "orange|narıncı|оранжевый",
-].map((group) => new RegExp("(^|[^\\p{L}])(" + group + ")(?=$|[^\\p{L}])", "u"));
+// Colour names in English, Azerbaijani and Russian (with the feminine/neuter endings stores use).
+// New groups go at the end: a group's index is part of modelKey().
+const colorGroups = [
+  "black|qara|черный|чёрный|черная|чёрная|черное|чёрное",
+  "white|ağ|beyaz|белый|белая|белое",
+  "silver|gümüşü|gümüş|серебристый|серебристая|серебряный",
+  "blue|göy|mavi|синий|синяя|голубой|голубая",
+  "red|qırmızı|красный|красная",
+  "green|yaşıl|зеленый|зелёный|зеленая|зелёная",
+  "pink|çəhrayı|розовый|розовая",
+  "gold|qızılı|золотой|золотая|золотистый",
+  "purple|bənövşəyi|фиолетовый|фиолетовая",
+  "gray|grey|boz|серый|серая",
+  "brown|qəhvəyi|коричневый|коричневая",
+  "orange|orenge|narıncı|оранжевый|оранжевая",
+  "yellow|sarı|желтый|жёлтый|желтая|жёлтая",
+  "titanium|titan|титан|титановый",
+  "lavender|lavanda|лавандовый",
+  "starlight",
+  "midnight",
+  "glacier",
+  "burgundy|bordo|бордовый",
+];
+const colorPatterns = colorGroups.map(
+  (group) => new RegExp("(^|[^\\p{L}])(" + group + ")(?=$|[^\\p{L}])", "u"),
+);
 // Products are not changed in place, so values computed once hold for that object.
 const colorCache = new WeakMap<Product, string[]>();
 function colors(p: Product) {
@@ -72,28 +93,35 @@ function colors(p: Product) {
 }
 // Stores write memory as "12GB/256GB", "8GB/256", "6/128GB" or "256 GB". Storage is the largest
 // figure; RAM is the smaller one when a pair is given, so a store that omits RAM still compares.
+const memories = new WeakMap<Product, { storage: number; ram: number }>();
 function memory(p: Product) {
+  let found = memories.get(p);
+  if (!found) memories.set(p, (found = computeMemory(p)));
+  return found;
+}
+function computeMemory(p: Product) {
   const text = details(p);
   const gb = (n: string, unit = "GB") =>
-    Number(n.replace(",", ".")) * (/TB|ТБ/i.test(unit) ? 1024 : 1);
+    Number(n.replace(",", ".")) * (/TB|ТБ/iu.test(unit) ? 1024 : 1);
   const values: number[] = [];
   let ram = 0;
   let memoryPair = false;
   for (const m of text.matchAll(
-    /(\d+(?:[.,]\d+)?)\s*(?:GB|ГБ)?\s*\/\s*(\d+(?:[.,]\d+)?)\s*(TB|GB|ТБ|ГБ)?(?![\p{L}\d])/giu,
+    /(\d+(?:[.,]\d+)?)\s*(?:GB|ГБ|QB)?\s*\/\s*(\d+(?:[.,]\d+)?)\s*(TB|GB|ТБ|ГБ|QB)?(?![\p{L}\d])/giu,
   )) {
     const a = gb(m[1]),
       b = gb(m[2], m[3]);
-    if (!m[3] && !/GB|ГБ/i.test(m[0])) continue;
+    if (!m[3] && !/GB|ГБ|QB/iu.test(m[0])) continue;
     values.push(a, b);
     ram = Math.min(a, b);
     memoryPair = true;
   }
-  for (const m of text.matchAll(/(\d+(?:[.,]\d+)?)\s*(TB|GB|ТБ|ГБ)\b/gi))
+  // "256GB", "256 Gb", "256 ГБ", "256 QB"; \b would not end a Cyrillic unit.
+  for (const m of text.matchAll(/(\d+(?:[.,]\d+)?)\s*(TB|GB|ТБ|ГБ|QB)(?![\p{L}\p{N}])/giu))
     values.push(gb(m[1], m[2]));
   for (const [key, value] of Object.entries(p.specs)) {
     if (!/^(ram|operativ yaddaş|əməli yaddaş|оперативная память)$/i.test(key.trim())) continue;
-    const amount = value.match(/(\d+(?:[.,]\d+)?)\s*(TB|GB|ТБ|ГБ)?/i);
+    const amount = value.match(/(\d+(?:[.,]\d+)?)\s*(TB|GB|ТБ|ГБ|QB)?/iu);
     if (amount) ram = gb(amount[1], amount[2]);
   }
   const namedRam = text.match(/(?:\bRAM\s*:?\s*(\d+)\s*GB|(\d+)\s*GB\s*RAM\b)/i);
@@ -107,12 +135,16 @@ function memory(p: Product) {
   if (ram && storage === ram && !memoryPair && !statedStorage) storage = 0;
   return { storage, ram };
 }
-// Words that name the product type or connectivity rather than the model.
+// Words that name the product type, or title noise ("rəsmi zəmanət", "original", "yeni"), rather
+// than the model, in Azerbaijani, English and Russian.
 const typeWords = new Set(
   (
-    "smartfon smartfonu mobil telefon telefonu noutbuk notebook laptop planşet planset tablet " +
-    "televizor qulaqlıq qulaqliq qulaqlıqlar qulaqliqlar headphones earphones earbuds simsiz ağıllı saat saatı " +
-    "yeni new for with ilə və and the"
+    "smartfon smartfonu smartfonlar mobil telefon telefonu noutbuk notbuk notebook laptop planşet " +
+    "planset planşeti tablet televizor qulaqlıq qulaqliq qulaqlığı qulaqlıqlar qulaqliqlar " +
+    "headphones earphones earbuds simsiz wireless ağıllı saat saatı смартфон телефон ноутбук " +
+    "планшет наушники беспроводные rəsmi resmi zəmanət zəmanətli zəmanəti zemanet original " +
+    "orijinal orjinal оригинал оригинальный официальный yeni new новый for with üçün для ilə və " +
+    "and the"
   ).split(" "),
 );
 const brandAliases: [RegExp, string][] = [
@@ -123,19 +155,19 @@ const brandAliases: [RegExp, string][] = [
   [/\bhuawei\b/i, "huawei"],
   [/\b(pixel|google)\b/i, "google"],
 ];
-// The maker, not the retailer: some stores put their own name in the brand field.
+// The maker, not the retailer: some stores put their own name in the brand field, or the product
+// type ("Qulaqlıq"), or the maker with the line ("Apple iPhone").
 export function canonicalBrand(p: Product) {
   const own = matchText(p.brand);
+  const placeholder =
+    !own ||
+    own === matchText(p.sourceStoreId || "") ||
+    /^(digər|unknown|generic|ispace)$/.test(own) ||
+    typeWords.has(own);
   for (const [pattern, brand] of brandAliases)
-    if (
-      pattern.test(own) ||
-      (pattern.test(p.name) &&
-        (!own ||
-          own === matchText(p.sourceStoreId || "") ||
-          /^(digər|unknown|generic|ispace)$/.test(own)))
-    )
+    if (pattern.test(own) || pattern.test(p.brand) || (pattern.test(p.name) && placeholder))
       return brand;
-  return own;
+  return typeWords.has(own) ? "" : own;
 }
 // Order-insensitive model identity: brand, model words, storage and colour. Two listings with the
 // same key name the same model in the same configuration, whatever each store's wording.
@@ -146,17 +178,49 @@ export function modelKey(p: Product) {
   if (key === undefined) modelKeys.set(p, (key = computeModelKey(p)));
   return key;
 }
+// A manufacturer model code such as "UE43DU7100UXRU" or "SI5077SO": letters and at least 3 digits.
+const modelCode = (t: string) =>
+  t.length >= 7 && /^[a-z0-9]+$/.test(t) && /[a-z].*[a-z]/.test(t) && /(?:\d\D*){3}/.test(t);
 function computeModelKey(p: Product) {
   const brand = canonicalBrand(p);
   if (!brand || /^(digər|unknown|generic)$/.test(brand)) return "";
   const text = (p.name + " " + (generic(p.variant) ? "" : p.variant))
-    .replace(/\([^)]*\)/g, " ")
+    .normalize("NFKC")
+    // "QIRMIZI" is "qırmızı" only in Azerbaijani case folding; "IPHONE" stays English.
+    .replace(/\p{L}*I\p{L}*/gu, (word) => {
+      const az = word.toLocaleLowerCase("az");
+      return colorPatterns.some((pattern) => pattern.test(az)) ? az : word;
+    })
     .toLowerCase()
+    .replace(/\u0307/g, "")
+    // "(2nd generation)", "2-ci nəsil", "Gen 2" name generation 2 like a bare "2".
+    .replace(
+      /\(?\s*(\d{1,2})\s*(?:st|nd|rd|th|-?ci|-?cı|-?cu|-?cü)?\s*(?:gen(?:eration)?\.?|nəsil|поколени[ея])\s*\)?/gu,
+      " $1 ",
+    )
+    .replace(/\(?\s*(?:gen(?:eration)?\.?)\s*(\d{1,2})\s*\)?/gu, " $1 ")
+    // Bracketed text is dropped, except noise cancelling: "AirPods 4 (Active Noice Cancellation)".
+    .replace(/\(([^)]*)\)/g, (_, inner: string) =>
+      ancPattern.test(inner) && !/without|non[- ]anc|yox/i.test(inner) ? " anc " : " ",
+    )
     // Part numbers are compared separately; one feature has one word in every language.
     .replace(/(^|\s)[a-z0-9]{4,7}\/a(?=$|[\s,])/g, " ")
-    .replace(/active noise cancell?ation|aktiv səs\s*boğma|aktiv səs.?küy\S*\s+boğ\S*/gu, " anc ")
-    .replace(/(\d+(?:[.,]\d+)?)\s*(?:gb|гб)?\s*\/\s*(\d+(?:[.,]\d+)?)\s*(tb|gb|тб|гб)?/giu, " ")
-    .replace(/(\d+(?:[.,]\d+)?)\s*(tb|gb|тб|гб)\b/giu, " ");
+    .replace(
+      /active noi[cs]e cancell?ation|aktiv səs\s*boğma|aktiv səs.?küy\S*\s+boğ\S*/gu,
+      " anc ",
+    )
+    .replace(/\bwi[\s-]?fi\b/g, " wifi ")
+    // "Pro+" is a model of its own ("Pro Plus"); a free-standing "+" joins words.
+    .replace(/([\p{L}\p{N}])\+/gu, "$1 plus ")
+    .replace(/(\d),(\d)/g, "$1.$2")
+    .replace(/(\d+)\s*(?:mm|мм)(?![\p{L}\p{N}])/gu, " $1mm ")
+    .replace(
+      /(\d+(?:[.,]\d+)?)\s*(?:gb|гб|qb)?\s*\/\s*(\d+(?:[.,]\d+)?)\s*(tb|gb|тб|гб|qb)?/giu,
+      " ",
+    )
+    .replace(/(\d+(?:[.,]\d+)?)\s*(tb|gb|тб|гб|qb)(?![\p{L}\p{N}])/giu, " ")
+    // Screen size: 43″, 15.6", 13-inch, 6.1 düym all read as the bare number.
+    .replace(/(\d+(?:\.\d+)?)\s*(?:″|"|”|''|-?\s*inch(?:es)?|-?\s*düym|дюйм\S*)/gu, " $1 ");
   const colour = new Map(colors(p).map((c) => [c, true]));
   const tokens = new Set<string>();
   for (const raw of text.split(/[^\p{L}\p{N}]+/u)) {
@@ -165,6 +229,11 @@ function computeModelKey(p: Product) {
     if (brandAliases.some(([pattern, b]) => b === brand && pattern.test(t) && t === b)) continue;
     tokens.add(t);
   }
+  // A screen size the model code already spells ("43″ UE43DU7100UXRU") adds nothing.
+  const codes = [...tokens].filter(modelCode);
+  for (const t of [...tokens])
+    if (/^\d{2,3}$/.test(t) && codes.some((code) => new RegExp("^[a-z]+" + t + "\\D").test(code)))
+      tokens.delete(t);
   // Colour words are compared as colour groups ("qara" = "black"), the rest stay literal.
   const colourWords = new Set(
     [...tokens].filter((t) => colorPatterns.some((pattern) => pattern.test(t))),
@@ -203,15 +272,47 @@ function identifiers(p: Product, keys: RegExp, checkBarcode = false) {
 }
 const gtinKeys = /^(gtin|ean|ean13|upc|barcode|barkod|isbn)$/i;
 const mpnKeys = /^(mpn|manufacturer part number|istehsalçı kodu|model kodu)$/i;
+// "(868MHz)", "(2x16GB)", "(800x450x3mm)", "(5000mAh)": a measure, not a code.
+const measureUnit = "(?:gb|tb|mb|mm|cm|m|ml|w|wh|mah|[kmg]?hz|v|kg|mp|nm|dpi|rpm|[mg]bps)";
+const measure = new RegExp(
+  "^\\d+(?:[.,]\\d+)?(?:(?:[x×*]\\d+(?:[.,]\\d+)?)+" + measureUnit + "?|" + measureUnit + ")$",
+  "i",
+);
+// Codes a store writes in brackets, shop numbers such as "(45518)" included. Two listings whose
+// bracketed codes share nothing are different SKUs ("UGREEN US304 (70523)" and "(70525)" are two
+// cable lengths), whatever the rest of the title says.
+const bracketCodeCache = new WeakMap<Product, string[]>();
+function bracketCodes(p: Product) {
+  let found = bracketCodeCache.get(p);
+  if (!found)
+    bracketCodeCache.set(
+      p,
+      (found = [...p.name.matchAll(/\(([^()]+)\)/g)]
+        .map((m) => m[1].trim())
+        .filter((v) => !/\s/.test(v) && /\d/.test(v) && !measure.test(v))
+        .map(matchText)
+        .filter((v) => v.length >= 4)),
+    );
+  return found;
+}
+function bracketCodesConflict(a: Product, b: Product) {
+  const left = bracketCodes(a),
+    right = bracketCodes(b);
+  return left.length > 0 && right.length > 0 && !left.some((code) => right.includes(code));
+}
+// A code in brackets is one word: "(Version 3)", "(TDP 300W)" or "(for iPhone 15 Pro)" describe,
+// a measure such as "(5000mAh)" is a spec, and Samsung's "(SM-A175)" names every colour and size.
 function titledModelCodes(p: Product) {
   return [...p.name.matchAll(/\(([^)]+)\)/g)]
     .map((value) => value[1].trim())
     .filter(
       (value) =>
         value.length >= 5 &&
+        !/\s/.test(value) &&
         /[a-z]/i.test(value) &&
         /\d/.test(value) &&
-        !/^\d+(?:[.,]\d+)?\s*(?:gb|tb|mb)$/i.test(value),
+        !measure.test(value) &&
+        !/^SM-[A-Z]\d{3,4}[A-Z0-9]{0,3}(?:\/[A-Z]+)?$/i.test(value),
     );
 }
 // Manufacturer part numbers wherever a store writes them: "(MXP93ZE/A)" in the title, a bare
@@ -234,14 +335,30 @@ function writtenPartNumbers(p: Product) {
     return true;
   });
 }
+const partNumberCache = new WeakMap<Product, string[]>();
 function partNumbers(p: Product) {
-  return writtenPartNumbers(p).map(matchText);
+  let found = partNumberCache.get(p);
+  if (!found) partNumberCache.set(p, (found = writtenPartNumbers(p).map(matchText)));
+  return found;
+}
+// Codes conflict when each listing has one the other lacks: "(2E-SPEED-XL-D05-PRO)" against
+// "(2E-SPEED-XL-D07-PRO)" even when both also carry a shared size code. One listing may write more
+// codes than the other ("(82XB00HBRK)" against "15IAN8 (82XB00HBRK)").
+function partNumbersConflict(a: Product, b: Product) {
+  const left = partNumbers(a),
+    right = partNumbers(b);
+  return (
+    left.length > 0 &&
+    right.length > 0 &&
+    left.some((code) => !right.includes(code)) &&
+    right.some((code) => !left.includes(code))
+  );
 }
 function samePartNumber(a: Product, b: Product) {
   const right = partNumbers(b);
-  return partNumbers(a).some((code) => right.includes(code));
+  return partNumbers(a).some((code) => right.includes(code)) && !partNumbersConflict(a, b);
 }
-const ancPattern = /\bANC\b|active noise cancel|aktiv səsboğma|aktiv səs.?küy.*boğ/i;
+const ancPattern = /\bANC\b|active noi[cs]e cancel|aktiv səs\s*boğma|aktiv səs.?küy.*boğ/i;
 const titleOf = (p: Product) => p.name + " " + (generic(p.variant) ? "" : p.variant);
 // Listings whose title is the plain model while the same store lists the ANC model separately;
 // their spec sheet was copied from the ANC model. Set by mergeDuplicateProducts.
@@ -255,7 +372,7 @@ function ancStates(p: Product) {
       /without\s+(?:ANC|active noise)|non[- ]ANC|ANC\s*(?:yoxdur|yox|xeyr)/i.test(title) ? 0 : 1,
     );
   for (const [key, value] of Object.entries(p.specs)) {
-    if (!/\bANC\b|active noise cancel|aktiv səsboğma|aktiv səs.?küy.*boğ/i.test(key)) continue;
+    if (!ancPattern.test(key)) continue;
     if (/^(?:yox|yoxdur|xeyr|no|false|0|dəstəkləmir|нет)$/i.test(value.trim())) states.add(0);
     else if (
       /^(?:var|bəli|yes|true|1|да)$/i.test(value.trim()) ||
@@ -327,13 +444,7 @@ export function checkProductPair(c: Catalog, sourceId: string, targetId: string)
     if (a.length && b.length && !a.some((v) => b.includes(v)))
       reasons.push(keys === gtinKeys ? "Barkod / ISBN fərqlidir." : "İstehsalçı kodu fərqlidir.");
   }
-  const sourceCodes = partNumbers(source),
-    targetCodes = partNumbers(target);
-  if (
-    sourceCodes.length &&
-    targetCodes.length &&
-    !sourceCodes.some((code) => targetCodes.includes(code))
-  )
+  if (partNumbersConflict(source, target) || bracketCodesConflict(source, target))
     reasons.push("Başlıqdakı model kodu fərqlidir.");
   const sourceAnc = ancStates(source),
     targetAnc = ancStates(target);
@@ -343,6 +454,7 @@ export function checkProductPair(c: Catalog, sourceId: string, targetId: string)
     reasons.push("ANC variantı uyğun deyil.");
   else if (!sourceAnc.length !== !targetAnc.length)
     warnings.push("ANC məlumatı yalnız bir mənbədə göstərilib; əl ilə yoxla.");
+  if (packSize(source) !== packSize(target)) reasons.push("Paketdəki say fərqlidir.");
   const aColor = colors(source).join(","),
     bColor = colors(target).join(",");
   if (aColor && bColor && aColor !== bColor) reasons.push("Rənglər uyğun deyil.");
@@ -365,15 +477,21 @@ export function checkProductPair(c: Catalog, sourceId: string, targetId: string)
     warnings.push("RAM yalnız bir mənbədə göstərilib; əl ilə yoxla.");
   const specKeys =
     /memory|yaddaş|ram|rəng|color|size|ölçü|capacity|edition|format|isbn|gtin|ean|mpn/i;
+  // A measured field compares by its figure: "6.3 inches, 96.4 cm2" and "6.3 düym" agree, "128"
+  // and "128 GB" agree; anything else compares as written.
+  const specValue = (k: string, v: string) => {
+    const figure = /memory|yaddaş|ram|size|ölçü|capacity/i.test(k) && v.match(/\d+(?:[.,]\d+)?/);
+    return figure ? figure[0].replace(",", ".") : matchText(v);
+  };
   const targetSpecs = new Map(
-    Object.entries(target.specs).map(([k, v]) => [matchText(k), matchText(v)]),
+    Object.entries(target.specs).map(([k, v]) => [matchText(k), specValue(k, v)]),
   );
   for (const [k, value] of Object.entries(source.specs))
     if (
       specKeys.test(k) &&
       !/^(color|colour|rəng|reng|цвет)$/i.test(k.trim()) &&
       targetSpecs.has(matchText(k)) &&
-      targetSpecs.get(matchText(k)) !== matchText(value)
+      targetSpecs.get(matchText(k)) !== specValue(k, value)
     )
       reasons.push(k + " fərqlidir.");
   if (
@@ -532,48 +650,51 @@ export function productMatchCandidates(c: Catalog, matches: ProductMatch[], sear
   return candidates;
 }
 // Preserve the full named colour: "Deep Blue" is not automatically interchangeable with "Blue".
+// Every language folds to the group's English name, so "Qara" = "Black" but "Midnight Black" stays.
+const colorFolds = colorGroups.map((group) => ({
+  pattern: new RegExp("(^|[^\\p{L}])(" + group + ")(?=$|[^\\p{L}])", "gu"),
+  name: group.split("|")[0],
+}));
+const colorShade =
+  "(?:(?:deep|dark|light|midnight|cosmic|sky|ocean|space|desert|natural|rose|jet|sierra|pacific|alpine|mist|cloud|cool)\\s+)*";
+const shadedColor = new RegExp(
+  "(^|[^\\p{L}])(" + colorShade + "(?:" + colorGroups.join("|") + "))(?=$|[^\\p{L}])",
+  "gu",
+);
+const exactColors = new WeakMap<Product, string>();
 function exactColor(p: Product) {
+  let found = exactColors.get(p);
+  if (found === undefined) exactColors.set(p, (found = computeExactColor(p)));
+  return found;
+}
+function computeExactColor(p: Product) {
+  // Both foldings: "WHITE" reads as "white", "QIRMIZI" as "qırmızı"; the one naming more colours wins.
   const fold = (value: string) => {
-    let text = value.toLowerCase() + " ";
-    const basic = [
-      "black",
-      "white",
-      "silver",
-      "blue",
-      "red",
-      "green",
-      "pink",
-      "gold",
-      "purple",
-      "gray",
-      "brown",
-      "orange",
-    ];
-    for (let i = 0; i < colorPatterns.length; i++)
-      text = text.replace(
-        new RegExp(colorPatterns[i].source, "gu"),
-        (_, prefix: string) => prefix + basic[i],
-      );
-    return matchText(text);
+    const [plain, az] = [value.toLowerCase(), value.toLocaleLowerCase("az")].map((lower) => {
+      let text = lower + " ",
+        hits = 0;
+      for (const { pattern, name } of colorFolds)
+        text = text.replace(pattern, (_, prefix: string) => (hits++, prefix + name));
+      return { text: matchText(text), hits };
+    });
+    return (az.hits > plain.hits ? az : plain).text;
   };
   const stated = Object.entries(p.specs)
     .filter(([key]) => /^(color|colour|rəng|reng|цвет)$/i.test(key.trim()))
     .map(([, value]) => fold(value))
     .filter(Boolean);
   if (stated.length) return [...new Set(stated)].sort().join(",");
-  const value = (generic(p.variant) ? p.name : p.variant).toLowerCase();
-  const shade =
-    "(?:(?:deep|dark|light|midnight|cosmic|sky|ocean|space|desert|natural|rose|jet|sierra|pacific|alpine)\\s+)*";
-  const basic = colorPatterns
-    .map((pattern) => pattern.source.match(/\(([^()]*)\)\(\?=\$/)?.[1])
-    .filter(Boolean)
-    .join("|");
-  const result = [
-    ...value.matchAll(
-      new RegExp("(^|[^\\p{L}])(" + shade + "(?:" + basic + "))(?=$|[^\\p{L}])", "gu"),
+  const named = (value: string) => [
+    ...new Set(
+      [value.toLowerCase(), value.toLocaleLowerCase("az")].flatMap((lower) =>
+        [...lower.matchAll(shadedColor)].map((item) => fold(item[2])),
+      ),
     ),
-  ].map((item) => fold(item[2]));
-  return [...new Set(result)].sort().join(",");
+  ];
+  // A variant such as "256 GB" names no colour; the title ("iPhone 17 256 GB Black") may.
+  let result = generic(p.variant) ? [] : named(p.variant);
+  if (!result.length) result = named(p.name);
+  return result.sort().join(",");
 }
 function sameTradeItem(a: Product, b: Product) {
   return (
@@ -585,12 +706,32 @@ function sameTradeItem(a: Product, b: Product) {
   );
 }
 // Title and variant as a store wrote them, minus WooCommerce's "(Copy)" marker on duplicated posts.
+// matchText() drops punctuation, but "Pro+" is not "Pro".
 const sameTitleKey = (p: Product) =>
-  matchText(p.name.replace(/\(copy\)/gi, "") + " " + (generic(p.variant) ? "" : p.variant));
+  matchText(
+    (p.name.replace(/\(copy\)/gi, "") + " " + (generic(p.variant) ? "" : p.variant)).replace(
+      /\+/g,
+      " plus ",
+    ),
+  );
 // The same full title with a model number in it.
 function sameModelTitle(a: Product, b: Product) {
   const title = sameTitleKey(a);
   return title.length >= 10 && /\d/.test(title) && title === sameTitleKey(b);
+}
+// The same model words, storage and colour, with a manufacturer model code among them: "Televizor
+// Samsung UE43DU7100UXRU" and "Televizor Samsung 43″ UE43DU7100UXRU".
+// modelKey() drops bracketed text, so that must agree too: "(TRAY)" and "(BX8071512700KF)" differ.
+const bracketed = (p: Product) =>
+  [...p.name.matchAll(/\(([^)]*)\)/g)].map((m) => matchText(m[1])).join(" ");
+function sameCodedModel(a: Product, b: Product) {
+  const key = modelKey(a);
+  return (
+    !!key &&
+    key === modelKey(b) &&
+    bracketed(a) === bracketed(b) &&
+    key.split("|")[1].split(" ").some(modelCode)
+  );
 }
 // Reasons an automatic fold may set aside: a store's second copy of its own listing, and a
 // store's own brand or category field when the part number or the full model title proves the
@@ -599,7 +740,10 @@ function blockingReasons(reasons: string[], a: Product, b: Product, sameStore: b
   return reasons.filter(
     (reason) =>
       !(sameStore && reason === "Eyni mağazanın iki qeydi bu yolla birləşdirilmir.") &&
-      !(reason === "Kateqoriyalar uyğun deyil." && (sameTradeItem(a, b) || sameModelTitle(a, b))) &&
+      !(
+        reason === "Kateqoriyalar uyğun deyil." &&
+        (sameTradeItem(a, b) || sameModelTitle(a, b) || sameCodedModel(a, b))
+      ) &&
       !(reason === "Brendlər uyğun deyil." && sameModelTitle(a, b)),
   );
 }
@@ -622,6 +766,10 @@ function automaticPair(c: Catalog, a: Product, b: Product, sameStore: boolean) {
   const x = memory(a),
     y = memory(b);
   const memoryProduct = ["telefon", "noutbuk", "planset"].includes(a.category);
+  // Each iPhone model and storage size has one RAM size, which Apple does not state; a store that
+  // adds it does not make another variant. A stated conflict still blocks (checkProductPair).
+  const iphone = (p: Product) => canonicalBrand(p) === "apple" && /\biphone\b/i.test(p.name);
+  const ramAgrees = x.ram === y.ram || ((!x.ram || !y.ram) && iphone(a) && iphone(b));
   // The same full title with a model number in it: within one store that is the store listing one
   // item twice (outlet units included); across stores it names the same item when neither listing
   // has a colour or memory size that could tell variants apart (watches, trimmers, consoles).
@@ -635,7 +783,7 @@ function automaticPair(c: Catalog, a: Product, b: Product, sameStore: boolean) {
     aColor === bColor &&
     (!memoryProduct ||
       // Storage must be stated; RAM must agree, and some makers (Apple) never state it.
-      (x.storage && y.storage && x.storage === y.storage && x.ram === y.ram))
+      (x.storage && y.storage && x.storage === y.storage && ramAgrees))
   );
   // A trusted manufacturer identifier identifies the exact trade item, unlike a shop's own SKU.
   // Ordinary retail may omit condition on both sides; that is never converted to an invented "new".
@@ -646,10 +794,14 @@ function automaticPair(c: Catalog, a: Product, b: Product, sameStore: boolean) {
     )
   )
     return false;
+  // A model code settles the model; with no colour or memory size on either side, nothing is left
+  // to tell variants apart (televisions, appliances).
+  if (!aColor && !bColor && !memoryProduct && !x.storage && !y.storage && sameCodedModel(a, b))
+    return true;
   if (!strong && !fullVariant) return false;
   if (!strong && (!modelKey(a) || modelKey(a) !== modelKey(b))) return false;
   // A one-sided storage or RAM value still needs review unless a trade-item identifier proves it.
-  if (!strong && (!x.storage !== !y.storage || !x.ram !== !y.ram)) return false;
+  if (!strong && (!x.storage !== !y.storage || !ramAgrees)) return false;
   return true;
 }
 const availableOffer = (o: Catalog["offers"][number]) => o.stock && o.stockKnown !== false;
@@ -699,8 +851,12 @@ export function mergeDuplicateProducts(c: Catalog, matches: ProductMatch[] = [])
   );
   const normalizedOffers = uniqueStoreOffers(c.offers);
   const offers = new Map<string, Catalog["offers"]>();
-  for (const o of normalizedOffers)
-    if (!o.demo) offers.set(o.productId, [...(offers.get(o.productId) || []), o]);
+  for (const o of normalizedOffers) {
+    if (o.demo) continue;
+    const list = offers.get(o.productId);
+    if (list) list.push(o);
+    else offers.set(o.productId, [o]);
+  }
   const candidates = c.products.filter(
     (p) => p.active && !p.marketplace && offers.has(p.id) && !c.productAliases?.[p.id],
   );
@@ -736,8 +892,11 @@ export function mergeDuplicateProducts(c: Catalog, matches: ProductMatch[] = [])
       ...partNumbers(p).map((v) => "part:" + v),
       ...identifiers(p, gtinKeys, true).map((v) => "gtin:" + v),
       ...identifiers(p, mpnKeys).map((v) => "mpn:" + v),
-    ])
-      buckets.set(key, [...(buckets.get(key) || []), p]);
+    ]) {
+      const bucket = buckets.get(key);
+      if (bucket) bucket.push(p);
+      else buckets.set(key, [p]);
+    }
   }
   const root = new Map<string, string>();
   const find = (id: string): string => {
@@ -893,15 +1052,28 @@ export function mergeDuplicateProducts(c: Catalog, matches: ProductMatch[] = [])
   };
 }
 // Pack size from a quantity field ("Paketdə ədəd: 2") or a "2 ədədlik paket" / "2-pack" phrase.
+// Only a field that counts the items in the box: "SIM Kart Sayı" or "Sürət sayı" count features.
+const packKeys =
+  /^(?:paketdə(?:ki)? (?:ədəd|say)|dəstdə(?:ki)? (?:ədəd|say)|ədəd|say|miqdar|komplekt(?:də ədəd)?|quantity|pack(?: size| quantity)?|pcs|количество(?: в упаковке)?)$/i;
+const packSizes = new WeakMap<Product, number>();
 function packSize(p: Product) {
+  let found = packSizes.get(p);
+  if (found === undefined) packSizes.set(p, (found = computePackSize(p)));
+  return found;
+}
+function computePackSize(p: Product) {
   for (const [key, value] of Object.entries(p.specs)) {
-    if (!/ədəd|say|miqdar|komplekt|paket|quantity|pack|pcs/i.test(key)) continue;
+    if (!packKeys.test(key.trim())) continue;
     const count = value.match(/^\s*(\d{1,3})\s*(?:ədəd|əd\.?|pcs|pc|ad)?\s*$/i);
     if (count && Number(count[1]) > 1) return Number(count[1]);
   }
-  const phrase = (p.name + " " + p.description).match(
-    /\b(\d{1,3})\s*(?:ədədlik\s+(?:paket|dəst)|-?\s*pack\b|pk\b)/i,
-  );
+  // The title may say "2'li paket", "4 pcs", "Pack of 2"; a description only the plain pack phrases.
+  const phrase =
+    p.name.match(
+      /(?<![\p{L}\p{N}.,])(\d{1,3})\s*(?:ədədlik\s+(?:paket|dəst)|['’-]?\s*(?:li|lı|lu|lü)\s+(?:paket|dəst)|-?\s*(?:pack|pk|pcs|шт)(?![\p{L}\p{N}])|ədəd\s+(?:paket|dəst))/iu,
+    ) ||
+    p.name.match(/(?:pack|set|kit)\s+of\s+(\d{1,3})(?![\p{L}\p{N}])/iu) ||
+    p.description.match(/\b(\d{1,3})\s*(?:ədədlik\s+(?:paket|dəst)|-?\s*pack\b|pk\b)/i);
   return phrase && Number(phrase[1]) > 1 ? Number(phrase[1]) : 0;
 }
 // Listings that stay separate yet share a title (iSpace sells MG8G4ZD/A and MG8G4HX/A-OD as
