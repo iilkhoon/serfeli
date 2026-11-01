@@ -1,25 +1,25 @@
 /* Final shared visual contract. Legacy page composition stays intact. */
 :root {
   --surface: #ffffff;
-  --paper: #faf8f5;
-  --ink: #352640;
-  --text: #352640;
-  --muted: #5f5468;
-  --primary: #73518c;
-  --primary-hover: #583b70;
-  --primary-soft: #eee6f4;
+  --paper: #f5f7fa;
+  --ink: #111827;
+  --text: var(--ink);
+  --primary: #1f5eff;
+  --primary-hover: #1546c7;
+  --action: var(--primary);
+  --action-hover: var(--primary-hover);
+  --muted: #555b67;
+  --primary-soft: #ebecef;
   --on-primary: #ffffff;
-  --action: #f5ab78;
-  --action-hover: #ef9b62;
-  --action-soft: #fff0e6;
+  --action-soft: #f1f2f4;
   --success: #17633e;
   --success-soft: #eaf5ee;
   --danger: #9b2d3a;
   --danger-soft: #fff1f1;
   --warning: #805413;
-  --warning-soft: #fff3df;
-  --line: #ded6e4;
-  --control-line: #8b7b95;
+  --warning-soft: #edeef1;
+  --line: #d9dce1;
+  --control-line: #7c8494;
   --accent: var(--primary);
   --green: var(--success);
   --sage: var(--primary-soft);

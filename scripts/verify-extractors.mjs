@@ -14,7 +14,14 @@ const irshadCode = ts.transpileModule(fs.readFileSync("lib/irshad.ts", "utf8"), 
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 }).outputText;
 const irshadModule = "data:text/javascript;base64," + Buffer.from(irshadCode).toString("base64");
-const htmlProductsCode = ts.transpileModule(fs.readFileSync("lib/html-products.ts", "utf8"), {
+const priceCode = ts.transpileModule(fs.readFileSync("lib/price.ts", "utf8"), {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const priceModule = "data:text/javascript;base64," + Buffer.from(priceCode).toString("base64");
+const htmlProductsSource = fs
+  .readFileSync("lib/html-products.ts", "utf8")
+  .replace('from "./price";', () => `from "${priceModule}";`);
+const htmlProductsCode = ts.transpileModule(htmlProductsSource, {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 }).outputText;
 const htmlProductsModule =
@@ -39,6 +46,7 @@ const code = fs
 const resolved = code
   .replace('from "./irshad";', () => `from "${irshadModule}";`)
   .replace('from "./html-products";', () => `from "${htmlProductsModule}";`)
+  .replace('from "./price";', () => `from "${priceModule}";`)
   .replace('import { extractAlinino } from "./alinino";', () =>
     aliCode.replace("export function extractAlinino", "function extractAlinino"),
   )
@@ -232,6 +240,24 @@ await assert.rejects(
   () => scanProduct("https://bytelecom.az/az/products/limited"),
   (e) => e.status === 429 && e.retryAfterMs === 120000,
 );
+// Shelf prices read by the store HTML readers: thousands groups are never taken as decimals.
+const { parseAmount } = await import(htmlProductsModule);
+for (const [raw, want] of [
+  ["1.299,00", 1299],
+  ["12.000 AZN", 12000],
+  ["1,299", 1299],
+  ["1,399.00 ₼", 1399],
+  ["1 299,99", 1299.99],
+  ["10442,00", 10442],
+  ["899.99", 899.99],
+  ["8,565.0", 8565],
+  ["0.00", NaN],
+  ["Qiymət soruşun", NaN],
+])
+  assert(
+    Object.is(parseAmount(raw), want) || parseAmount(raw) === want,
+    raw + " → " + parseAmount(raw),
+  );
 // Captured product pages of the sitemap/category sources (scripts/fixtures/<id>-product.html).
 // stock: true/false = known, undefined = the page does not say. old = crossed-out price.
 const pages = [

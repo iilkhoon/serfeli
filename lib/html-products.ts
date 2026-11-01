@@ -3,6 +3,7 @@
 // product cards further down the page are never used. The sale price is the offer price; the
 // crossed-out price is returned as oldPrice and never used as the offer price.
 import type { ScannedProduct } from "./extractor";
+import { parsePrice } from "./price";
 
 export const clean = (value: string) =>
   value
@@ -22,19 +23,15 @@ export const clean = (value: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
-// "1,399.00", "8,565.0", "10442,00", "1 299.99" → number. Returns NaN for anything else.
+// Visible shelf price → number, NaN for anything else. "1,399.00", "1.299,99", "1 299,99" and
+// "10442,00" follow parsePrice (the last separator is the decimal one). On a shelf a single
+// separator before exactly three digits ("12.000", "1,299") groups thousands; prices have no
+// third decimal.
 export function parseAmount(raw: string) {
-  let s = clean(raw)
+  const s = clean(raw)
     .replace(/[^\d.,\s]/g, "")
-    .trim();
-  s = s.replace(/(\d)\s+(?=\d{3}\b)/g, "$1").replace(/\s/g, "");
-  if (!/^\d[\d.,]*$/.test(s)) return NaN;
-  if (s.includes(",") && s.includes(".")) s = s.replace(/,/g, "");
-  else if (/,\d{1,2}$/.test(s)) s = s.replace(",", ".");
-  else s = s.replace(/,/g, "");
-  if ((s.match(/\./g) || []).length > 1) return NaN;
-  const n = Number(s);
-  return Number.isFinite(n) && n > 0 && n <= 10000000 ? n : NaN;
+    .replace(/\s/g, "");
+  return parsePrice(/^\d{1,3}[.,]\d{3}$/.test(s) ? s.replace(/[.,]/, "") : s);
 }
 
 const meta = (html: string, key: string) =>

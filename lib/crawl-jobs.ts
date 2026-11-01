@@ -92,6 +92,8 @@ export type CrawlRuntime = {
   jobs: number;
   ticks: number;
   errors: { jobId?: string; message: string }[];
+  // Last stale-offer sweep; the sweep scans every offer row, so it runs at most hourly.
+  lastSweepAt?: number;
 };
 async function crawlRuntime(db: D1Database): Promise<CrawlRuntime | null> {
   const row = await db
@@ -188,8 +190,9 @@ export async function controlCrawlJob(
   return jobSummary(await getJob(db, id));
 }
 // Offers of this store that a finished run did not see again are no longer known to be in stock.
-// Skipped when the run imported (almost) nothing, so a broken parser or an empty sitemap cannot
-// wipe a store; the age sweep in tickDueCrawlJobs covers those cases later.
+// Skipped unless at least 10% of the attempted products imported, so a broken parser or an empty
+// sitemap cannot wipe a store; expiry only marks stock unknown, and the age sweep in
+// tickDueCrawlJobs covers skipped runs later.
 function expireUnseenOffers(db: D1Database, j: CrawlJob) {
   if (!(j.imported > 0 && j.imported * 10 >= j.imported + j.failed)) return [];
   return [
@@ -725,10 +728,14 @@ export async function tickDueCrawlJobs(db: D1Database, budgetMs = 45000) {
     ticks: 0,
     errors: [],
   };
+  runtime.lastSweepAt = (await crawlRuntime(db))?.lastSweepAt;
   await put(db, "crawlRuntime", "scheduled", runtime).run();
   try {
     await materializeCatalog(db);
-    await expireStaleOffers(db);
+    if (!runtime.lastSweepAt || Date.now() - runtime.lastSweepAt >= 3600000) {
+      await expireStaleOffers(db);
+      runtime.lastSweepAt = Date.now();
+    }
     await startDueRefreshes(db);
     const rows = await db
       .prepare(

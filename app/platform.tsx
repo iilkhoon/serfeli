@@ -320,130 +320,92 @@ export default function Platform({
       low = offers[0],
       high = available.length ? Math.max(...available.map((o) => o.price)) : 0,
       save = low && available.length > 1 ? high - low.price : 0,
-      // Where the product is sold, cheapest first.
-      sellers = [
-        ...new Set(offers.map((o) => c.stores.find((s) => s.id === o.storeId)?.name || o.storeId)),
-      ];
+      // A saving only earns a badge when it is worth acting on.
+      worthSaving = save >= 5 && save >= high * 0.02,
+      badge = p.marketplace
+        ? { tone: "neutral", text: "Tap.az elanı" }
+        : !available.length && offers.length
+          ? {
+              tone: "muted",
+              text: low?.stockKnown === false ? "Stok məlumatı yoxdur" : "Stokda yoxdur",
+            }
+          : worthSaving
+            ? { tone: "save", text: money(Math.round(save)) + " fərq" }
+            : null;
     return (
-      <article className={"product-card" + (available.length ? " has-live-price" : "")} key={p.id}>
-        <div className="card-top">
-          <span
-            className={
-              "badge " +
-              (save
-                ? "green"
-                : !available.length && low
-                  ? low.stockKnown === false
-                    ? "stock-unknown"
-                    : "stock-out"
-                  : "neutral")
-            }
-          >
-            {p.marketplace ? (
-              "Tap.az · Mağaza elanı"
-            ) : !available.length && offers.length ? (
-              low?.stockKnown === false ? (
-                "Stok açıqlanmayıb"
-              ) : (
-                "Stokda yoxdur"
-              )
-            ) : save ? (
-              <>
-                <TrendingDown size={12} /> {money(save)} ucuz
-              </>
-            ) : (
-              "Qiymət müqayisəsi"
-            )}
-          </span>
-          <button
-            className={
-              "icon-button favorite " +
-              (personal.favorites.some((f) => f.productId === p.id) ? "chosen" : "")
-            }
-            aria-label={p.name + " seçilmişlərə əlavə et"}
-            onClick={() => favorite(p)}
-          >
-            <Heart size={18} />
-          </button>
-        </div>
-        <a className="product-image" href={"/mehsul/" + p.id}>
+      <article className={"pcard" + (available.length ? "" : " pcard-off")} key={p.id}>
+        <a className="pcard-image" href={"/mehsul/" + p.id} tabIndex={-1} aria-hidden="true">
           <ProductImage
             src={p.image}
-            alt={p.name}
-            width={240}
-            height={240}
+            alt=""
+            width={200}
+            height={200}
             loading="lazy"
             decoding="async"
           />
         </a>
-        <div className="product-copy">
-          <span className="brand-label" lang="en">
-            {p.brand}
+        {badge && (
+          <span className={"pcard-badge pcard-badge-" + badge.tone}>
+            {badge.tone === "save" && <TrendingDown size={12} />}
+            {badge.text}
           </span>
-          <a className="product-title" href={"/mehsul/" + p.id}>
+        )}
+        <div className="pcard-actions">
+          <button
+            className={personal.favorites.some((f) => f.productId === p.id) ? "chosen" : ""}
+            aria-label={p.name + " seçilmişlərə əlavə et"}
+            aria-pressed={personal.favorites.some((f) => f.productId === p.id)}
+            onClick={() => favorite(p)}
+          >
+            <Heart size={16} />
+          </button>
+          <button
+            className={comp.includes(p.id) ? "chosen" : ""}
+            aria-label={p.name + " müqayisəyə əlavə et"}
+            aria-pressed={comp.includes(p.id)}
+            onClick={() => compare(p)}
+          >
+            <Scale size={16} />
+          </button>
+        </div>
+        <div className="pcard-body">
+          <a className="pcard-title" href={"/mehsul/" + p.id}>
             {p.name}
           </a>
-          <p className="variant">{p.variant}</p>
-          {p.distinction && (
-            <p className="product-code" title="Eyni adlı başqa məhsuldan fərqi">
-              {p.distinction}
+          {(p.variant || p.distinction) && (
+            <p className="pcard-variant">
+              {p.variant}
+              {p.distinction && (
+                <span title="Eyni adlı başqa məhsuldan fərqi">
+                  {p.variant ? " · " : ""}
+                  {p.distinction}
+                </span>
+              )}
             </p>
           )}
-          <div className="card-offer-count">
-            <span className="tiny-dots">
-              <i />
-              <i />
-              <i />
-            </span>
+          <div className="pcard-price">
+            <strong>{low ? money(low.price) : "Qiymət yoxdur"}</strong>
+            {low && !available.length && <small>son qiymət</small>}
+          </div>
+          <a
+            className="pcard-stores"
+            href={"/mehsul/" + p.id}
+            aria-label={p.name + " — mağaza qiymətlərinə bax"}
+          >
             {available.length
-              ? available.length + " mağazada"
-              : offers.length
-                ? "0 mağazada · stok təsdiqlənməyib"
-                : "Qiymət mənbədə açıqlanmır"}
-          </div>
-          {sellers.length > 0 && (
-            <p className="card-stores" title={sellers.join(", ")}>
-              {!available.length && "Son mənbələr: "}
-              {sellers.slice(0, 3).join(" · ")}
-              {sellers.length > 3 && " +" + (sellers.length - 3)}
-            </p>
-          )}
-          {low && (
-            <p className="card-source-date micro muted">
-              Yoxlanıb: <time dateTime={low.checkedAt}>{azDate(low.checkedAt)}</time>
-            </p>
-          )}
-          <div className="card-price">
-            <div>
-              <span className="muted micro">
-                {!offers.length
-                  ? "Qiymət açıqlanmayıb"
-                  : p.marketplace
-                    ? "Elandakı qiymət"
-                    : !available.length && offers.length
-                      ? "Son bildirilən qiymət"
-                      : offers.length && offers.every((o) => o.demo)
-                        ? "Nümunə qiymət"
-                        : "Ən aşağı nağd"}
-              </span>
-              <strong>{low ? money(low.price) : "Qiymət soruş"}</strong>
-            </div>
-            <button
-              className={"compare-icon " + (comp.includes(p.id) ? "active" : "")}
-              aria-label={p.name + " müqayisəyə əlavə et"}
-              onClick={() => compare(p)}
-            >
-              <Scale size={17} />
-            </button>
-          </div>
-          <a className="card-button" href={"/mehsul/" + p.id}>
-            Qiymətlərə bax <ArrowUpRight size={16} />
+              ? available.length + " mağazada qiymət"
+              : !offers.length
+                ? "Qiymət açıqlanmayıb"
+                : low?.stockKnown === false
+                  ? "Stok məlumatı yoxdur"
+                  : "Hazırda stokda deyil"}
+            <ChevronRight size={14} />
           </a>
         </div>
       </article>
     );
   };
-  const cards = (list: Product[]) => <div className="product-grid">{list.map(productCard)}</div>;
+  const cards = (list: Product[]) => <div className="pgrid">{list.map(productCard)}</div>;
   const Filter = () => (
     <aside className={"filters " + (mobileFilters ? "filters-open" : "")}>
       <div className="filter-title">
@@ -656,15 +618,7 @@ export default function Platform({
         </div>
       )}
       <main className="shell main-content" id="main-content" tabIndex={-1}>
-        {page === "home" && (
-          <Home
-            catalog={c}
-            city={city}
-            cards={cards}
-            onAlert={alert}
-            onInfo={(topic) => setModal({ type: "info", topic })}
-          />
-        )}
+        {page === "home" && <Home catalog={c} city={city} cards={cards} />}
         {(isCatalog || storeId) && (
           <>
             <nav className="breadcrumb" aria-label="Səhifə yolu">

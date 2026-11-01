@@ -1,11 +1,9 @@
 /* Qəpik: a warm shopping desk, clear type and deliberate movement. */
 :root {
-  --accent: #73518c;
-  --paper: #faf8f5;
-  --ink: #352640;
-  --muted: #75667d;
-  --q-peach: #ffc49d;
-  --q-lilac: #eee6f4;
+  --accent: var(--primary);
+  --muted: #666e7d;
+  --q-peach: var(--primary-soft);
+  --q-lilac: #ebecef;
 }
 body {
   font-size: 15px;
@@ -154,8 +152,8 @@ footer .footer-main h4 {
   font-size: 11px;
 }
 .q-home {
-  --q-quiet: #76657e;
-  --q-outline: #e7dfea;
+  --q-quiet: #666e7d;
+  --q-outline: #e1e3e8;
   --q-radius: 24px;
 }
 .q-home :is(h1, h2, h3) {
@@ -163,7 +161,7 @@ footer .footer-main h4 {
 }
 .q-home a:focus-visible,
 .q-home button:focus-visible {
-  outline: 3px solid #ab86be;
+  outline: 3px solid #999fab;
   outline-offset: 4px;
 }
 .q-kicker {
@@ -282,7 +280,7 @@ footer .footer-main h4 {
   width: 100%;
   margin-top: 30px;
   background: #fff;
-  border: 1px solid #e0d4e7;
+  border: 1px solid #d9dce2;
   border-radius: 14px;
   box-shadow: 0 8px 20px #62436e05;
   min-height: 62px;
@@ -308,7 +306,7 @@ footer .footer-main h4 {
   align-items: center;
   justify-content: center;
   color: var(--on-primary);
-  background: #73518c;
+  background: var(--primary);
   border-radius: 10px;
   flex: none;
   transition:
@@ -316,7 +314,7 @@ footer .footer-main h4 {
     background 0.2s;
 }
 .q-hero-search button:hover {
-  background: #58396f;
+  background: #4c515c;
   transform: translateX(2px);
 }
 .q-popular {
@@ -335,12 +333,12 @@ footer .footer-main h4 {
   align-items: center;
   gap: 3px;
   color: var(--muted);
-  border-bottom: 1px solid #cdb9d7;
+  border-bottom: 1px solid #c2c6ce;
   line-height: 1.7;
 }
 .q-popular > a:hover {
   color: var(--ink);
-  border-color: #73518c;
+  border-color: var(--primary);
 }
 .q-hero-note {
   display: flex;
@@ -357,7 +355,7 @@ footer .footer-main h4 {
   display: flex;
   flex-direction: column;
   background: #fff;
-  border: 1px solid #ece3ed;
+  border: 1px solid #e5e7eb;
   border-radius: var(--q-radius);
   padding: 22px 26px 17px;
 }
@@ -383,11 +381,11 @@ footer .footer-main h4 {
   height: 32px;
   border-radius: 50%;
   color: var(--muted);
-  border: 1px solid #e9dfed;
+  border: 1px solid #e3e5e9;
   background: #fff;
 }
 .q-spotlight-top button:hover {
-  background: #f0e9f3;
+  background: #ecedf0;
   color: var(--primary);
 }
 .q-spotlight-item {
@@ -418,7 +416,7 @@ footer .footer-main h4 {
   position: absolute;
   width: 205px;
   height: 205px;
-  border: 1px solid #eed9c9;
+  border: 1px solid #d7dae0;
   border-radius: 50%;
   background: #fff7f040;
   z-index: 0;
@@ -490,7 +488,7 @@ footer .footer-main h4 {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #ffc49d;
+  background: var(--primary-soft);
   color: var(--ink);
   transition: transform 0.25s;
 }
@@ -498,7 +496,7 @@ footer .footer-main h4 {
   transform: rotate(45deg);
 }
 .q-slider-controls {
-  border-top: 1px solid #f0e7f3;
+  border-top: 1px solid #ebecef;
   margin-top: 18px;
   padding-top: 12px;
   display: flex;
@@ -518,7 +516,7 @@ footer .footer-main h4 {
   height: 28px;
   display: grid;
   place-items: center;
-  border: 1px solid #e8deed;
+  border: 1px solid #e2e4e9;
   border-radius: 50%;
   color: var(--muted);
 }
@@ -531,7 +529,7 @@ footer .footer-main h4 {
   height: 8px;
   width: 8px;
   border-radius: 5px;
-  background: #e9e0ed;
+  background: #e4e6e9;
   padding: 0;
   transition:
     width 0.3s,
@@ -545,7 +543,7 @@ footer .footer-main h4 {
 }
 .q-slider-dots > button.selected {
   width: 25px;
-  background: #9a75ac;
+  background: #858d9c;
 }
 .q-spotlight-empty {
   display: flex;
@@ -669,7 +667,7 @@ footer .footer-main h4 {
   gap: 12px;
   min-width: 0;
   background: #fff;
-  border: 1px solid #ebe3ee;
+  border: 1px solid #e6e8eb;
   border-radius: 16px;
   padding: 16px;
   position: relative;
@@ -716,7 +714,7 @@ footer .footer-main h4 {
 }
 .q-category:hover {
   transform: translateY(-4px);
-  border-color: #d6bfdf;
+  border-color: #cacdd4;
   box-shadow: 0 10px 24px #60406f0b;
 }
 .q-category:hover .q-category-icon {
@@ -735,7 +733,7 @@ footer .footer-main h4 {
   gap: 8px;
   overflow-x: auto;
   scrollbar-width: thin;
-  scrollbar-color: #dac7e4 transparent;
+  scrollbar-color: #d1d4da transparent;
   padding: 0 2px 13px;
   margin-bottom: 11px;
 }
@@ -749,17 +747,17 @@ footer .footer-main h4 {
   border-radius: 24px;
   color: var(--muted);
   background: #fff;
-  border: 1px solid #e9e0ed;
+  border: 1px solid #e4e6e9;
   font-size: 12px;
   font-weight: 500;
 }
 .q-category-tabs > button:hover {
-  border-color: #bda2ca;
+  border-color: #afb4bd;
   color: var(--primary);
 }
 .q-category-tabs > button[aria-selected="true"] {
-  background: #73518c;
-  border-color: #73518c;
+  background: var(--primary);
+  border-color: var(--primary);
   color: var(--on-primary);
 }
 .q-home .product-grid {
@@ -768,7 +766,7 @@ footer .footer-main h4 {
 }
 .q-home .product-card {
   border-radius: 17px;
-  border: 1px solid #e9e1ed;
+  border: 1px solid #e4e6ea;
   transition:
     transform 0.28s,
     box-shadow 0.28s,
@@ -777,7 +775,7 @@ footer .footer-main h4 {
 .q-home .product-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 15px 30px #5b3b6b0d;
-  border-color: #cdb3d8;
+  border-color: #c0c4cb;
 }
 .q-products-enter .product-card {
   animation: q-product-in 0.5s both;
@@ -813,7 +811,7 @@ footer .footer-main h4 {
 }
 .q-comparison {
   margin: 44px 0;
-  background: #f1eaf5;
+  background: #eeeff1;
   border-radius: 24px;
   padding: 34px;
   display: grid;
@@ -862,7 +860,7 @@ footer .footer-main h4 {
 }
 .q-comparison-row {
   background: #ffffffc9;
-  border: 1px solid #e5d9eb;
+  border: 1px solid #dfe1e5;
   border-radius: 14px;
   padding: 18px;
   display: flex;
@@ -910,8 +908,8 @@ footer .footer-main h4 {
 }
 .q-comparison-row.q-best {
   background: #fff;
-  border-color: #bfa2ce;
-  box-shadow: inset 3px 0 #9270a4;
+  border-color: #b1b6bf;
+  box-shadow: inset 3px 0 #7e8696;
 }
 .q-comparison-offers > p {
   font-size: 11px;
@@ -939,7 +937,7 @@ footer .footer-main h4 {
   min-width: 0;
   min-height: 119px;
   padding: 19px;
-  border: 1px solid #eae3ee;
+  border: 1px solid #e6e8eb;
   border-radius: 15px;
   background: #fff;
   transition:
@@ -948,7 +946,7 @@ footer .footer-main h4 {
 }
 .q-store-grid > a:hover {
   transform: translateY(-3px);
-  border-color: #bea3cd;
+  border-color: #b1b6bf;
 }
 .q-store-grid .merchant-logo {
   max-width: 100%;
@@ -987,12 +985,12 @@ footer .footer-main h4 {
 }
 .q-home-feed .feed-section > .q-section-title {
   padding-top: 26px;
-  border-top: 1px solid #e8deec;
+  border-top: 1px solid #e2e4e8;
 }
 .q-alert-banner {
   padding: 33px;
-  background: #f6e6db;
-  border: 1px solid #f0dbce;
+  background: #e6e8eb;
+  border: 1px solid #dbdee3;
   border-radius: 23px;
   display: flex;
   align-items: center;
@@ -1019,13 +1017,13 @@ footer .footer-main h4 {
   bottom: 2px;
   width: 32px;
   height: 32px;
-  background: #fbd0b3;
+  background: #d3d6db;
   border-radius: 50%;
   display: grid;
   place-items: center;
   font-family: var(--display);
   font-size: 21px;
-  border: 3px solid #f6e6db;
+  border: 3px solid #e6e8eb;
   color: var(--muted);
 }
 .q-alert-banner h2 {
@@ -1054,7 +1052,7 @@ footer .footer-main h4 {
 .q-how-grid > a {
   position: relative;
   background: #fff;
-  border: 1px solid #e9e1ed;
+  border: 1px solid #e4e6ea;
   border-radius: 18px;
   padding: 25px;
   transition:
@@ -1063,7 +1061,7 @@ footer .footer-main h4 {
 }
 .q-how-grid > a:hover {
   transform: translateY(-4px);
-  border-color: #c5a8d1;
+  border-color: #b6bac3;
 }
 .q-how-grid > a > span {
   font-family: var(--display);
@@ -1101,7 +1099,7 @@ footer .footer-main h4 {
   gap: 60px;
   padding: 34px 0;
   margin-top: 45px;
-  border-top: 1px solid #e7deeb;
+  border-top: 1px solid #e1e3e8;
 }
 .q-faq h2 {
   font-size: 37px;
@@ -1125,7 +1123,7 @@ footer .footer-main h4 {
   margin-top: 22px;
 }
 .q-faq details {
-  border-bottom: 1px solid #e7deeb;
+  border-bottom: 1px solid #e1e3e8;
   padding: 18px 0;
   overflow: hidden;
 }
@@ -1147,7 +1145,7 @@ footer .footer-main h4 {
   width: 29px;
   height: 29px;
   border-radius: 50%;
-  background: #eee6f3;
+  background: #eaecef;
   display: grid;
   place-items: center;
   color: var(--muted);
@@ -1714,7 +1712,7 @@ footer .footer-main h4 {
     border: 0;
   }
   .q-facts > div:nth-child(even) {
-    border-left: 1px solid #e4dbe9;
+    border-left: 1px solid #dfe1e5;
     padding-left: 19px;
     padding-right: 0;
   }
@@ -2190,7 +2188,7 @@ footer .footer-main h4 {
 .catalog-pagination {
   margin: 30px 0 12px;
   padding-top: 24px;
-  border-top: 1px solid #e6dfea;
+  border-top: 1px solid #e1e3e8;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -2218,7 +2216,7 @@ footer .footer-main h4 {
 .catalog-pagination input {
   width: 76px;
   min-height: 44px;
-  border: 1px solid #d9cde1;
+  border: 1px solid #d3d6db;
   border-radius: 10px;
   padding: 8px 10px;
   background: white;
@@ -2249,9 +2247,9 @@ footer .footer-main h4 {
   align-items: flex-start;
   padding: 18px;
   margin: 20px 0;
-  border: 1px solid #dfd2e7;
+  border: 1px solid #d8dbe1;
   border-radius: 14px;
-  background: #f4eef7;
+  background: #f1f2f4;
 }
 .crawl-runtime > svg {
   flex: none;

@@ -200,7 +200,11 @@ async function clickPost(req: Request) {
   const o = c.offers.find((o) => o.id === b.offerId);
   if (!o) return json({ error: "Təklif tapılmadı." }, 404);
   if (o.demo) return json({ error: "Nümunə təklifdən alış edilmir." }, 400);
-  safeMerchantUrl(o.url);
+  try {
+    safeMerchantUrl(o.url);
+  } catch {
+    throw new ApiError(400, "Mağaza linki etibarlı deyil.");
+  }
   await statement("click", {
     id: crypto.randomUUID(),
     offerId: o.id,

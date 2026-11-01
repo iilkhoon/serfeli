@@ -1,15 +1,15 @@
-@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Onest:wght@400;500;550;600;650;700;750;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 :root {
-  --paper: #fafaf6;
+  --paper: #f7f8f9;
   --ink: #233a32;
   --text: #242f2a;
   --muted: #7b817a;
-  --line: #e6e8df;
+  --line: #e0e2e7;
   --lime: #ddeb66;
-  --sage: #e9efe2;
+  --sage: #e6e8eb;
   --green: #3e785a;
-  --display: "Bricolage Grotesque", "Onest", sans-serif;
-  --body: "Onest", sans-serif;
+  --display: "Inter", system-ui, sans-serif;
+  --body: "Inter", system-ui, sans-serif;
 }
 * {
   box-sizing: border-box;
@@ -161,7 +161,7 @@ b {
   border: 1px solid #daddd2;
 }
 .outline-button:hover {
-  background: #edf0e6;
+  background: #e9eaed;
 }
 .outline-button.active {
   background: var(--lime);
@@ -176,7 +176,7 @@ b {
   border-radius: 50%;
 }
 .icon-button:hover {
-  background: #eef0e7;
+  background: #e9ebee;
 }
 .icon-button.outlined {
   width: 44px;
@@ -197,10 +197,10 @@ b {
 }
 .badge.green {
   color: var(--success);
-  background: #edf4e7;
+  background: #ebedf0;
 }
 .badge.neutral {
-  background: #f0f1ea;
+  background: #ebedf0;
   color: var(--muted);
 }
 .badge.dark {
@@ -211,11 +211,11 @@ b {
 }
 .badge.red {
   color: var(--danger);
-  background: #fff0eb;
+  background: #f4f5f6;
 }
 .badge.yellow {
   color: var(--warning);
-  background: #fff4c8;
+  background: #e0e2e7;
 }
 .live-dot {
   height: 6px;
@@ -226,8 +226,8 @@ b {
 }
 .top-strip {
   height: 33px;
-  background: #f0f2e8;
-  border-bottom: 1px solid #e9ecdf;
+  background: #ebecef;
+  border-bottom: 1px solid #e2e4e9;
   font-size: 10px;
   color: var(--muted);
 }
@@ -302,8 +302,8 @@ b {
   margin-left: -8px;
 }
 .search-bar {
-  background: #f6f7f1;
-  border: 1px solid #e3e7da;
+  background: #f3f4f5;
+  border: 1px solid #dddfe4;
   border-radius: 8px;
   padding: 6px 7px 6px 15px;
   display: flex;
@@ -355,7 +355,7 @@ b {
   white-space: nowrap;
 }
 .header-actions .profile-button {
-  background: #f0f2e8;
+  background: #ebecef;
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -481,7 +481,7 @@ b {
   position: relative;
   overflow: hidden;
   border-radius: 11px;
-  background: #e8efdf;
+  background: #e4e6ea;
   min-height: 376px;
   padding: 28px 28px 24px;
 }
@@ -568,12 +568,12 @@ b {
   right: 0;
   top: 150px;
   z-index: 3;
-  background: #fffef7;
+  background: #fbfbfb;
   border-radius: 8px;
   padding: 12px 17px;
   box-shadow: 0 7px 18px #3e5b2420;
   transform: rotate(-5deg);
-  border: 1px solid #fffffc;
+  border: 1px solid #fdfdfe;
 }
 .floating-price > span {
   font-size: 9px;
@@ -641,7 +641,7 @@ b {
   margin-left: 6px;
 }
 .hero-side {
-  background: #f1e9d9;
+  background: #e2e4e8;
   border-radius: 11px;
   padding: 25px 22px 19px;
   display: flex;
@@ -767,7 +767,7 @@ b {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #efefe9;
+  background: #eaebee;
   color: var(--muted);
   transition: transform 0.2s;
 }
@@ -780,11 +780,11 @@ b {
   color: var(--muted);
 }
 .tile-2 {
-  background: #f4ebdf;
+  background: #e7e9ec;
   color: var(--muted);
 }
 .tile-3 {
-  background: #efedf2;
+  background: #eeeff1;
   color: var(--muted);
 }
 .tile-4 {
@@ -792,7 +792,7 @@ b {
   color: var(--muted);
 }
 .tile-5 {
-  background: #f1eddf;
+  background: #e5e7eb;
   color: var(--muted);
 }
 .tile-6 {
@@ -800,7 +800,7 @@ b {
   color: var(--muted);
 }
 .tile-7 {
-  background: #f1e9e6;
+  background: #e9ebee;
   color: var(--muted);
 }
 .products-heading {
@@ -820,8 +820,8 @@ b {
   gap: 8px;
   font-size: 10px;
   color: var(--muted);
-  background: #f4f3e9;
-  border: 1px solid #ecebdc;
+  background: #edeef0;
+  border: 1px solid #e1e3e7;
   padding: 10px 12px;
   border-radius: 6px;
   margin-bottom: 17px;
@@ -840,7 +840,7 @@ b {
 }
 .product-card {
   background: white;
-  border: 1px solid #e5e7dd;
+  border: 1px solid #dfe1e5;
   border-radius: 9px;
   overflow: hidden;
   transition:
@@ -873,7 +873,7 @@ b {
   color: var(--muted);
 }
 .favorite.chosen svg {
-  fill: #fae1d8;
+  fill: #e6e8ec;
 }
 .product-image {
   width: 100%;
@@ -937,7 +937,7 @@ b {
   width: 13px;
   height: 13px;
   border-radius: 50%;
-  background: #f1e9e1;
+  background: #e6e8ec;
   border: 2px solid white;
   margin-left: -3px;
 }
@@ -987,8 +987,8 @@ b {
   justify-content: space-between;
   gap: 7px;
   width: 100%;
-  border: 1px solid #e2e6d8;
-  background: #f8f9f2;
+  border: 1px solid #dbdee3;
+  background: #f4f5f7;
   border-radius: 5px;
   padding: 9px 10px;
   font-size: 9px;
@@ -1004,7 +1004,7 @@ b {
   align-items: center;
   gap: 28px;
   border-radius: 10px;
-  background: #edf0df;
+  background: #e5e7ea;
   padding: 29px 35px;
   margin-top: 32px;
 }
@@ -1099,8 +1099,8 @@ b {
   max-width: 190px;
 }
 footer {
-  background: #f0f2e9;
-  border-top: 1px solid #e7eadf;
+  background: #ebedf0;
+  border-top: 1px solid #e1e3e8;
 }
 .footer-main {
   display: grid;
@@ -1153,7 +1153,7 @@ footer {
   color: var(--ink);
 }
 .footer-bottom {
-  border-top: 1px solid #dfe5d5;
+  border-top: 1px solid #d9dce1;
   display: flex;
   justify-content: space-between;
   gap: 15px;
@@ -1205,7 +1205,7 @@ footer {
   bottom: 28px;
   right: 25px;
   z-index: 100;
-  background: #fffef6;
+  background: #fafafb;
   border: 1px solid #d6ddc8;
   box-shadow: 0 8px 40px #233a3226;
   display: flex;
@@ -1223,8 +1223,8 @@ footer {
   display: flex;
   gap: 10px;
   align-items: center;
-  background: #fff1e8;
-  border: 1px solid #edd8cb;
+  background: #f2f3f5;
+  border: 1px solid #d8dbe0;
   border-radius: 7px;
   padding: 11px 15px;
   margin-top: 12px;
@@ -1291,7 +1291,7 @@ input:not([type="checkbox"]),
 select,
 textarea {
   background: #fff;
-  border: 1px solid #dfe4d7;
+  border: 1px solid #d9dce2;
   color: var(--ink);
   border-radius: 6px;
   min-height: 40px;
@@ -1400,7 +1400,7 @@ input[type="checkbox"] {
   display: flex;
   align-items: center;
   gap: 15px;
-  background: #f0f2e8;
+  background: #ebecef;
   border-radius: 8px;
   padding: 14px;
 }

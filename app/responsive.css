@@ -914,7 +914,7 @@
     z-index: 35;
     background: #fffef9f5;
     backdrop-filter: blur(15px);
-    border-top: 1px solid #e4e8d9;
+    border-top: 1px solid #dddfe4;
     justify-content: space-around;
     padding: 10px 3px max(12px, env(safe-area-inset-bottom));
   }
@@ -2407,7 +2407,7 @@
 }
 .official-feed {
   border-color: #a8bb88;
-  background: #fcfdf7;
+  background: #f9fafb;
 }
 .feed-source-link {
   display: flex;
@@ -2424,7 +2424,7 @@
   gap: 12px;
   flex-wrap: wrap;
   padding: 12px;
-  background: #eef3e3;
+  background: #e9eaed;
   border-radius: 6px;
   margin: 15px 0;
   font-size: 11px;
@@ -2459,7 +2459,7 @@
   font-size: 12px;
 }
 .offer-row.unavailable {
-  background: #f8f9f5;
+  background: #f6f7f8;
 }
 .offer-row.unavailable .offer-price > strong {
   color: var(--danger);

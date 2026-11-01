@@ -7,6 +7,7 @@ import "./commerce.css";
 import "./home.css";
 import "./matching.css";
 import "./production.css";
+import "./theme.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport = { width: "device-width", initialScale: 1, themeColor: "#73518c" };
+export const viewport = { width: "device-width", initialScale: 1, themeColor: "#1f5eff" };
 
 export default function RootLayout({
   children,

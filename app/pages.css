@@ -162,7 +162,7 @@
 .compare-table td:first-child {
   font-size: 11px;
   color: var(--muted);
-  background: #f8f9f2;
+  background: #f4f5f7;
 }
 .price-text {
   font-size: 20px;
@@ -239,8 +239,8 @@
   flex-wrap: wrap;
 }
 .spec-chips > span {
-  background: #edf0e6;
-  border: 1px solid #e2e7d7;
+  background: #e9eaed;
+  border: 1px solid #dbdee3;
   border-radius: 4px;
   font-size: 9px;
   padding: 6px 8px;
@@ -429,7 +429,7 @@
 }
 .segmented {
   display: flex;
-  background: #f2f4ec;
+  background: #eeeff2;
   padding: 4px;
   border-radius: 6px;
   gap: 4px;
@@ -502,7 +502,7 @@
 .data-table th {
   font-size: 10px;
   text-align: left;
-  background: #f5f6ef;
+  background: #f1f2f4;
   color: var(--muted);
   font-weight: 500;
   padding: 13px 15px;
@@ -519,7 +519,7 @@
 .specs-panel .data-table td:first-child {
   width: 35%;
   color: var(--muted);
-  background: #f9faf5;
+  background: #f7f7f8;
 }
 .merchant-layout {
   display: grid;
@@ -839,7 +839,7 @@
   align-items: center;
   gap: 12px;
   padding: 14px 0;
-  border-bottom: 1px solid #edf0e5;
+  border-bottom: 1px solid #e8eaed;
   width: 100%;
   text-align: left;
 }
@@ -848,7 +848,7 @@
   padding-bottom: 0;
 }
 .setup-step > span {
-  background: #f0f3e8;
+  background: #ebedf0;
   color: var(--muted);
   width: 28px;
   height: 28px;
@@ -881,7 +881,7 @@
   margin: 25px 0 24px;
 }
 .health-ring {
-  border: 9px solid #e8efda;
+  border: 9px solid #e1e3e8;
   border-top-color: #8ea66d;
   border-radius: 50%;
   width: 90px;
@@ -1071,7 +1071,7 @@
 .code-input {
   font-family: Consolas, monospace !important;
   min-height: 350px !important;
-  background: #f9faf4 !important;
+  background: #f6f7f8 !important;
   font-size: 11px !important;
   line-height: 1.6 !important;
   margin-top: 17px;
@@ -1087,7 +1087,7 @@
   flex-direction: row;
   padding: 22px;
   border: 1px dashed #b8c6a6;
-  background: #f5f8ed;
+  background: #f1f2f4;
   border-radius: 8px;
   margin-top: 22px;
   color: var(--muted);
@@ -1136,7 +1136,7 @@
 .analytics-row > div {
   height: 9px;
   border-radius: 10px;
-  background: #f0f3e8;
+  background: #ebedf0;
   flex: 1;
   overflow: hidden;
 }
@@ -1155,7 +1155,7 @@
   margin-top: 20px;
 }
 .admin-config {
-  background: #f4f6ed;
+  background: #f0f1f3;
   border-radius: 7px;
   padding: 20px;
 }
