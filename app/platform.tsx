@@ -36,6 +36,8 @@ import {
   Send,
   Scale,
   Compass,
+  CreditCard,
+  Truck,
 } from "lucide-react";
 import {
   categories,
@@ -331,7 +333,23 @@ export default function Platform({
             }
           : worthSaving
             ? { tone: "save", text: money(Math.round(save)) + " fərq" }
-            : null;
+            : null,
+      // Card facts come only from recorded offers: the smallest monthly instalment any store
+      // lists, and free delivery only where a store states it.
+      credit = available
+        .flatMap((o) =>
+          o.installmentOptions?.length
+            ? o.installmentOptions.map((x) => ({
+                months: x.months,
+                monthly: x.monthly || x.total / x.months,
+              }))
+            : o.months > 0 && o.installmentTotal > 0
+              ? [{ months: o.months, monthly: o.installmentTotal / o.months }]
+              : [],
+        )
+        .filter((x) => x.months > 0 && x.monthly > 0)
+        .sort((a, b) => a.monthly - b.monthly)[0],
+      freeDelivery = available.some((o) => o.shippingKnown === true && o.shipping === 0);
     return (
       <article className={"pcard" + (available.length ? "" : " pcard-off")} key={p.id}>
         <a className="pcard-image" href={"/mehsul/" + p.id} tabIndex={-1} aria-hidden="true">
@@ -386,7 +404,31 @@ export default function Platform({
           <div className="pcard-price">
             <strong>{low ? money(low.price) : "Qiymət yoxdur"}</strong>
             {low && !available.length && <small>son qiymət</small>}
+            {low && available.length > 1 && high > low.price && (
+              <small className="pcard-high">ən baha {money(high)}</small>
+            )}
           </div>
+          <ul className="pcard-facts">
+            {credit && (
+              <li className="pcard-credit">
+                <CreditCard size={14} aria-hidden="true" />
+                Kreditlə {money(credit.monthly)}/ay
+                <span className="pcard-months"> · {credit.months} ay</span>
+              </li>
+            )}
+            {freeDelivery && (
+              <li>
+                <Truck size={14} aria-hidden="true" />
+                Pulsuz çatdırılma
+              </li>
+            )}
+            {available.length > 0 && !credit && !freeDelivery && (
+              <li className="pcard-fact-muted">
+                <ShieldCheck size={14} aria-hidden="true" />
+                Şərtlərə bax
+              </li>
+            )}
+          </ul>
           <a
             className="pcard-stores"
             href={"/mehsul/" + p.id}
@@ -634,9 +676,6 @@ export default function Platform({
             </nav>
             <div className="page-heading" ref={listingTop}>
               <div>
-                <span className="eyebrow">
-                  {storeId ? "MAĞAZA TƏKLİFLƏRİ" : "QİYMƏTİ BİL, AĞILLI SEÇ"}
-                </span>
                 <h1>{storeId ? currentStore?.name : title}</h1>
                 <p>
                   {azNumber(c.matchedTotal)} məhsul · {city} üçün müqayisə
@@ -890,7 +929,6 @@ export default function Platform({
           <>
             <div className="page-heading">
               <div>
-                <span className="eyebrow">YERLİ MAĞAZALAR</span>
                 <h1>
                   Tanıdığın mağazalar.
                   <br />
@@ -965,7 +1003,6 @@ export default function Platform({
           <>
             <div className="page-heading">
               <div>
-                <span className="eyebrow">YAN-YANA BAX</span>
                 <h1>Məhsulları müqayisə et</h1>
                 <p>Maksimum 4 məhsulun xüsusiyyətlərini müqayisə et.</p>
               </div>
@@ -1064,7 +1101,6 @@ export default function Platform({
           <>
             <div className="page-heading">
               <div>
-                <span className="eyebrow">QIYMƏTİ İZLƏ</span>
                 <h1>Qiymət bildirişlərin</h1>
                 <p>
                   Hədəfinə çatan qiymətləri bu səhifədə gör. E-poçt və push göndərişi qoşulmayıb.
@@ -1505,7 +1541,7 @@ function ProductDetail({
           </span>
         </div>
         <div className="detail-overview">
-          <span className="eyebrow">
+          <span className="detail-meta">
             {p.brand} / {categories.find((x) => x.id === p.category)?.name}
           </span>
           <h1>{p.name}</h1>
@@ -2039,7 +2075,6 @@ function MerchantForm({ act, needUser }: { act: Act; needUser: () => boolean }) 
   return (
     <div className="merchant-layout">
       <div>
-        <span className="eyebrow">BİRLİKDƏ BÖYÜYƏK</span>
         <h1>
           Mağazanı
           <br />
@@ -2215,7 +2250,6 @@ function Guide() {
   return (
     <>
       <div className="guide-hero">
-        <span className="eyebrow">QƏPİK BƏLƏDÇİSİ</span>
         <h1>
           Yaxşı alış-veriş
           <br />

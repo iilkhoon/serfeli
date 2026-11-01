@@ -4,25 +4,22 @@ Qəpik qiymət müqayisəsi üçündür. İnterfeys ilk növbədə məhsulu, hə
 
 ## Rənglər və istifadə
 
-Vahid semantik tokenlər son yüklənən `app/theme.css` faylında müəyyən edilir (`app/production.css` eyni dəyərləri ehtiyat kimi saxlayır). Üslub təmiz müqayisə saytıdır: ağ səthlər, bir göy vurğu rəngi, yaşıl qiymət. Digər CSS fayllarındakı köhnə bənövşəyi/şaftalı rənglər neytral boz-göy çalarlara çevrilib.
+Qəpik-in bir şirkət rəngi var: **nar #D81B54**. Saytdakı bütün rənglər bu tondan törəyən `--nar-50` … `--nar-950` şkalasıdır və `app/theme.css` faylında müəyyən edilir. Yaşıl və qırmızı yalnız funksional siqnaldır (stok var, xəta). Əvvəlki CSS qatlarındakı açıq fon və sərhəd rəngləri `--surface`, `--surface-2`, `--line`, `--line-strong` tokenlərinə çevrilib; yeni komponentlər də bu tokenlərdən istifadə etməlidir. Tam brend qaydaları: `docs/brand/Qepik-Brendbuk.pdf`.
 
 | Token | Rəng | Məqsəd |
 |---|---|---|
-| `--paper` | #F5F7FA | Səhifə fonu |
-| `--surface` | #FFFFFF | Kartlar, formalar, başlıq |
-| `--ink` | #111827 | Əsas mətn və başlıq |
-| `--muted` | #5B6474 | Variant, köməkçi mətn |
-| `--line` | #E3E7EE | Kart və bölmə sərhədləri |
-| `--control-line` | #7C8494 | Form sahələrinin sərhədi (ağ fonda 3:1-dən yuxarı) |
-| `--primary` | #1F5EFF | Brend, əsas düymələr, linklər, fokus halqası |
-| `--primary-hover` | #1546C7 | Düymə hover vəziyyəti |
-| `--primary-soft` | #EAF0FF | Yüngül vurğu, ikon fonu, informasiya panelləri |
-| `--action` | `--primary` | Axtarış və mağazaya keçid düymələri (ağ mətnlə) |
-| `--price` / `--success` | #0A7A3E | Cari ən aşağı qiymət, qənaət, təsdiqlənmiş stok |
-| `--success-soft` | #E7F6EE | Qənaət nişanının fonu |
-| `--danger` | #9B2D3A | Xəta və stokda olmayan təklif |
+| `--nar-50` / `--nar-100` | #FFF1F5 / #FFE3EB | Kateqoriya ikonu fonu, “Ən ucuz” nişanı, açılmış sual |
+| `--nar-200` / `--nar-300` | #FFC7D7 / #FF9BB8 | Mətn seçimi, fokus halqası, altlıqda hover |
+| `--nar-600` (`--primary`) | #D81B54 | Brend, əsas düymə, “fərq” nişanı, kredit ikonu |
+| `--nar-700` / `--nar-800` | #B3134A / #8C0F3B | Hover, kredit mətni, açıq nişanın mətni |
+| `--nar-950` (`--night`) | #2A0714 | Hero paneli, üst zolaq, altlıq |
+| `--bg` / `--surface` / `--surface-2` | #FFF8F1 / #FFFFFF / #FBF1E7 | Səhifə fonu, kart, yüngül fon |
+| `--plate` | #F7F1EA | Məhsul şəklinin lövhəsi (şəkil `multiply` ilə oturur) |
+| `--ink` / `--muted` | #22111A / #6E5A63 | Əsas mətn və qiymət / köməkçi mətn |
+| `--line` / `--line-strong` / `--control-line` | #EFE2D3 / #DCC9B5 / #8C7A6B | Sərhədlər, form sahəsi |
+| `--success` / `--danger` | #157A47 / #B3261E | Yalnız stok və xəta |
 
-Qırmızı dekorativ vurğu kimi istifadə edilmir. Mağaza loqolarının öz rəngləri dəyişdirilmir.
+Nisbət: təxminən 60% süd fon, 22% ağ kart, 10% nar, 8% gecə paneli. Mağaza loqolarının öz rəngləri dəyişdirilmir.
 
 ## Kontrast yoxlaması
 
@@ -30,26 +27,26 @@ WCAG nisbi parlaqlıq düsturu ilə hesablanıb; normal mətn üçün AA həddi 
 
 | Mətn / fon | Kontrast |
 |---|---|
-| Əsas mətn / səhifə fonu | 16.53:1 |
-| Köməkçi mətn / ağ | 5.97:1 |
-| Köməkçi mətn / səhifə fonu | 5.56:1 |
-| Göy link / ağ | 5.12:1 |
-| Ağ / göy düymə | 5.12:1 |
-| Yaşıl qiymət / ağ | 5.43:1 |
-| Yaşıl / yüngül yaşıl nişan | 4.87:1 |
-| Hero alt mətni #F2F6FF / göy | 4.73:1 |
-| Form sərhədi / ağ | 3.76:1 |
-| Xəta mətni / yüngül qırmızı | 6.75:1 |
+| Əsas mətn / səhifə fonu | 17.15:1 |
+| Köməkçi mətn / səhifə fonu | 6.03:1 |
+| Köməkçi mətn / ağ | 6.35:1 |
+| Ağ / nar düymə | 4.99:1 |
+| Nar link / səhifə fonu | 4.74:1 |
+| Nar-800 mətn / nar-100 nişan | 7.76:1 |
+| Açıq mətn / gecə paneli | 16.82:1 |
+| Köməkçi açıq mətn / gecə paneli | 11.36:1 |
+| Yaşıl stok / yüngül yaşıl | 4.70:1 |
+| Form sərhədi / ağ | 4.11:1 |
 
 ## Tipoqrafiya və vizual iyerarxiya
 
-Bir şrift ailəsi istifadə olunur: Inter (sistem şriftləri fallback). Əsas mətn 15 px, kart başlığı 14 px (telefonda 13 px, iki sətrə qədər), kart qiyməti 20 px (telefonda 17 px), bölmə başlıqları 22 px.
+İki şrift: başlıqlar, loqo və qiymətlər üçün Unbounded (500–700), interfeys və mətn üçün Plus Jakarta Sans (400–800). Hər ikisində ə, Ə, ğ, İ və ₼ işarələri var; seçilmədən əvvəl brauzerdə yoxlanılıb (Bricolage, Rubik, Outfit kimi şriftlərdə ə yoxdur). Əsas mətn 15 px, kart başlığı 14 px, kart qiyməti 19 px (telefonda 16 px), bölmə başlıqları 24–36 px, hero başlığı 34–64 px.
 
-Məhsul kartı (`.pcard`) sadədir: şəkil; yuxarı solda yalnız mənalı nişan (qənaət ən azı 5 ₼ və 2% olanda, və ya stok yoxdur/məlum deyil); yuxarı sağda seçilmişlər və müqayisə ikon düymələri; məhsul adı; variant (eyni adlı məhsullarda istehsalçı kodu da); yaşıl ən aşağı qiymət; “N mağazada qiymət” linki. Yoxlanma vaxtı və mağaza siyahısı məhsul səhifəsində göstərilir. Rəqəmlər Azərbaycan formatındadır: 1 799,99 ₼.
+Məhsul kartı (`.pcard`): isti lövhədə şəkil; yuxarı solda yalnız mənalı nişan (qənaət ən azı 5 ₼ və 2% olanda nar rəngində, stok yoxdursa tünd); yuxarı sağda seçilmişlər və müqayisə düymələri; ad; variant; ən aşağı qiymət və “ən baha” qiymət; kredit (ən kiçik aylıq ödəniş və ay sayı) və pulsuz çatdırılma, yalnız mağaza bunu bildirəndə; “N mağazada qiymət” həb düyməsi. Faktlar sətri üçün iki sətir yer saxlanılır ki, bir cərgədəki kartlarda qiymət və düymə eyni xətdə dursun. Hover-də kart 4 px qalxır və kölgə alır.
 
-Ana səhifə qısadır: axtarış (hero), kateqoriyalar, ən çox müqayisə edilənlər, mağazalar arası böyük fərq, mağazalar, suallar.
+Ana səhifə: gecə panelində axtarış və 3D qiymət yığını (hero), iki cərgəli kateqoriya rəfi (eyni ağ plitələr, ad üçün sabit iki sətir), ən çox müqayisə edilənlər rəfi, dörd plitəli bento (qiyməti düşənlər, hədəf qiymət, müqayisə, mağazalar), böyük fərq rəfi, hərəkətli mağaza lenti, suallar.
 
-Kart şəkilləri eyni nisbətli sahədə `object-fit: contain` ilə göstərilir. Mağaza şəkli yüklənməsə `components/product-image.tsx` eyni ölçülü `.image-fallback` sahəsi (“Şəkil yoxdur”) göstərir; sınıq şəkil və alt mətni görünmür. Mağaza loqosu yüklənməsə mağazanın adı yazılır. Tarix və saylar `components/format.ts` ilə yazılır: 27.10.2026, 27.10.2026, 14:29, 13 205. `toLocaleString("az-AZ")` istifadə edilmir, çünki bəzi mühitlərdə az dili məlumatı yoxdur. Brend etiketləri `lang="en"` daşıyır ki, böyük hərflə “XİAOMİ” yazılmasın.
+Kart şəkilləri eyni nisbətli sahədə `object-fit: contain` ilə göstərilir. Mağaza şəkli yüklənməsə `components/product-image.tsx` eyni ölçülü `.image-fallback` sahəsi (“Şəkil yoxdur”) göstərir. Tarix və saylar `components/format.ts` ilə yazılır: 27.10.2026, 13 205. Brend etiketləri `lang="en"` daşıyır ki, böyük hərflə “XİAOMİ” yazılmasın. Başlıqların üstündə dekorativ etiket (eyebrow) istifadə edilmir.
 
 ## Mobil və əlçatanlıq
 
@@ -59,10 +56,10 @@ Dizayn `--space-1`–`--space-6`, `--radius-control`, `--radius-card` və `--tou
 
 ## Hərəkət
 
-Daimi dekorativ halqa fırlanması, məhsulun yellənməsi, zəng və siqnal animasiyaları söndürülüb. Qısa hover keçidləri 160 ms, bölmə və məhsul görünməsi 320 ms-dir. Karuselin avtomatik keçidi yalnız görünən səhifədə, istifadəçi onu dayandırmadıqda işləyir. `prefers-reduced-motion` bütün səhifələr üzrə animasiya və keçidləri azaldır; gizli giriş animasiyası məzmunu görünməz saxlamır.
+İmza hərəkəti hero-dakı qiymət yığınıdır: üç real məhsul kartı 3D-də yelpik kimi düzülür, öndəki kart mağaza qiymətlərini zolaq kimi açır, zolaqlar kart önə gələndə böyüyür. Kartlar 6.5 saniyədən bir dəyişir; siçan və ya fokus üstündə olanda dayanır, arxa karta klikləmək onu önə gətirir. Siçan ilə kart dəstəsi yüngülcə əyilir (toxunuşda və azaldılmış hərəkətdə yoxdur). Hero mətni bir dəfə qalxır, bölmələr skroll ilə görünür (`animation-timeline: view()` dəstəklənəndə). Mağaza lenti 48 saniyəlik xətti dövrdür və siçan altında dayanır. Hover keçidləri 200–450 ms-dir. `prefers-reduced-motion` bu animasiyaların hamısını söndürür, mağaza lenti əl ilə sürüşdürülən siyahıya çevrilir; gizli giriş animasiyası məzmunu görünməz saxlamır.
 
 ## Fayllar və mobil tətbiq
 
-`app/production.css` son semantik dizayn qatıdır. `app/design.css`, `app/pages.css`, `app/responsive.css`, `app/commerce.css`, `app/home.css`, `app/matching.css` mövcud düzüm və komponentləri saxlayır. `app/ui.tsx` ümumi komponentlər və mağaza loqolarıdır.
+`app/theme.css` son semantik dizayn qatıdır. `app/design.css`, `app/pages.css`, `app/responsive.css`, `app/commerce.css`, `app/home.css`, `app/matching.css` mövcud düzüm və komponentləri saxlayır. `app/ui.tsx` ümumi komponentlər və mağaza loqolarıdır.
 
 Ayrı məhsul, mağaza və təklif ID-ləri, `/api/v1` marşrutları və web manifest gələcək mobil müştəri üçün əsasdır. Native iOS/Android tətbiqi, offline rejim və mobil push yalnız bu veb dizaynının olması ilə hazır sayılmır.
