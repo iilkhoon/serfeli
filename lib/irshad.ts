@@ -182,6 +182,67 @@ function categoryFrom(type: string, name: string) {
     return "ev";
   return undefined;
 }
+// Credit terms printed next to the price. The store's own plan: radio inputs carrying
+// data-monthly-payment and data-total-price, labelled "N ay". Bank cards: "200 AZN x 12 ay" followed
+// by "Birbank ilə 12 aya faizsiz ödə!". Kept here (not in lib/installments.ts) so this module stays
+// import-free; the rules match normalizeInstallments(): cheapest total per term, at most six terms,
+// interestFree = total not above the cash price.
+type Term = {
+  months: number;
+  total: number;
+  monthly: number;
+  provider?: string;
+  interestFree?: boolean;
+};
+const money = (raw: string | undefined) => {
+  const s = (raw || "").replace(/AZN|₼|\s/gi, "");
+  return /^\d+(?:\.\d{1,2})?$/.test(s) ? Number(s) : NaN;
+};
+export function irshadInstallments(block: string, cash: number): Term[] {
+  const raw: Omit<Term, "interestFree">[] = [];
+  const labels = new Map<string, number>();
+  for (const l of block.matchAll(/<label\b([^>]*)>([\s\S]*?)<\/label>/gi)) {
+    const months = clean(l[2]).match(/^(\d{1,2})\s*ay$/i)?.[1];
+    const target = attr(l[1], "for");
+    if (months && target) labels.set(target, Number(months));
+  }
+  for (const input of block.matchAll(/<input\b([^>]*)>/gi)) {
+    const monthly = money(attr(input[1], "data-monthly-payment"));
+    const months = labels.get(attr(input[1], "id") || "") || 0;
+    if (!months || !(monthly > 0)) continue;
+    const stated = money(attr(input[1], "data-total-price"));
+    const total =
+      stated > 0 && Math.abs(stated - monthly * months) <= months * 0.01
+        ? stated
+        : Math.round(monthly * months * 100) / 100;
+    raw.push({ months, total, monthly, provider: "İrşad hissəli ödəniş" });
+  }
+  for (const m of clean(block).matchAll(
+    /(\d+(?:\.\d{1,2})?)\s*(?:AZN|₼)\s*x\s*(\d{1,2})\s*ay\s+([\p{L}][\p{L}\p{N} .-]{1,40}?)\s+ilə\s+(\d{1,2})\s+aya\s+faizsiz/giu,
+  )) {
+    const monthly = Number(m[1]),
+      months = Number(m[2]);
+    if (m[2] !== m[4] || !(monthly > 0)) continue;
+    raw.push({
+      months,
+      monthly,
+      total: Math.round(monthly * months * 100) / 100,
+      provider: m[3].trim(),
+    });
+  }
+  const best = new Map<number, Term>();
+  for (const t of raw) {
+    if (t.months < 2 || t.months > 60 || (cash > 0 && t.total < cash * 0.9)) continue;
+    const term = { ...t, interestFree: cash > 0 && t.total <= cash + t.months * 0.01 };
+    const prior = best.get(t.months);
+    if (!prior || term.total < prior.total - 0.005) best.set(t.months, term);
+    else if (Math.abs(term.total - prior.total) < 0.005 && term.provider) {
+      const names = new Set([...(prior.provider || "").split(", "), term.provider].filter(Boolean));
+      prior.provider = [...names].join(", ").slice(0, 80);
+    }
+  }
+  return [...best.values()].sort((a, b) => a.months - b.months).slice(-6);
+}
 function sectionProduct(section: Section, metadata?: MerchantRow): ScannedProduct {
   const { body, sku: sectionId } = section;
   const name = clean(body.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1] || "");
@@ -292,6 +353,7 @@ function sectionProduct(section: Section, metadata?: MerchantRow): ScannedProduc
   const brand = metadata?.brand?.main_trans?.title;
   const model = metadata?.model;
   if (typeof model === "string" && model) specs["İstehsalçı modeli"] = model.slice(0, 200);
+  const installmentOptions = irshadInstallments(pricing, unique[0]);
   return {
     name,
     sku,
@@ -312,6 +374,7 @@ function sectionProduct(section: Section, metadata?: MerchantRow): ScannedProduc
       name,
     ),
     url: section.url,
+    ...(installmentOptions.length ? { installmentOptions } : {}),
   };
 }
 function parsePage(html: string, requestedUrl?: string, includeVariants = false) {
@@ -504,6 +567,8 @@ export function extractIrshadListing(html: string) {
           variant: "Mənbədəki model",
           specs: type ? { "Mənbə məhsul növü": type } : {},
         };
+        const installmentOptions = irshadInstallments(own, amounts[0]);
+        if (installmentOptions.length) product.installmentOptions = installmentOptions;
         const existing = products.get(variantId);
         if (
           existing &&

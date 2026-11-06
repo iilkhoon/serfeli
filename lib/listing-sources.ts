@@ -3,6 +3,7 @@
 import type { ScannedProduct } from "./extractor";
 import type { Offer, Product } from "./catalog";
 import { extractIrshadListing } from "./irshad";
+import { bakuInstallments, normalizeInstallments } from "./installments";
 import { normalizeTechnomania } from "./technomania";
 import { normalizeStoreProducts, storeApiSources, type StoreApiRow } from "./woocommerce";
 
@@ -167,6 +168,10 @@ export function extractBakuListing(html: string, pageUrl: string): ListingPage {
         ? { specs: { [`Taksit (${row.perMonth.month} ay)`]: row.perMonth.price + " ₼/ay" } }
         : {}),
     });
+    // Category rows carry only the store's own credit term (perMonth); bank-card terms are on the
+    // product page (lib/installments.ts).
+    const credit = normalizeInstallments(bakuInstallments({ perMonth: row.perMonth }), price);
+    if (credit.length) items[items.length - 1].installmentOptions = credit;
   }
   const pages: string[] = [];
   const page = Number(list.page) || 1;

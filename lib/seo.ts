@@ -545,3 +545,19 @@ export const jsonLdString = (data: unknown) =>
     .replace(/&/g, "\\u0026")
     .replace(/\u2028/g, "\\u2028")
     .replace(/\u2029/g, "\\u2029");
+
+// FAQPage for a product's published Q&A. Only approved questions that already have an answer are
+// included, so the markup matches what the page shows.
+export function faqJsonLd(questions: { text: string; answer?: string }[]): Json | null {
+  const answered = questions.filter((q) => q.answer && q.answer.trim());
+  if (!answered.length) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: answered.map((q) => ({
+      "@type": "Question",
+      name: q.text,
+      acceptedAnswer: { "@type": "Answer", text: q.answer },
+    })),
+  };
+}

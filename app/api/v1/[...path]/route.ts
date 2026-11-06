@@ -41,6 +41,25 @@ import {
   statement,
 } from "../../../../lib/api/records";
 import { z } from "zod";
+import {
+  answerQuestion,
+  applicationPost,
+  decideApplication,
+  livePlacements,
+  myApplications,
+  placementsDelete,
+  placementsSave,
+  settingsPatch,
+} from "../../../../lib/api/merchant";
+import {
+  adminListQuestions,
+  approvedQuestions,
+  createQuestion,
+  productViews,
+  recordView,
+  topViewed,
+  viewsByDay,
+} from "../../../../lib/engagement";
 export const dynamic = "force-dynamic";
 
 const json = (v: unknown, status = 200) =>
@@ -171,29 +190,6 @@ async function reviewPost(req: Request, user: ChatGPTUser) {
   return json({ ok: true });
 }
 
-async function applicationPost(req: Request) {
-  const b = z
-    .object({
-      company: z.string().min(2).max(150),
-      email: z.string().email(),
-      phone: z.string().min(9).max(30),
-      website: z
-        .string()
-        .url()
-        .refine((v) => v.startsWith("https://")),
-      voen: z.string().regex(/^\d{10}$/),
-      note: z.string().max(2000),
-    })
-    .parse(await readJson(req));
-  await statement("application", {
-    ...b,
-    id: crypto.randomUUID(),
-    status: "pending",
-    date: new Date().toISOString(),
-  }).run();
-  return json({ ok: true });
-}
-
 async function clickPost(req: Request) {
   const b = z.object({ offerId: id }).parse(await readJson(req));
   const c = await catalog();
@@ -228,6 +224,9 @@ async function adminData() {
     "audit",
     "click",
     "feed",
+    "placement",
+    "question",
+    "view",
   ];
   const all = await Promise.all(kinds.map((k) => list(k)));
   const c = await catalog();
@@ -499,6 +498,7 @@ async function matchesPost(req: Request, user: ChatGPTUser) {
 
 async function admin(req: Request, path: string, user: ChatGPTUser) {
   const route = `${req.method} ${path}`;
+  const url = new URL(req.url);
   switch (route) {
     case "POST admin/catalog/materialize":
       return json(await materializeCatalog(db()));
@@ -542,6 +542,24 @@ async function admin(req: Request, path: string, user: ChatGPTUser) {
       return adminModerate(req, user);
     case "POST admin/delete":
       return adminDelete(req, user);
+    case "POST admin/applications/decide":
+      return decideApplication(req, user);
+    case "POST admin/placements":
+      return placementsSave(req, user);
+    case "POST admin/placements/delete":
+      return placementsDelete(req, user);
+    case "POST admin/settings":
+      return settingsPatch(req, user);
+    case "POST admin/questions/answer":
+      return answerQuestion(req, user);
+    // Storefront engagement data for the admin panel (lib/engagement.ts).
+    case "GET admin/questions":
+      return json(await adminListQuestions(url.searchParams.get("status")));
+    case "GET admin/views":
+      return json({
+        top: await topViewed(Number(url.searchParams.get("days")) || 30, 50),
+        daily: await viewsByDay(Number(url.searchParams.get("days")) || 30),
+      });
   }
   return json({ error: "Əməliyyat tapılmadı." }, 404);
 }
@@ -559,10 +577,16 @@ async function route(req: Request): Promise<Response> {
       if (rateLimited("click:" + clientKey(req, user), 60)) return tooMany();
       return clickPost(req);
     }
+    // Anonymous view counter: limited per IP in memory only; nothing about the viewer is stored.
+    if (path === "view" && method === "POST") {
+      if (rateLimited("view:" + (req.headers.get("cf-connecting-ip") || "anonymous"), 30))
+        return tooMany();
+      return json(await recordView(await readJson(req, 2000)));
+    }
     if (!user) return json({ error: "Bu əməliyyat üçün hesabınıza daxil olun." }, 401);
     // Public writes (favourites, reviews, applications); admin work is owner-only and unlimited.
     if (!path.startsWith("admin/")) {
-      const strict = path === "reviews" || path === "applications";
+      const strict = path === "reviews" || path === "applications" || path === "questions";
       if (rateLimited(path + ":" + user.userId, strict ? 5 : 60, strict ? 600000 : 60000))
         return tooMany();
     }
@@ -578,11 +602,30 @@ async function route(req: Request): Promise<Response> {
     });
   }
   if (path === "personal" && method === "GET") return personalGet(user);
+  if (method === "GET" && (path === "questions" || path === "views")) {
+    const pid = url.searchParams.get("productId") || "";
+    if (!/^[a-zA-Z0-9_-]{1,100}$/.test(pid)) return json({ error: "Məhsul göstərilməyib." }, 400);
+    return path === "questions"
+      ? json({ productId: pid, questions: await approvedQuestions(pid) })
+      : json({ productId: pid, views: await productViews(pid) });
+  }
+  if (path === "views/top" && method === "GET")
+    return json({
+      days: Number(url.searchParams.get("days")) || 30,
+      items: await topViewed(
+        Number(url.searchParams.get("days")) || 30,
+        Number(url.searchParams.get("limit")) || 10,
+      ),
+    });
+  if (path === "placements" && method === "GET") return livePlacements();
+  if (path === "applications/mine" && method === "GET")
+    return user ? myApplications(user) : json({ applications: [] });
   if (method === "POST" && user) {
     if (path === "bootstrap") return bootstrap(user);
     if (path === "personal") return personalPost(req, user);
     if (path === "reviews") return reviewPost(req, user);
-    if (path === "applications") return applicationPost(req);
+    if (path === "questions") return json(await createQuestion(await readJson(req), user));
+    if (path === "applications") return applicationPost(req, user);
   }
   if (!path.startsWith("admin/")) return json({ error: "Ünvan tapılmadı." }, 404);
   if (!user) return json({ error: "Bu əməliyyat üçün hesabınıza daxil olun." }, 401);
@@ -595,7 +638,10 @@ async function handle(req: Request) {
   try {
     // Awaited here so rejections from every delegated handler reach the catch below.
     const res = await route(req);
-    if (req.method !== "GET" && res.ok) invalidatePublicCatalog();
+    // Views and new (pending) questions never change the public catalog.
+    const path = new URL(req.url).pathname;
+    if (req.method !== "GET" && res.ok && !/^\/api\/v1\/(view|questions)$/.test(path))
+      invalidatePublicCatalog();
     return res;
   } catch (e) {
     console.error("API:", e instanceof Error ? e.name + ": " + e.message : String(e));

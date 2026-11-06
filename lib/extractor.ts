@@ -4,7 +4,9 @@ import { robotsAllowed, robotsCrawlDelayMs, robotsSitemaps } from "./robots";
 import { merchantDomains } from "./merchants";
 import { htmlProductReaders, productFixups } from "./html-products";
 import { parsePrice } from "./price";
+import { pageInstallments, type InstallmentOption } from "./installments";
 export { parsePrice };
+export { offerInstallmentFields } from "./installments";
 // Only known merchant hosts may be fetched. Never bypass access challenges.
 export const allowedHosts = merchantDomains;
 export function safeMerchantUrl(raw: string) {
@@ -310,6 +312,9 @@ export type ScannedProduct = {
   variants?: ScannedProduct[];
   // Crossed-out price shown next to the sale price; never used as the offer price.
   oldPrice?: number;
+  // Credit/instalment terms printed on the page (see lib/installments.ts). Copy them into the
+  // offer with offerInstallmentFields().
+  installmentOptions?: InstallmentOption[];
 };
 export function extractProduct(html: string) {
   const all: LdProduct[] = [];
@@ -538,5 +543,13 @@ export function parseProductPage(html: string, raw: string): ScannedProduct {
     if (image && new URL(image).protocol === "http:" && new URL(image).hostname === url.hostname)
       image = "https://" + image.slice("http://".length);
   } catch {}
-  return { ...p, ...(image ? { image } : {}), url: url.href };
+  const installmentOptions = p.installmentOptions?.length
+    ? p.installmentOptions
+    : pageInstallments(host, html, p.price);
+  return {
+    ...p,
+    ...(image ? { image } : {}),
+    ...(installmentOptions.length ? { installmentOptions } : {}),
+    url: url.href,
+  };
 }

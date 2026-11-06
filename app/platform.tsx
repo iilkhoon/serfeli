@@ -53,6 +53,7 @@ import { DEFAULT_CITY, PAGE_SIZE, type CatalogSlice } from "../lib/catalog-query
 import { api, errorMessage, Modal, Empty, CategoryIcon, StoreLogo } from "./ui";
 import type { Act, Personal, Session } from "./types";
 import Admin from "./admin";
+import MerchantPage from "./merchant-page";
 import Home from "./home";
 import { ProductImage } from "../components/product-image";
 import { azDate, azDateTime, azNumber } from "../components/format";
@@ -1130,7 +1131,9 @@ export default function Platform({
             )}
           </>
         )}
-        {page === "magaza-qeydiyyat" && <MerchantForm act={act} needUser={needUser} />}
+        {page === "magaza-qeydiyyat" && (
+          <MerchantPage c={c} session={session} act={act} needUser={needUser} />
+        )}
         {page === "rehber" && <Guide />}
         {page === "admin" && (
           <Admin
@@ -2031,114 +2034,6 @@ function ProductDetail({
         </section>
       )}
     </>
-  );
-}
-function MerchantForm({ act, needUser }: { act: Act; needUser: () => boolean }) {
-  const [done, setDone] = useState(false),
-    [busy, setBusy] = useState(false);
-  return (
-    <div className="merchant-layout">
-      <div>
-        <span className="eyebrow">BİRLİKDƏ BÖYÜYƏK</span>
-        <h1>
-          Mağazanı
-          <br />
-          daha çox insan
-          <br />
-          <em>kəşf etsin.</em>
-        </h1>
-        <p>
-          Qiymətlərini aydın göstər.
-          <br />
-          Məhsul axtaran alıcılarla bir araya gəl.
-        </p>
-        <div className="merchant-benefits">
-          {[
-            "Eyni məhsul üzrə şəffaf müqayisə",
-            "Mənbəyə birbaşa keçid",
-            "Kataloq və qiymət idxalı",
-          ].map((t) => (
-            <p key={t}>
-              <CheckCircle2 size={20} />
-              {t}
-            </p>
-          ))}
-        </div>
-      </div>
-      {done ? (
-        <Empty
-          icon={CheckCircle2}
-          title="Müraciətin qəbul edildi"
-          text="Məlumatlar admin panelində yoxlanış gözləyir. Təsdiq avtomatik tərəfdaşlıq yaratmır."
-        />
-      ) : (
-        <form
-          className="form-stack merchant-form"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (!needUser()) return;
-            setBusy(true);
-            const f = new FormData(e.currentTarget);
-            if (await act(() => api("applications", Object.fromEntries(f)))) setDone(true);
-            setBusy(false);
-          }}
-        >
-          <h2>Mağaza müraciəti</h2>
-          <div className="form-two">
-            <label>
-              Şirkətin adı
-              <input name="company" required minLength={2} />
-            </label>
-            <label>
-              VÖEN
-              <input
-                name="voen"
-                required
-                pattern="[0-9]{10}"
-                maxLength={10}
-                placeholder="10 rəqəm"
-              />
-            </label>
-          </div>
-          <label>
-            Mağazanın veb-saytı
-            <input
-              name="website"
-              type="url"
-              pattern="https://.*"
-              placeholder="https://magazaniz.az"
-              required
-            />
-          </label>
-          <div className="form-two">
-            <label>
-              E-poçt
-              <input name="email" type="email" required />
-            </label>
-            <label>
-              Telefon
-              <input name="phone" minLength={9} required placeholder="+994 …" />
-            </label>
-          </div>
-          <label>
-            Əlavə məlumat
-            <textarea
-              name="note"
-              maxLength={2000}
-              placeholder="Məhsul çeşidi, feed və ya əlaqə məlumatı…"
-            />
-          </label>
-          <label className="check-label">
-            <input type="checkbox" required />
-            Müraciət məlumatlarımın yoxlanış üçün saxlanmasına razıyam.
-          </label>
-          <button className="dark-button" disabled={busy}>
-            {busy ? "Göndərilir…" : "Müraciəti göndər"}
-            <ArrowUpRight size={18} />
-          </button>
-        </form>
-      )}
-    </div>
   );
 }
 function InfoContent({ topic }: { topic: string }) {

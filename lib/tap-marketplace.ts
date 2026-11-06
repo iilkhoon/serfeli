@@ -82,6 +82,7 @@ export function tapShopProduct(
           "Tap.az-da mağaza nişanı olan satıcı. Qiymət elandakı məbləğdir; stok və məhsulun vəziyyəti satıcıda yoxlanmalıdır.",
         logo: shop.logo?.url,
         sourceStatus: "marketplace_shop",
+        kind: "marketplace",
       });
     products.push({
       id,
@@ -125,5 +126,57 @@ export function tapShopProduct(
         sourceName: String(ad.title).slice(0, 300),
       });
   }
-  return { products, offers, stores };
+  return groupTapAds({ products, offers, stores });
+}
+
+// Ad title → grouping key: case, punctuation and spacing differences between a shop's ads for the
+// same model do not split it ("iPhone 16 128GB" = "IPHONE 16 128 GB").
+const modelKey = (title: string) =>
+  title
+    .normalize("NFKC")
+    .toLocaleLowerCase("az")
+    .replace(/(\d)\s+(gb|tb|mb)\b/g, "$1$2")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+
+/** One offer per shop, model and condition. When a shop has several ads for the same model, the
+ * cheapest ad is the offer (its URL and price) and `priceRange` gives the spread over all of them,
+ * so the storefront can show "Tap.az-da 500–1500 ₼". Run it again on merged page results. */
+export function groupTapAds<T extends { products: Product[]; offers: Offer[] }>(input: T): T {
+  const productById = new Map(input.products.map((p) => [p.id, p]));
+  const groups = new Map<string, Offer[]>();
+  for (const o of input.offers) {
+    const p = productById.get(o.productId);
+    const key = [
+      o.storeId,
+      o.condition || "unknown",
+      modelKey(p?.name || o.sourceName || o.id),
+    ].join("\n");
+    groups.set(key, [...(groups.get(key) || []), o]);
+  }
+  const keepProducts = new Set<string>();
+  const offers: Offer[] = [];
+  for (const list of groups.values()) {
+    const sorted = [...list].sort((a, b) => a.price - b.price || a.id.localeCompare(b.id));
+    const best = sorted[0];
+    const prices = sorted
+      .map((o) => (o.priceRange ? [o.priceRange.min, o.priceRange.max] : [o.price]))
+      .flat();
+    const count = sorted.reduce((n, o) => n + (o.priceRange?.count || 1), 0);
+    const { priceRange: _previous, ...rest } = best;
+    void _previous;
+    offers.push(
+      count > 1
+        ? { ...rest, priceRange: { min: Math.min(...prices), max: Math.max(...prices), count } }
+        : rest,
+    );
+    keepProducts.add(best.productId);
+  }
+  // Products of grouped-away ads are dropped; products without a priced offer stay as they were.
+  const offered = new Set(input.offers.map((o) => o.productId));
+  return {
+    ...input,
+    products: input.products.filter((p) => keepProducts.has(p.id) || !offered.has(p.id)),
+    offers,
+  };
 }

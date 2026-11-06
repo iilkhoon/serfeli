@@ -28,6 +28,26 @@ export type Store = {
   logo?: string;
   logoBackground?: string;
   sourceStatus?: string;
+  // Public contact details taken from the store's own site (shown on the store page).
+  contacts?: StoreContacts;
+  // "shop" = online/retail store, "marketplace" = classifieds or multi-seller site.
+  kind?: "shop" | "marketplace";
+  // Paid placement: premium stores get a badge and priority in store lists, never in price order.
+  plan?: "free" | "premium";
+  // Inclusive YYYY-MM-DD bounds of a paid plan (see storeIsPremium in lib/plans.ts).
+  planFrom?: string;
+  planUntil?: string;
+};
+export type StoreContacts = {
+  phones?: string[];
+  email?: string;
+  address?: string;
+  city?: string;
+  hours?: string;
+  whatsapp?: string;
+  instagram?: string;
+  facebook?: string;
+  telegram?: string;
 };
 export type Offer = {
   stockKnown?: boolean;
@@ -49,7 +69,18 @@ export type Offer = {
   sourceSku?: string;
   sourceName?: string;
   shippingKnown?: boolean;
-  installmentOptions?: { months: number; total: number; monthly: number }[];
+  // Credit/instalment terms published on the store's product page. `provider` names the bank or
+  // card (e.g. "BirKart", "TamKart"); `downPayment` is the first payment when the store states one.
+  installmentOptions?: {
+    months: number;
+    total: number;
+    monthly: number;
+    provider?: string;
+    downPayment?: number;
+    interestFree?: boolean;
+  }[];
+  // Classified ads (tap.az shop-tagged, lalafo shops): price spread across verified ads.
+  priceRange?: { min: number; max: number; count: number };
   feedProductId?: string;
   feedVariantIndex?: number;
   feedUpdatedAt?: string | null;
@@ -88,7 +119,13 @@ export type Catalog = {
   stores: Store[];
   offers: Offer[];
   history: Point[];
-  settings: { headline: string; announcement: string };
+  settings: {
+    headline: string;
+    announcement: string;
+    // Owner-set merchant plan prices and AdSense configuration (lib/plans.ts).
+    plans?: import("./plans").PlansSettings;
+    ads?: import("./plans").AdsSettings;
+  };
   reviews: Review[];
   totals?: { products: number; stores: number };
 };
@@ -118,6 +155,19 @@ export const categories = [
   { id: "avto", name: "Avtomobil", icon: "car" },
   { id: "kitab", name: "Kitab və dəftərxana", icon: "book" },
 ];
+// A store profile in docs/local-merchants.json (only the fields the catalogue uses).
+type LocalMerchant = {
+  id: string;
+  name: string;
+  domain: string;
+  description: string;
+  color?: string;
+  logo?: string;
+  logoBackground?: string;
+  priceIntegration: string;
+  contacts?: StoreContacts;
+  kind?: "shop" | "marketplace";
+};
 const img = (c: string, s: string) => `https://cdn.dummyjson.com/product-images/${c}/${s}/1.webp`;
 export const seedStores: Store[] = [
   {
@@ -131,17 +181,22 @@ export const seedStores: Store[] = [
     logo: "/logos/alinino.png",
     sourceStatus: "sitemap_discovered",
   },
-  ...localMerchants.map((s) => ({
-    id: s.id,
-    name: s.name,
-    domain: s.domain,
-    color: s.color,
-    active: true,
-    description: s.description,
-    logo: s.logo,
-    logoBackground: (s as { logoBackground?: string }).logoBackground,
-    sourceStatus: s.priceIntegration,
-  })),
+  ...(localMerchants as LocalMerchant[]).map(
+    (s): Store => ({
+      id: s.id,
+      name: s.name,
+      domain: s.domain,
+      // Profiles added from market research have no brand colour or logo yet.
+      color: s.color || "#5b6472",
+      active: true,
+      description: s.description,
+      logo: s.logo,
+      logoBackground: s.logoBackground,
+      sourceStatus: s.priceIntegration,
+      ...(s.contacts && Object.keys(s.contacts).length ? { contacts: s.contacts } : {}),
+      ...(s.kind ? { kind: s.kind } : {}),
+    }),
+  ),
   {
     id: "kontakt",
     name: "Kontakt",

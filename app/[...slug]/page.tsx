@@ -1,6 +1,9 @@
 import { catalogSlice, DEFAULT_CITY, PAGE_SIZE } from "../../lib/catalog-query";
 import { publicCatalog } from "../../lib/public-data";
+import { productExtras } from "../../lib/engagement";
 import {
+  faqJsonLd,
+  jsonLdString,
   listingPageNumber,
   pageSeo,
   parseRoute,
@@ -43,10 +46,21 @@ export default async function Page(props: Props) {
   const slice = catalogSlice(c, { path, city: DEFAULT_CITY, offset });
   if (pageNo && slice.pageOffset < offset && slice.matchedTotal > 0) notFound();
   const jsonLd = structuredData(path, c);
+  // Product pages also render their published Q&A and view count on the server.
+  const route = parseRoute(path);
+  const extras =
+    route.page === "mehsul" && route.parts[1] ? await productExtras(route.parts[1]) : undefined;
+  const faq = extras && faqJsonLd(extras.questions);
   return (
     <>
       {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />}
-      <Platform initialPath={path} initialCatalog={slice} />
+      {faq && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLdString([faq]) }}
+        />
+      )}
+      <Platform initialPath={path} initialCatalog={slice} initialExtras={extras} />
     </>
   );
 }
