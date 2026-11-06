@@ -83,8 +83,9 @@ function rows(c: StoreContacts, domain?: string): Row[] {
   return out;
 }
 
-function socials(c: StoreContacts) {
-  return [
+type Social = { key: string; label: string; href: string; icon: ReactNode };
+function socials(c: StoreContacts): Social[] {
+  const list: (Social | false | "" | undefined)[] = [
     c.whatsapp && {
       key: "whatsapp",
       label: "WhatsApp",
@@ -109,9 +110,8 @@ function socials(c: StoreContacts) {
       href: url(c.telegram, "https://t.me/"),
       icon: <Send size={16} />,
     },
-  ].filter((x): x is { key: string; label: string; href: string; icon: ReactNode } =>
-    Boolean(x && safeHttp(x.href)),
-  );
+  ];
+  return list.filter((x): x is Social => !!x && !!safeHttp(x.href));
 }
 
 // Full contact list for the store page.

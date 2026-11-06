@@ -18,9 +18,15 @@ const priceCode = ts.transpileModule(fs.readFileSync("lib/price.ts", "utf8"), {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 }).outputText;
 const priceModule = "data:text/javascript;base64," + Buffer.from(priceCode).toString("base64");
+const installmentsCode = ts.transpileModule(fs.readFileSync("lib/installments.ts", "utf8"), {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const installmentsModule =
+  "data:text/javascript;base64," + Buffer.from(installmentsCode).toString("base64");
 const htmlProductsSource = fs
   .readFileSync("lib/html-products.ts", "utf8")
-  .replace('from "./price";', () => `from "${priceModule}";`);
+  .replace('from "./price";', () => `from "${priceModule}";`)
+  .replace('from "./installments";', () => `from "${installmentsModule}";`);
 const htmlProductsCode = ts.transpileModule(htmlProductsSource, {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 }).outputText;
@@ -46,6 +52,7 @@ const code = fs
 const resolved = code
   .replace('from "./irshad";', () => `from "${irshadModule}";`)
   .replace('from "./html-products";', () => `from "${htmlProductsModule}";`)
+  .replaceAll('from "./installments";', () => `from "${installmentsModule}";`)
   .replace('from "./price";', () => `from "${priceModule}";`)
   .replace('import { extractAlinino } from "./alinino";', () =>
     aliCode.replace("export function extractAlinino", "function extractAlinino"),

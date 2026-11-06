@@ -13,6 +13,7 @@ const moduleUrl = (file, replace = (code) => code) =>
 const irshad = moduleUrl("lib/irshad.ts");
 const woo = moduleUrl("lib/woocommerce.ts");
 const techno = moduleUrl("lib/technomania.ts");
+const installments = moduleUrl("lib/installments.ts");
 const {
   extractBakuListing,
   extractIrshadListingPage,
@@ -25,7 +26,8 @@ const {
     code
       .replace('"./irshad"', JSON.stringify(irshad))
       .replace('"./technomania"', JSON.stringify(techno))
-      .replace('"./woocommerce"', JSON.stringify(woo)),
+      .replace('"./woocommerce"', JSON.stringify(woo))
+      .replace('"./installments"', JSON.stringify(installments)),
   )
 );
 const { storeApiSources, normalizeStoreProducts } = await import(woo);

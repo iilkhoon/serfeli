@@ -5,6 +5,7 @@ import { categories, validOffers, type Product } from "../lib/catalog";
 import { rankProductsByStoreCount, type CatalogSlice } from "../lib/catalog-query";
 import { CategoryIcon, StoreLogo } from "./ui";
 import { azNumber } from "../components/format";
+import { AdSlot } from "../components/ad-slot";
 const popular = ["iPhone 17", "Samsung Galaxy", "AirPods", "PlayStation 5", "Robot tozsoran"];
 const faq = [
   [
@@ -96,6 +97,7 @@ export default function Home({
           ))}
         </div>
       </section>
+      <AdSlot slot="home-top" format="banner" />
       {availableCategories.length > 0 && (
         <section className="h-section" aria-labelledby="home-categories" id="kateqoriyalar">
           <div className="h-head">

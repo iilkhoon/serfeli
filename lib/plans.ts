@@ -55,6 +55,8 @@ export const AD_SLOT_NAMES: { id: string; label: string }[] = [
   { id: "catalog-feed", label: "Kataloq — məhsul lenti arası" },
   { id: "product-side", label: "Məhsul səhifəsi — yan blok" },
   { id: "search-feed", label: "Axtarış nəticələri — lent arası" },
+  { id: "rail-left", label: "Geniş ekran — sol kənar (kataloq, məhsul)" },
+  { id: "rail-right", label: "Geniş ekran — sağ kənar (kataloq, məhsul)" },
 ];
 
 // Paid placements. `label` is always shown next to the placement on the storefront.
@@ -105,8 +107,7 @@ export const placementSchema = z
   })
   .refine((p) => p.startsAt <= p.endsAt, "Bitmə tarixi başlama tarixindən əvvəl ola bilməz");
 
-const bakuDay = (now: number) =>
-  new Date(now + 4 * 3600000).toISOString().slice(0, 10); // Asia/Baku is UTC+4 all year.
+const bakuDay = (now: number) => new Date(now + 4 * 3600000).toISOString().slice(0, 10); // Asia/Baku is UTC+4 all year.
 
 export function placementLive(p: Placement, now = Date.now()) {
   const today = bakuDay(now);

@@ -7,12 +7,7 @@ import { ApiError } from "./api/http";
 import { id as idSchema } from "./api/schemas";
 import { publicCatalog } from "./public-data";
 import { canonicalProductId } from "./catalog";
-import type {
-  ProductExtras,
-  PublicQuestion,
-  Question,
-  TopViewed,
-} from "./engagement-types";
+import type { ProductExtras, PublicQuestion, Question, TopViewed } from "./engagement-types";
 
 // Asia/Baku is UTC+4 all year (no daylight saving).
 export const bakuDay = (now = Date.now()) => new Date(now + 4 * 3600000).toISOString().slice(0, 10);
@@ -42,10 +37,7 @@ export const questionInput = z.object({
   text: z.string().trim().min(10).max(500),
 });
 
-export async function createQuestion(
-  body: unknown,
-  user: { userId: string; displayName: string },
-) {
+export async function createQuestion(body: unknown, user: { userId: string; displayName: string }) {
   const b = questionInput.parse(body);
   const productId = await activeProductId(b.productId);
   if (!productId) throw new ApiError(404, "Məhsul tapılmadı.");
@@ -134,7 +126,11 @@ export async function topViewed(days = 30, limit = 10): Promise<TopViewed[]> {
   return r.results
     .filter((x) => byId.has(x.productId))
     .slice(0, n)
-    .map((x) => ({ productId: x.productId, name: byId.get(x.productId)!.name, views: Number(x.views) }));
+    .map((x) => ({
+      productId: x.productId,
+      name: byId.get(x.productId)!.name,
+      views: Number(x.views),
+    }));
 }
 
 // Daily totals for the admin chart: [{ date, views }] for the last `days` days.

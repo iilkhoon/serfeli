@@ -47,6 +47,7 @@ import {
   money,
   type Product,
   type Catalog,
+  type Store,
   type Offer,
 } from "../lib/catalog";
 import { DEFAULT_CITY, PAGE_SIZE, type CatalogSlice } from "../lib/catalog-query";
@@ -54,6 +55,22 @@ import { api, errorMessage, Modal, Empty, CategoryIcon, StoreLogo } from "./ui";
 import type { Act, Personal, Session } from "./types";
 import Admin from "./admin";
 import MerchantPage from "./merchant-page";
+import { AdSlot, AdsProvider } from "../components/ad-slot";
+import { ProductQuestions } from "../components/product-qa";
+import {
+  PremiumBadge,
+  StoreContactList,
+  StoreContactSummary,
+  isPremium,
+} from "../components/store-info";
+import {
+  creditOptions,
+  interestFree,
+  isClassified,
+  locative,
+  lowestMonthly,
+} from "../components/offer-terms";
+import type { ProductExtras } from "../lib/engagement-types";
 import Home from "./home";
 import { ProductImage } from "../components/product-image";
 import { azDate, azDateTime, azNumber } from "../components/format";
@@ -66,9 +83,11 @@ type ModalState =
 export default function Platform({
   initialPath = "/",
   initialCatalog,
+  initialExtras,
 }: {
   initialPath?: string;
   initialCatalog?: CatalogSlice;
+  initialExtras?: ProductExtras;
 }) {
   const [c, setC] = useState<CatalogSlice>(
       () =>
@@ -385,9 +404,20 @@ export default function Platform({
             </p>
           )}
           <div className="pcard-price">
-            <strong>{low ? money(low.price) : "Qiymət yoxdur"}</strong>
+            <strong>
+              {low?.priceRange && low.priceRange.max > low.priceRange.min
+                ? money(low.priceRange.min) + " – " + money(low.priceRange.max)
+                : low
+                  ? money(low.price)
+                  : "Qiymət yoxdur"}
+            </strong>
             {low && !available.length && <small>son qiymət</small>}
           </div>
+          {low && lowestMonthly(low) && (
+            <p className="pcard-credit">
+              Kreditlə {money(lowestMonthly(low)!.monthly)} × {lowestMonthly(low)!.months} ay
+            </p>
+          )}
           <a
             className="pcard-stores"
             href={"/mehsul/" + p.id}
@@ -406,7 +436,19 @@ export default function Platform({
       </article>
     );
   };
-  const cards = (list: Product[]) => <div className="pgrid">{list.map(productCard)}</div>;
+  // An in-feed ad after the second full row of a long listing; reserved size, labelled "Reklam".
+  const cards = (list: Product[], adSlot?: string) => (
+    <div className="pgrid">
+      {list.flatMap((p, i) =>
+        adSlot && i === 8 && list.length > 12
+          ? [
+              <AdSlot key="ad" slot={adSlot} format="in-feed" className="pgrid-ad" />,
+              productCard(p),
+            ]
+          : [productCard(p)],
+      )}
+    </div>
+  );
   const Filter = () => (
     <aside className={"filters " + (mobileFilters ? "filters-open" : "")}>
       <div className="filter-title">
@@ -481,931 +523,1006 @@ export default function Platform({
     </aside>
   );
   return (
-    <div>
-      <a className="skip-link" href="#main-content">
-        Əsas məzmuna keç
-      </a>
-      <div className="top-strip">
-        <div className="shell">
-          <span>{c.settings.announcement}</span>
-          <div>
-            <button onClick={() => setModal({ type: "info", topic: "Haqqımızda" })}>
-              Qəpik necə işləyir?
-            </button>
-            <a href={"/magaza-qeydiyyat"}>
-              Mağazanı əlavə et <ArrowUpRight size={12} />
-            </a>
-            <span className="locale" lang="az" title="Sayt dili: Azərbaycan dili">
-              AZ
-            </span>
-          </div>
-        </div>
-      </div>
-      <header className="header">
-        <div className="shell header-main">
-          <a className="logo" aria-label="Qəpik ana səhifə" href={"/"}>
-            <img className="brand-mark" src="/favicon.svg" alt="" width={42} height={42} />
-            qəpik<span className="logo-dot">.</span>
-          </a>
-          <form className="search-bar" action="/axtaris" method="get" onSubmit={onSearch}>
-            <Search size={21} />
-            <input
-              name="q"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Məhsul və ya brend axtar"
-              aria-label="Məhsul axtar"
-            />
-            <button type="submit">
-              Axtar <ArrowRight size={16} />
-            </button>
-          </form>
-          <div className="header-actions">
-            <a aria-label="Müqayisə" href={"/muqayise"}>
-              <span className="action-icon">
-                <Scale size={22} />
-                {comp.length > 0 && <b>{comp.length}</b>}
-              </span>
-              <small>Müqayisə</small>
-            </a>
-            <a aria-label="Seçilmişlər" href={"/secilmisler"}>
-              <Heart size={22} />
-              <small>Seçilmişlər</small>
-            </a>
-            <a aria-label="Qiymət bildirişləri" href={"/bildirisler"}>
-              <Bell size={22} />
-              <small>Bildirişlər</small>
-            </a>
-            <button
-              className="profile-button"
-              onClick={() => setModal({ type: "login" })}
-              aria-label="Hesab"
-            >
-              <UserRound size={22} />
-            </button>
-          </div>
-        </div>
-      </header>
-      <nav className="nav-bar">
-        <div className="shell">
-          <button
-            className={"category-toggle " + (menu ? "open" : "")}
-            onClick={() => setMenu(!menu)}
-            aria-expanded={menu}
-            aria-controls="category-menu"
-          >
-            <Menu size={19} /> Bütün kateqoriyalar <ChevronDown size={13} />
-          </button>
-          <a href={"/endirimler"} aria-current={page === "endirimler" ? "page" : undefined}>
-            <TrendingDown size={17} /> Qiyməti düşənlər
-          </a>
-          <a href={"/kataloq"} aria-current={page === "kataloq" ? "page" : undefined}>
-            Populyar məhsullar
-          </a>
-          <a href={"/magazalar"} aria-current={page === "magazalar" ? "page" : undefined}>
-            Mağazalar
-          </a>
-          <a href={"/rehber"} aria-current={page === "rehber" ? "page" : undefined}>
-            Alış-veriş bələdçisi
-          </a>
-          <button className="location" onClick={() => setModal({ type: "city" })}>
-            <MapPin size={15} />
-            {city}
-            <ChevronDown size={12} />
-          </button>
-        </div>
-        {menu && (
-          <div
-            className="shell mega-menu"
-            id="category-menu"
-            onKeyDown={(e) => {
-              if (e.key === "Escape") setMenu(false);
-            }}
-          >
-            {categories.map((cat) => (
-              <a key={cat.id} href={"/kateqoriya/" + cat.id}>
-                <CategoryIcon name={cat.icon} />
-                <span>{cat.name}</span>
-                <ChevronRight size={16} />
-              </a>
-            ))}
-          </div>
-        )}
-      </nav>
-      {c.dataStatus && c.dataStatus.state !== "ready" && (
-        <div
-          className="shell data-notice data-status-banner"
-          role={c.dataStatus.state === "unavailable" ? "alert" : "status"}
-        >
-          <Info size={18} />
-          <span>
-            {c.dataStatus.message ||
-              (c.dataStatus.state === "unavailable"
-                ? "Kataloq hazırda yüklənmir. Yenidən yoxla."
-                : "Kataloq bazaya hazırlanır. Hazır olduqda məhsullar və qiymətlər burada görünəcək.")}
-          </span>
-          {c.dataStatus.state === "unavailable" && (
-            <button className="outline-button" onClick={refresh}>
-              Yenidən yoxla
-            </button>
-          )}
-        </div>
-      )}
-      {error && (
-        <div className="shell error-banner">
-          <Info size={18} />
-          <span>Məlumat yüklənmədi: {error}. Son yüklənmiş məlumat göstərilir.</span>
-          <button onClick={refresh}>Yenidən yoxla</button>
-        </div>
-      )}
-      <main className="shell main-content" id="main-content" tabIndex={-1}>
-        {page === "home" && <Home catalog={c} city={city} cards={cards} />}
-        {(isCatalog || storeId) && (
-          <>
-            <nav className="breadcrumb" aria-label="Səhifə yolu">
-              <a href={"/"}>Ana səhifə</a>
-              <ChevronRight size={13} aria-hidden="true" />
-              {storeId && (
-                <>
-                  <a href={"/magazalar"}>Mağazalar</a>
-                  <ChevronRight size={13} aria-hidden="true" />
-                </>
-              )}
-              <span aria-current="page">{storeId ? currentStore?.name : title}</span>
-            </nav>
-            <div className="page-heading" ref={listingTop}>
-              <div>
-                <span className="eyebrow">
-                  {storeId ? "MAĞAZA TƏKLİFLƏRİ" : "QİYMƏTİ BİL, AĞILLI SEÇ"}
-                </span>
-                <h1>{storeId ? currentStore?.name : title}</h1>
-                <p>
-                  {azNumber(c.matchedTotal)} məhsul · {city} üçün müqayisə
-                  {currentStore?.domain && (
-                    <>
-                      {" · "}
-                      <a
-                        className="text-link"
-                        href={"https://" + currentStore.domain}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {currentStore.domain} <ArrowUpRight size={13} aria-hidden="true" />
-                      </a>
-                    </>
-                  )}
-                </p>
-              </div>
-              {!nothingToFilter && (
-                <label className="sort-control">
-                  <span>Sırala</span>
-                  <select
-                    value={filter.sort}
-                    onChange={(e) => setFilter({ ...filter, sort: e.target.value })}
-                  >
-                    <option value="popular">Ən çox mağazada</option>
-                    <option value="low">Ən ucuzdan bahaya</option>
-                    <option value="high">Ən bahadan ucuza</option>
-                    <option value="saving">Ən böyük qiymət fərqi</option>
-                    <option value="name">Ada görə</option>
-                  </select>
-                </label>
-              )}
-            </div>
-            <div className={"mobile-filterbar" + (nothingToFilter ? " is-hidden" : "")}>
-              <button
-                className="outline-button"
-                onClick={() => setMobileFilters(!mobileFilters)}
-                aria-expanded={mobileFilters}
-              >
-                <SlidersHorizontal size={17} />
-                Filtrlər{" "}
-                {filtersActive && <span className="live-dot" aria-label="aktiv filtr var" />}
-                <ChevronDown size={15} />
+    <AdsProvider value={c.settings.ads}>
+      <div>
+        <a className="skip-link" href="#main-content">
+          Əsas məzmuna keç
+        </a>
+        <div className="top-strip">
+          <div className="shell">
+            <span>{c.settings.announcement}</span>
+            <div>
+              <button onClick={() => setModal({ type: "info", topic: "Haqqımızda" })}>
+                Qəpik necə işləyir?
               </button>
-              <span>{azNumber(c.matchedTotal)} nəticə</span>
+              <a href={"/magaza-qeydiyyat"}>
+                Mağazanı əlavə et <ArrowUpRight size={12} />
+              </a>
+              <span className="locale" lang="az" title="Sayt dili: Azərbaycan dili">
+                AZ
+              </span>
             </div>
-            <div className={"catalog-layout" + (nothingToFilter ? " no-filters" : "")}>
-              {!nothingToFilter && Filter()}
-              <div aria-busy={listingLoading} className="catalog-results">
-                {!nothingToFilter && (
-                  <div className="data-notice">
-                    <Info size={15} />
-                    <span>
-                      Rəsmi mənbə qiymətləri göstərilir. Stokda olmayan məhsullar da kataloqda
-                      qalır; son qiyməti mağazada təsdiqləyin.
-                    </span>
-                  </div>
-                )}
-                {products.length ? (
+          </div>
+        </div>
+        <header className="header">
+          <div className="shell header-main">
+            <a className="logo" aria-label="Qəpik ana səhifə" href={"/"}>
+              <img className="brand-mark" src="/favicon.svg" alt="" width={42} height={42} />
+              qəpik<span className="logo-dot">.</span>
+            </a>
+            <form className="search-bar" action="/axtaris" method="get" onSubmit={onSearch}>
+              <Search size={21} />
+              <input
+                name="q"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Məhsul və ya brend axtar"
+                aria-label="Məhsul axtar"
+              />
+              <button type="submit">
+                Axtar <ArrowRight size={16} />
+              </button>
+            </form>
+            <div className="header-actions">
+              <a aria-label="Müqayisə" href={"/muqayise"}>
+                <span className="action-icon">
+                  <Scale size={22} />
+                  {comp.length > 0 && <b>{comp.length}</b>}
+                </span>
+                <small>Müqayisə</small>
+              </a>
+              <a aria-label="Seçilmişlər" href={"/secilmisler"}>
+                <Heart size={22} />
+                <small>Seçilmişlər</small>
+              </a>
+              <a aria-label="Qiymət bildirişləri" href={"/bildirisler"}>
+                <Bell size={22} />
+                <small>Bildirişlər</small>
+              </a>
+              <button
+                className="profile-button"
+                onClick={() => setModal({ type: "login" })}
+                aria-label="Hesab"
+              >
+                <UserRound size={22} />
+              </button>
+            </div>
+          </div>
+        </header>
+        <nav className="nav-bar">
+          <div className="shell">
+            <button
+              className={"category-toggle " + (menu ? "open" : "")}
+              onClick={() => setMenu(!menu)}
+              aria-expanded={menu}
+              aria-controls="category-menu"
+            >
+              <Menu size={19} /> Bütün kateqoriyalar <ChevronDown size={13} />
+            </button>
+            <a href={"/endirimler"} aria-current={page === "endirimler" ? "page" : undefined}>
+              <TrendingDown size={17} /> Qiyməti düşənlər
+            </a>
+            <a href={"/kataloq"} aria-current={page === "kataloq" ? "page" : undefined}>
+              Populyar məhsullar
+            </a>
+            <a href={"/magazalar"} aria-current={page === "magazalar" ? "page" : undefined}>
+              Mağazalar
+            </a>
+            <a href={"/rehber"} aria-current={page === "rehber" ? "page" : undefined}>
+              Alış-veriş bələdçisi
+            </a>
+            <button className="location" onClick={() => setModal({ type: "city" })}>
+              <MapPin size={15} />
+              {city}
+              <ChevronDown size={12} />
+            </button>
+          </div>
+          {menu && (
+            <div
+              className="shell mega-menu"
+              id="category-menu"
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setMenu(false);
+              }}
+            >
+              {categories.map((cat) => (
+                <a key={cat.id} href={"/kateqoriya/" + cat.id}>
+                  <CategoryIcon name={cat.icon} />
+                  <span>
+                    {cat.name}
+                    {c.categoryStats[cat.id]?.count ? (
+                      <small>{azNumber(c.categoryStats[cat.id].count)} məhsul</small>
+                    ) : null}
+                  </span>
+                  <ChevronRight size={16} />
+                </a>
+              ))}
+            </div>
+          )}
+        </nav>
+        {page !== "admin" && (
+          <nav className="category-bar" aria-label="Kateqoriyalar">
+            <div className="shell">
+              {categories
+                .filter((cat) => (c.categoryStats[cat.id]?.count || 0) > 0)
+                .map((cat) => (
+                  <a
+                    key={cat.id}
+                    href={"/kateqoriya/" + cat.id}
+                    aria-current={currentCategory === cat.id ? "page" : undefined}
+                  >
+                    <CategoryIcon name={cat.icon} size={18} />
+                    {cat.name}
+                  </a>
+                ))}
+            </div>
+          </nav>
+        )}
+        {c.dataStatus && c.dataStatus.state !== "ready" && (
+          <div
+            className="shell data-notice data-status-banner"
+            role={c.dataStatus.state === "unavailable" ? "alert" : "status"}
+          >
+            <Info size={18} />
+            <span>
+              {c.dataStatus.message ||
+                (c.dataStatus.state === "unavailable"
+                  ? "Kataloq hazırda yüklənmir. Yenidən yoxla."
+                  : "Kataloq bazaya hazırlanır. Hazır olduqda məhsullar və qiymətlər burada görünəcək.")}
+            </span>
+            {c.dataStatus.state === "unavailable" && (
+              <button className="outline-button" onClick={refresh}>
+                Yenidən yoxla
+              </button>
+            )}
+          </div>
+        )}
+        {error && (
+          <div className="shell error-banner">
+            <Info size={18} />
+            <span>Məlumat yüklənmədi: {error}. Son yüklənmiş məlumat göstərilir.</span>
+            <button onClick={refresh}>Yenidən yoxla</button>
+          </div>
+        )}
+        {(isCatalog || storeId || page === "mehsul") && (
+          <div className="ad-rails">
+            <AdSlot slot="rail-left" format="rail" className="ad-rail-left" />
+            <AdSlot slot="rail-right" format="rail" className="ad-rail-right" />
+          </div>
+        )}
+        <main className="shell main-content" id="main-content" tabIndex={-1}>
+          {page === "home" && <Home catalog={c} city={city} cards={cards} />}
+          {(isCatalog || storeId) && (
+            <>
+              <nav className="breadcrumb" aria-label="Səhifə yolu">
+                <a href={"/"}>Ana səhifə</a>
+                <ChevronRight size={13} aria-hidden="true" />
+                {storeId && (
                   <>
-                    <p className="catalog-range" role="status" aria-live="polite">
-                      {listingLoading
-                        ? "Məhsullar yüklənir…"
-                        : `${azNumber(c.pageOffset + 1)}–${azNumber(c.pageOffset + products.length)} / ${azNumber(c.matchedTotal)} məhsul`}
-                    </p>
-                    {cards(products)}
-                    {totalPages > 1 && (
-                      <nav className="catalog-pagination" aria-label="Məhsul səhifələri">
-                        <div className="catalog-page-actions">
-                          {(
-                            [
-                              ["«", 1, currentPage === 1, "İlk məhsul səhifəsi", "outline-button"],
-                              [
-                                "Əvvəlki",
-                                currentPage - 1,
-                                currentPage === 1,
-                                "Əvvəlki səhifə",
-                                "outline-button",
-                              ],
-                              [
-                                "Növbəti",
-                                currentPage + 1,
-                                currentPage >= totalPages,
-                                "Növbəti səhifə",
-                                "dark-button",
-                              ],
-                              [
-                                "»",
-                                totalPages,
-                                currentPage >= totalPages,
-                                "Son məhsul səhifəsi",
-                                "outline-button",
-                              ],
-                            ] as const
-                          ).map(([text, n, off, label, cls]) =>
-                            off || listingLoading ? (
-                              <span
-                                key={label}
-                                className={cls + " is-disabled"}
-                                aria-disabled="true"
-                                aria-label={label}
-                              >
-                                {text}
-                                {text === "Növbəti" && <ArrowRight size={16} />}
-                              </span>
-                            ) : (
-                              <a
-                                key={label}
-                                className={cls}
-                                href={pageHref(n)}
-                                rel={
-                                  text === "Əvvəlki"
-                                    ? "prev"
-                                    : text === "Növbəti"
-                                      ? "next"
-                                      : undefined
-                                }
-                                aria-label={label}
-                                onClick={(e) => {
-                                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0)
-                                    return;
-                                  e.preventDefault();
-                                  goToPage((n - 1) * PAGE_SIZE);
-                                }}
-                              >
-                                {text}
-                                {text === "Növbəti" && <ArrowRight size={16} />}
-                              </a>
-                            ),
-                          )}
-                        </div>
-                        <form
-                          key={currentPage}
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            const input = e.currentTarget.elements.namedItem(
-                              "page",
-                            ) as HTMLInputElement;
-                            const value = Number(input.value);
-                            if (Number.isInteger(value) && value >= 1 && value <= totalPages)
-                              goToPage((value - 1) * PAGE_SIZE);
-                          }}
-                        >
-                          <label htmlFor="catalog-page">Səhifə</label>
-                          <input
-                            id="catalog-page"
-                            name="page"
-                            type="number"
-                            min={1}
-                            max={totalPages}
-                            step={1}
-                            defaultValue={currentPage}
-                            required
-                            disabled={listingLoading}
-                          />
-                          <span>/ {totalPages}</span>
-                          <button
-                            className="outline-button"
-                            type="submit"
-                            disabled={listingLoading}
-                          >
-                            Keç
-                          </button>
-                        </form>
-                      </nav>
-                    )}
+                    <a href={"/magazalar"}>Mağazalar</a>
+                    <ChevronRight size={13} aria-hidden="true" />
                   </>
-                ) : storeId && !c.storeStats[storeId]?.count ? (
-                  <Empty
-                    icon={StoreIcon}
-                    title="Bu mağazanın qiymətləri hələ qoşulmayıb"
-                    text="Mağaza açıq kataloq və ya rəsmi məhsul feed-i təqdim etdikdə məhsullar burada görünəcək. Hələlik qiyməti mağazanın öz saytında yoxla."
-                    action={
-                      <a className="dark-button" href={"/magazalar"}>
-                        Qoşulmuş mağazalara bax
-                      </a>
-                    }
-                  />
-                ) : listingLoading ? (
-                  <p className="catalog-range" role="status">
-                    Məhsullar yüklənir…
-                  </p>
-                ) : filtersActive ? (
-                  <Empty
-                    icon={SlidersHorizontal}
-                    title="Bu filtrlərə uyğun məhsul yoxdur"
-                    text="Qiymət aralığını genişləndir, brend və ya mağaza seçimini sıfırla."
-                    action={
-                      <button className="dark-button" onClick={reset}>
-                        Filtrləri sıfırla
-                      </button>
-                    }
-                  />
-                ) : (
-                  <Empty
-                    icon={Search}
-                    title={
-                      searchTerm
-                        ? `“${searchTerm}” üzrə məhsul tapılmadı`
-                        : "Uyğun məhsul tapılmadı"
-                    }
-                    text="Yazılışı yoxla, daha qısa söz və ya yalnız model adını yaz. Məsələn: “iPhone 16”, “Galaxy S25”."
-                    action={
-                      <div className="empty-suggestions">
-                        <a className="dark-button" href={"/kataloq"}>
-                          Bütün məhsullara bax
+                )}
+                <span aria-current="page">{storeId ? currentStore?.name : title}</span>
+              </nav>
+              <div className="page-heading" ref={listingTop}>
+                <div>
+                  <span className="eyebrow">
+                    {storeId ? "MAĞAZA TƏKLİFLƏRİ" : "QİYMƏTİ BİL, AĞILLI SEÇ"}
+                  </span>
+                  <h1>
+                    {storeId ? currentStore?.name : title}
+                    {currentStore && isPremium(currentStore) && <PremiumBadge />}
+                  </h1>
+                  <p>
+                    {azNumber(c.matchedTotal)} məhsul · {city} üçün müqayisə
+                    {currentStore?.domain && (
+                      <>
+                        {" · "}
+                        <a
+                          className="text-link"
+                          href={"https://" + currentStore.domain}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {currentStore.domain} <ArrowUpRight size={13} aria-hidden="true" />
                         </a>
-                        <div className="empty-chips" aria-label="Populyar kateqoriyalar">
-                          {categories.slice(0, 5).map((cat) => (
-                            <a key={cat.id} href={"/kateqoriya/" + cat.id}>
-                              {cat.name}
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    }
-                  />
+                      </>
+                    )}
+                  </p>
+                  {currentStore?.description && (
+                    <p className="store-description">{currentStore.description}</p>
+                  )}
+                  {currentStore && <StoreContactList store={currentStore} />}
+                </div>
+                {!nothingToFilter && (
+                  <label className="sort-control">
+                    <span>Sırala</span>
+                    <select
+                      value={filter.sort}
+                      onChange={(e) => setFilter({ ...filter, sort: e.target.value })}
+                    >
+                      <option value="popular">Ən çox mağazada</option>
+                      <option value="low">Ən ucuzdan bahaya</option>
+                      <option value="high">Ən bahadan ucuza</option>
+                      <option value="saving">Ən böyük qiymət fərqi</option>
+                      <option value="name">Ada görə</option>
+                    </select>
+                  </label>
                 )}
               </div>
-            </div>
-          </>
-        )}
-        {page === "mehsul" &&
-          (selected && selected.active ? (
-            <ProductDetail
-              p={selected}
+              <div className={"mobile-filterbar" + (nothingToFilter ? " is-hidden" : "")}>
+                <button
+                  className="outline-button"
+                  onClick={() => setMobileFilters(!mobileFilters)}
+                  aria-expanded={mobileFilters}
+                >
+                  <SlidersHorizontal size={17} />
+                  Filtrlər{" "}
+                  {filtersActive && <span className="live-dot" aria-label="aktiv filtr var" />}
+                  <ChevronDown size={15} />
+                </button>
+                <span>{azNumber(c.matchedTotal)} nəticə</span>
+              </div>
+              <div className={"catalog-layout" + (nothingToFilter ? " no-filters" : "")}>
+                {!nothingToFilter && Filter()}
+                <div aria-busy={listingLoading} className="catalog-results">
+                  {!nothingToFilter && (
+                    <div className="data-notice">
+                      <Info size={15} />
+                      <span>
+                        Rəsmi mənbə qiymətləri göstərilir. Stokda olmayan məhsullar da kataloqda
+                        qalır; son qiyməti mağazada təsdiqləyin.
+                      </span>
+                    </div>
+                  )}
+                  {products.length ? (
+                    <>
+                      <p className="catalog-range" role="status" aria-live="polite">
+                        {listingLoading
+                          ? "Məhsullar yüklənir…"
+                          : `${azNumber(c.pageOffset + 1)}–${azNumber(c.pageOffset + products.length)} / ${azNumber(c.matchedTotal)} məhsul`}
+                      </p>
+                      {cards(products, page === "axtaris" ? "search-feed" : "catalog-feed")}
+                      {totalPages > 1 && (
+                        <nav className="catalog-pagination" aria-label="Məhsul səhifələri">
+                          <div className="catalog-page-actions">
+                            {(
+                              [
+                                [
+                                  "«",
+                                  1,
+                                  currentPage === 1,
+                                  "İlk məhsul səhifəsi",
+                                  "outline-button",
+                                ],
+                                [
+                                  "Əvvəlki",
+                                  currentPage - 1,
+                                  currentPage === 1,
+                                  "Əvvəlki səhifə",
+                                  "outline-button",
+                                ],
+                                [
+                                  "Növbəti",
+                                  currentPage + 1,
+                                  currentPage >= totalPages,
+                                  "Növbəti səhifə",
+                                  "dark-button",
+                                ],
+                                [
+                                  "»",
+                                  totalPages,
+                                  currentPage >= totalPages,
+                                  "Son məhsul səhifəsi",
+                                  "outline-button",
+                                ],
+                              ] as const
+                            ).map(([text, n, off, label, cls]) =>
+                              off || listingLoading ? (
+                                <span
+                                  key={label}
+                                  className={cls + " is-disabled"}
+                                  aria-disabled="true"
+                                  aria-label={label}
+                                >
+                                  {text}
+                                  {text === "Növbəti" && <ArrowRight size={16} />}
+                                </span>
+                              ) : (
+                                <a
+                                  key={label}
+                                  className={cls}
+                                  href={pageHref(n)}
+                                  rel={
+                                    text === "Əvvəlki"
+                                      ? "prev"
+                                      : text === "Növbəti"
+                                        ? "next"
+                                        : undefined
+                                  }
+                                  aria-label={label}
+                                  onClick={(e) => {
+                                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0)
+                                      return;
+                                    e.preventDefault();
+                                    goToPage((n - 1) * PAGE_SIZE);
+                                  }}
+                                >
+                                  {text}
+                                  {text === "Növbəti" && <ArrowRight size={16} />}
+                                </a>
+                              ),
+                            )}
+                          </div>
+                          <form
+                            key={currentPage}
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const input = e.currentTarget.elements.namedItem(
+                                "page",
+                              ) as HTMLInputElement;
+                              const value = Number(input.value);
+                              if (Number.isInteger(value) && value >= 1 && value <= totalPages)
+                                goToPage((value - 1) * PAGE_SIZE);
+                            }}
+                          >
+                            <label htmlFor="catalog-page">Səhifə</label>
+                            <input
+                              id="catalog-page"
+                              name="page"
+                              type="number"
+                              min={1}
+                              max={totalPages}
+                              step={1}
+                              defaultValue={currentPage}
+                              required
+                              disabled={listingLoading}
+                            />
+                            <span>/ {totalPages}</span>
+                            <button
+                              className="outline-button"
+                              type="submit"
+                              disabled={listingLoading}
+                            >
+                              Keç
+                            </button>
+                          </form>
+                        </nav>
+                      )}
+                    </>
+                  ) : storeId && !c.storeStats[storeId]?.count ? (
+                    <Empty
+                      icon={StoreIcon}
+                      title="Bu mağazanın qiymətləri hələ qoşulmayıb"
+                      text="Mağaza açıq kataloq və ya rəsmi məhsul feed-i təqdim etdikdə məhsullar burada görünəcək. Hələlik qiyməti mağazanın öz saytında yoxla."
+                      action={
+                        <a className="dark-button" href={"/magazalar"}>
+                          Qoşulmuş mağazalara bax
+                        </a>
+                      }
+                    />
+                  ) : listingLoading ? (
+                    <p className="catalog-range" role="status">
+                      Məhsullar yüklənir…
+                    </p>
+                  ) : filtersActive ? (
+                    <Empty
+                      icon={SlidersHorizontal}
+                      title="Bu filtrlərə uyğun məhsul yoxdur"
+                      text="Qiymət aralığını genişləndir, brend və ya mağaza seçimini sıfırla."
+                      action={
+                        <button className="dark-button" onClick={reset}>
+                          Filtrləri sıfırla
+                        </button>
+                      }
+                    />
+                  ) : (
+                    <Empty
+                      icon={Search}
+                      title={
+                        searchTerm
+                          ? `“${searchTerm}” üzrə məhsul tapılmadı`
+                          : "Uyğun məhsul tapılmadı"
+                      }
+                      text="Yazılışı yoxla, daha qısa söz və ya yalnız model adını yaz. Məsələn: “iPhone 16”, “Galaxy S25”."
+                      action={
+                        <div className="empty-suggestions">
+                          <a className="dark-button" href={"/kataloq"}>
+                            Bütün məhsullara bax
+                          </a>
+                          <div className="empty-chips" aria-label="Populyar kateqoriyalar">
+                            {categories.slice(0, 5).map((cat) => (
+                              <a key={cat.id} href={"/kateqoriya/" + cat.id}>
+                                {cat.name}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      }
+                    />
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+          {page === "mehsul" &&
+            (selected && selected.active ? (
+              <ProductDetail
+                p={selected}
+                c={c}
+                city={city}
+                alert={alert}
+                favorite={favorite}
+                compare={compare}
+                comp={comp}
+                nav={nav}
+                setToast={setToast}
+                needUser={needUser}
+                openModal={setModal}
+                extras={initialExtras?.productId === selected.id ? initialExtras : undefined}
+              />
+            ) : (
+              <Empty
+                title="Məhsul tapılmadı"
+                text="Bu məhsul kataloqda mövcud deyil."
+                action={
+                  <a className="dark-button" href={"/kataloq"}>
+                    Kataloqa qayıt
+                  </a>
+                }
+              />
+            ))}
+          {page === "magazalar" && !storeId && (
+            <>
+              <div className="page-heading">
+                <div>
+                  <span className="eyebrow">YERLİ MAĞAZALAR</span>
+                  <h1>
+                    Tanıdığın mağazalar.
+                    <br />
+                    Daha aydın seçim.
+                  </h1>
+                  <p>
+                    {c.stores.filter((s) => s.active).length} yerli mağaza · Loqo və rəsmi domen ·
+                    Ada görə sıralama
+                  </p>
+                </div>
+                <a className="dark-button" href={"/magaza-qeydiyyat"}>
+                  Mağazanı əlavə et <Plus size={18} />
+                </a>
+              </div>
+              <div className="merchant-search">
+                <Search size={19} />
+                <input
+                  aria-label="Mağaza axtar"
+                  placeholder="Mağaza adı və ya domen axtar…"
+                  value={merchantQuery}
+                  onChange={(e) => setMerchantQuery(e.target.value)}
+                />
+                <span>{c.stores.filter((s) => s.active).length} mağaza</span>
+              </div>
+              {[
+                ["shops", "Mağazalar", c.stores.filter((s) => s.kind !== "marketplace")],
+                ["marketplaces", "Elan saytları", c.stores.filter((s) => s.kind === "marketplace")],
+              ].map(([key, label, list]) => {
+                const shown = (list as Store[])
+                  .filter(
+                    (s) =>
+                      s.active &&
+                      (s.name + " " + s.domain)
+                        .toLocaleLowerCase("az")
+                        .includes(merchantQuery.toLocaleLowerCase("az")),
+                  )
+                  // Connected prices first; premium stores lead within each group (never in prices).
+                  .sort(
+                    (a, b) =>
+                      Number(!!c.storeStats[b.id]?.count) - Number(!!c.storeStats[a.id]?.count) ||
+                      Number(isPremium(b)) - Number(isPremium(a)) ||
+                      a.name.localeCompare(b.name, "az"),
+                  );
+                if (!shown.length) return null;
+                return (
+                  <section key={key as string} className="store-group" aria-label={label as string}>
+                    {key === "marketplaces" && (
+                      <h2 className="store-group-title">{label as string}</h2>
+                    )}
+                    <div className="store-grid">
+                      {shown.map((s) => (
+                        <article
+                          key={s.id}
+                          className={"store-card" + (isPremium(s) ? " is-premium" : "")}
+                        >
+                          <div className="store-wordmark" style={{ color: s.color }}>
+                            <StoreLogo store={s} />
+                            {isPremium(s) && <PremiumBadge />}
+                          </div>
+                          <p>{s.description}</p>
+                          <span
+                            className={"badge " + (c.storeStats[s.id]?.count ? "neutral" : "red")}
+                          >
+                            {c.storeStats[s.id]?.count
+                              ? azNumber(c.storeStats[s.id].count) + " məhsul"
+                              : "Qiymətlər hələ qoşulmayıb"}
+                          </span>
+                          <StoreContactSummary store={s} />
+                          <p className="micro muted">
+                            {s.domain} ·{" "}
+                            {s.sourceStatus === "marketplace_shop"
+                              ? "Tap.az mağaza nişanı"
+                              : s.sourceStatus === "public_catalog"
+                                ? "Açıq mağaza kataloqu"
+                                : c.storeStats[s.id]?.real
+                                  ? s.id === "technomania"
+                                    ? "Rəsmi feed"
+                                    : "Mənbə yoxlanıb"
+                                  : "Qiymət bağlantısı gözlənilir"}
+                          </p>
+                          <a className="card-button" href={"/magazalar/" + s.id}>
+                            Mağaza səhifəsi <ArrowUpRight size={17} />
+                          </a>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
+            </>
+          )}
+          {page === "muqayise" && (
+            <>
+              <div className="page-heading">
+                <div>
+                  <span className="eyebrow">YAN-YANA BAX</span>
+                  <h1>Məhsulları müqayisə et</h1>
+                  <p>Maksimum 4 məhsulun xüsusiyyətlərini müqayisə et.</p>
+                </div>
+                <a className="outline-button" href={"/kataloq"}>
+                  Məhsul əlavə et <Plus size={17} />
+                </a>
+              </div>
+              {comp.length ? (
+                <div className="compare-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Xüsusiyyət</th>
+                        {comp.map((id) => {
+                          const p = c.products.find((p) => p.id === id);
+                          return (
+                            <th key={id}>
+                              {p && (
+                                <>
+                                  <button
+                                    className="remove-compare icon-button"
+                                    onClick={() => compare(p)}
+                                    aria-label="Müqayisədən sil"
+                                  >
+                                    <X size={17} />
+                                  </button>
+                                  <ProductImage src={p.image} alt="" />
+                                  <a className="product-title" href={"/mehsul/" + p.id}>
+                                    {p.name}
+                                  </a>
+                                  <p>{p.variant}</p>
+                                </>
+                              )}
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Ən aşağı yekun</td>
+                        {comp.map((id) => (
+                          <td key={id}>
+                            <strong className="price-text">{money(priceOf(c, id))}</strong>
+                          </td>
+                        ))}
+                      </tr>
+                      <tr>
+                        <td>Mağaza sayı</td>
+                        {comp.map((id) => (
+                          <td key={id}>{validOffers(c, id).length}</td>
+                        ))}
+                      </tr>
+                      {Array.from(
+                        new Set(
+                          comp.flatMap((id) =>
+                            Object.keys(c.products.find((p) => p.id === id)?.specs || {}),
+                          ),
+                        ),
+                      ).map((key) => (
+                        <tr key={key}>
+                          <td>{key}</td>
+                          {comp.map((id) => (
+                            <td key={id}>
+                              {c.products.find((p) => p.id === id)?.specs[key] || "—"}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                      <tr>
+                        <td>Məlumat</td>
+                        {comp.map((id) => (
+                          <td key={id}>
+                            {validOffers(c, id).every((o) => o.demo)
+                              ? "Nümunə qiymətlər"
+                              : "Mənbəni yoxlayın"}
+                          </td>
+                        ))}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <Empty
+                  icon={Scale}
+                  title="Müqayisə siyahın boşdur"
+                  text="Məhsul kartındakı müqayisə düyməsi ilə ilk məhsulu əlavə et."
+                  action={
+                    <a className="dark-button" href={"/kataloq"}>
+                      Məhsullara bax
+                    </a>
+                  }
+                />
+              )}
+            </>
+          )}
+          {page === "bildirisler" && (
+            <>
+              <div className="page-heading">
+                <div>
+                  <span className="eyebrow">QIYMƏTİ İZLƏ</span>
+                  <h1>Qiymət bildirişlərin</h1>
+                  <p>
+                    Hədəfinə çatan qiymətləri bu səhifədə gör. E-poçt və push göndərişi qoşulmayıb.
+                  </p>
+                </div>
+              </div>
+              {personal.alerts.length ? (
+                <div className="alert-list">
+                  {personal.alerts.map((a) => {
+                    const p = c.products.find((p) => p.id === a.productId);
+                    if (!p) return null;
+                    const reached =
+                      validOffers(c, p.id, city).length > 0 && priceOf(c, p.id) <= a.target;
+                    return (
+                      <article className="alert-row" key={p.id}>
+                        <ProductImage src={p.image} alt="" />
+                        <div>
+                          <a className="product-title" href={"/mehsul/" + p.id}>
+                            {p.name}
+                          </a>
+                          <p>
+                            Hədəf: <b>{money(a.target)}</b> · Hazırda: {money(priceOf(c, p.id))}
+                          </p>
+                          <span className={"badge " + (reached ? "green" : "neutral")}>
+                            {reached
+                              ? "Hədəf qiymətə çatıb"
+                              : !validOffers(c, p.id, city).length
+                                ? "Stok gözlənilir"
+                                : "Qiymət gözlənilir"}
+                            {validOffers(c, p.id).every((o) => o.demo) ? " · Nümunə" : ""}
+                          </span>
+                        </div>
+                        <button className="outline-button" onClick={() => alert(p)}>
+                          Dəyiş
+                        </button>
+                        <button
+                          className="icon-button"
+                          aria-label="Bildirişi sil"
+                          onClick={() =>
+                            act(async () => {
+                              await api("personal", {
+                                kind: "alert",
+                                productId: p.id,
+                                remove: true,
+                              });
+                              await refresh();
+                            }, "Bildiriş silindi.")
+                          }
+                        >
+                          <Trash2 size={19} />
+                        </button>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <Empty
+                  icon={Bell}
+                  title="İlk qiymətini izləməyə başla"
+                  text="Məhsul səhifəsində istədiyin qiyməti yaz, hədəfə çatanda burada gör."
+                  action={
+                    <a className="dark-button" href={"/kataloq"}>
+                      Məhsul seç <ArrowRight size={18} />
+                    </a>
+                  }
+                />
+              )}
+            </>
+          )}
+          {page === "magaza-qeydiyyat" && (
+            <MerchantPage c={c} session={session} act={act} needUser={needUser} />
+          )}
+          {page === "rehber" && <Guide />}
+          {page === "admin" && (
+            <Admin
               c={c}
-              city={city}
-              alert={alert}
-              favorite={favorite}
-              compare={compare}
-              comp={comp}
-              nav={nav}
-              setToast={setToast}
+              session={session}
+              refresh={refresh}
+              toast={setToast}
+              act={act}
               needUser={needUser}
-              openModal={setModal}
             />
-          ) : (
+          )}
+          {![
+            "home",
+            "kataloq",
+            "kateqoriya",
+            "axtaris",
+            "endirimler",
+            "secilmisler",
+            "magazalar",
+            "mehsul",
+            "muqayise",
+            "bildirisler",
+            "magaza-qeydiyyat",
+            "rehber",
+            "admin",
+          ].includes(page) && (
             <Empty
-              title="Məhsul tapılmadı"
-              text="Bu məhsul kataloqda mövcud deyil."
+              title="Səhifə tapılmadı"
+              text="Axtardığın səhifə mövcud deyil."
               action={
-                <a className="dark-button" href={"/kataloq"}>
-                  Kataloqa qayıt
+                <a className="dark-button" href={"/"}>
+                  Ana səhifə
                 </a>
               }
             />
-          ))}
-        {page === "magazalar" && !storeId && (
-          <>
-            <div className="page-heading">
-              <div>
-                <span className="eyebrow">YERLİ MAĞAZALAR</span>
-                <h1>
-                  Tanıdığın mağazalar.
-                  <br />
-                  Daha aydın seçim.
-                </h1>
-                <p>
-                  {c.stores.filter((s) => s.active).length} yerli mağaza · Loqo və rəsmi domen · Ada
-                  görə sıralama
-                </p>
-              </div>
-              <a className="dark-button" href={"/magaza-qeydiyyat"}>
-                Mağazanı əlavə et <Plus size={18} />
+          )}
+        </main>
+        <footer>
+          <div className="shell footer-main">
+            <div>
+              <a className="logo" href={"/"}>
+                <img className="brand-mark" src="/favicon.svg" alt="" width={38} height={38} />
+                qəpik<span className="logo-dot">.</span>
               </a>
-            </div>
-            <div className="merchant-search">
-              <Search size={19} />
-              <input
-                aria-label="Mağaza axtar"
-                placeholder="Mağaza adı və ya domen axtar…"
-                value={merchantQuery}
-                onChange={(e) => setMerchantQuery(e.target.value)}
-              />
-              <span>{c.stores.filter((s) => s.active).length} mağaza</span>
-            </div>
-            <div className="store-grid">
-              {c.stores
-                .filter(
-                  (s) =>
-                    s.active &&
-                    (s.name + " " + s.domain)
-                      .toLocaleLowerCase("az")
-                      .includes(merchantQuery.toLocaleLowerCase("az")),
-                )
-                // Stores with connected prices first; the rest are listed as not yet connected.
-                .sort(
-                  (a, b) =>
-                    Number(!!c.storeStats[b.id]?.count) - Number(!!c.storeStats[a.id]?.count) ||
-                    a.name.localeCompare(b.name, "az"),
-                )
-                .map((s) => (
-                  <article key={s.id} className="store-card">
-                    <div className="store-wordmark" style={{ color: s.color }}>
-                      <StoreLogo store={s} />
-                    </div>
-                    <p>{s.description}</p>
-                    <span className={"badge " + (c.storeStats[s.id]?.count ? "neutral" : "red")}>
-                      {c.storeStats[s.id]?.count
-                        ? azNumber(c.storeStats[s.id].count) + " məhsul"
-                        : "Qiymətlər hələ qoşulmayıb"}
-                    </span>
-                    <p className="micro muted">
-                      {s.domain} ·{" "}
-                      {s.sourceStatus === "marketplace_shop"
-                        ? "Tap.az mağaza nişanı"
-                        : s.sourceStatus === "public_catalog"
-                          ? "Açıq mağaza kataloqu"
-                          : c.storeStats[s.id]?.real
-                            ? s.id === "technomania"
-                              ? "Rəsmi feed"
-                              : "Mənbə yoxlanıb"
-                            : "Qiymət bağlantısı gözlənilir"}
-                    </p>
-                    <a className="card-button" href={"/magazalar/" + s.id}>
-                      Təklifləri göstər <ArrowUpRight size={17} />
-                    </a>
-                  </article>
-                ))}
-            </div>
-          </>
-        )}
-        {page === "muqayise" && (
-          <>
-            <div className="page-heading">
-              <div>
-                <span className="eyebrow">YAN-YANA BAX</span>
-                <h1>Məhsulları müqayisə et</h1>
-                <p>Maksimum 4 məhsulun xüsusiyyətlərini müqayisə et.</p>
-              </div>
-              <a className="outline-button" href={"/kataloq"}>
-                Məhsul əlavə et <Plus size={17} />
-              </a>
-            </div>
-            {comp.length ? (
-              <div className="compare-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Xüsusiyyət</th>
-                      {comp.map((id) => {
-                        const p = c.products.find((p) => p.id === id);
-                        return (
-                          <th key={id}>
-                            {p && (
-                              <>
-                                <button
-                                  className="remove-compare icon-button"
-                                  onClick={() => compare(p)}
-                                  aria-label="Müqayisədən sil"
-                                >
-                                  <X size={17} />
-                                </button>
-                                <ProductImage src={p.image} alt="" />
-                                <a className="product-title" href={"/mehsul/" + p.id}>
-                                  {p.name}
-                                </a>
-                                <p>{p.variant}</p>
-                              </>
-                            )}
-                          </th>
-                        );
-                      })}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>Ən aşağı yekun</td>
-                      {comp.map((id) => (
-                        <td key={id}>
-                          <strong className="price-text">{money(priceOf(c, id))}</strong>
-                        </td>
-                      ))}
-                    </tr>
-                    <tr>
-                      <td>Mağaza sayı</td>
-                      {comp.map((id) => (
-                        <td key={id}>{validOffers(c, id).length}</td>
-                      ))}
-                    </tr>
-                    {Array.from(
-                      new Set(
-                        comp.flatMap((id) =>
-                          Object.keys(c.products.find((p) => p.id === id)?.specs || {}),
-                        ),
-                      ),
-                    ).map((key) => (
-                      <tr key={key}>
-                        <td>{key}</td>
-                        {comp.map((id) => (
-                          <td key={id}>{c.products.find((p) => p.id === id)?.specs[key] || "—"}</td>
-                        ))}
-                      </tr>
-                    ))}
-                    <tr>
-                      <td>Məlumat</td>
-                      {comp.map((id) => (
-                        <td key={id}>
-                          {validOffers(c, id).every((o) => o.demo)
-                            ? "Nümunə qiymətlər"
-                            : "Mənbəni yoxlayın"}
-                        </td>
-                      ))}
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <Empty
-                icon={Scale}
-                title="Müqayisə siyahın boşdur"
-                text="Məhsul kartındakı müqayisə düyməsi ilə ilk məhsulu əlavə et."
-                action={
-                  <a className="dark-button" href={"/kataloq"}>
-                    Məhsullara bax
-                  </a>
-                }
-              />
-            )}
-          </>
-        )}
-        {page === "bildirisler" && (
-          <>
-            <div className="page-heading">
-              <div>
-                <span className="eyebrow">QIYMƏTİ İZLƏ</span>
-                <h1>Qiymət bildirişlərin</h1>
-                <p>
-                  Hədəfinə çatan qiymətləri bu səhifədə gör. E-poçt və push göndərişi qoşulmayıb.
-                </p>
-              </div>
-            </div>
-            {personal.alerts.length ? (
-              <div className="alert-list">
-                {personal.alerts.map((a) => {
-                  const p = c.products.find((p) => p.id === a.productId);
-                  if (!p) return null;
-                  const reached =
-                    validOffers(c, p.id, city).length > 0 && priceOf(c, p.id) <= a.target;
-                  return (
-                    <article className="alert-row" key={p.id}>
-                      <ProductImage src={p.image} alt="" />
-                      <div>
-                        <a className="product-title" href={"/mehsul/" + p.id}>
-                          {p.name}
-                        </a>
-                        <p>
-                          Hədəf: <b>{money(a.target)}</b> · Hazırda: {money(priceOf(c, p.id))}
-                        </p>
-                        <span className={"badge " + (reached ? "green" : "neutral")}>
-                          {reached
-                            ? "Hədəf qiymətə çatıb"
-                            : !validOffers(c, p.id, city).length
-                              ? "Stok gözlənilir"
-                              : "Qiymət gözlənilir"}
-                          {validOffers(c, p.id).every((o) => o.demo) ? " · Nümunə" : ""}
-                        </span>
-                      </div>
-                      <button className="outline-button" onClick={() => alert(p)}>
-                        Dəyiş
-                      </button>
-                      <button
-                        className="icon-button"
-                        aria-label="Bildirişi sil"
-                        onClick={() =>
-                          act(async () => {
-                            await api("personal", { kind: "alert", productId: p.id, remove: true });
-                            await refresh();
-                          }, "Bildiriş silindi.")
-                        }
-                      >
-                        <Trash2 size={19} />
-                      </button>
-                    </article>
-                  );
-                })}
-              </div>
-            ) : (
-              <Empty
-                icon={Bell}
-                title="İlk qiymətini izləməyə başla"
-                text="Məhsul səhifəsində istədiyin qiyməti yaz, hədəfə çatanda burada gör."
-                action={
-                  <a className="dark-button" href={"/kataloq"}>
-                    Məhsul seç <ArrowRight size={18} />
-                  </a>
-                }
-              />
-            )}
-          </>
-        )}
-        {page === "magaza-qeydiyyat" && (
-          <MerchantPage c={c} session={session} act={act} needUser={needUser} />
-        )}
-        {page === "rehber" && <Guide />}
-        {page === "admin" && (
-          <Admin
-            c={c}
-            session={session}
-            refresh={refresh}
-            toast={setToast}
-            act={act}
-            needUser={needUser}
-          />
-        )}
-        {![
-          "home",
-          "kataloq",
-          "kateqoriya",
-          "axtaris",
-          "endirimler",
-          "secilmisler",
-          "magazalar",
-          "mehsul",
-          "muqayise",
-          "bildirisler",
-          "magaza-qeydiyyat",
-          "rehber",
-          "admin",
-        ].includes(page) && (
-          <Empty
-            title="Səhifə tapılmadı"
-            text="Axtardığın səhifə mövcud deyil."
-            action={
-              <a className="dark-button" href={"/"}>
-                Ana səhifə
-              </a>
-            }
-          />
-        )}
-      </main>
-      <footer>
-        <div className="shell footer-main">
-          <div>
-            <a className="logo" href={"/"}>
-              <img className="brand-mark" src="/favicon.svg" alt="" width={38} height={38} />
-              qəpik<span className="logo-dot">.</span>
-            </a>
-            <p>
-              {c.settings.headline}
-              <br />
-              Qənaət sənin seçiminlə başlayır.
-            </p>
-            <span className="footer-made">Azərbaycan üçün, diqqətlə hazırlanıb.</span>
-          </div>
-          <div>
-            <h4>Kəşf et</h4>
-            <a href={"/kataloq"}>Bütün məhsullar</a>
-            <a href={"/endirimler"}>Qiyməti düşənlər</a>
-            <a href={"/magazalar"}>Mağazalar</a>
-          </div>
-          <div>
-            <h4>Qəpik haqqında</h4>
-            <button onClick={() => setModal({ type: "info", topic: "Haqqımızda" })}>
-              Necə işləyir?
-            </button>
-            <a href={"/rehber"}>Alış-veriş bələdçisi</a>
-            <button onClick={() => setModal({ type: "info", topic: "Sıralama qaydası" })}>
-              Sıralama qaydası
-            </button>
-          </div>
-          <div>
-            <h4>Mağazalar üçün</h4>
-            <a href={"/magaza-qeydiyyat"}>Mağazanı əlavə et</a>
-            <a href={"/admin"}>
-              İdarəetmə paneli <ArrowUpRight size={13} />
-            </a>
-            <button onClick={() => setModal({ type: "info", topic: "Məxfilik" })}>
-              Məxfilik və məlumatlar
-            </button>
-          </div>
-        </div>
-        <div className="shell footer-bottom">
-          <span>© 2026 Qəpik. Hər qəpiyin dəyəri var.</span>
-          <span>Qəpik məhsul satmır. Alış seçilən mağazada tamamlanır.</span>
-        </div>
-      </footer>
-      {comp.length > 0 && page !== "muqayise" && page !== "admin" && (
-        <div className="compare-tray">
-          <span>
-            <Scale size={17} /> {comp.length} məhsul seçilib
-          </span>
-          <a href={"/muqayise"}>
-            Müqayisə et <ArrowRight size={16} />
-          </a>
-          <button
-            className="icon-button"
-            aria-label="Müqayisəni təmizlə"
-            onClick={() => {
-              setComp([]);
-              localStorage.removeItem("qepik-compare");
-            }}
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
-      <nav className="mobile-nav" aria-label="Əsas bölmələr">
-        <a
-          className={page === "home" ? "current" : ""}
-          aria-current={page === "home" ? "page" : undefined}
-          href={"/"}
-        >
-          <Compass size={21} />
-          Kəşf et
-        </a>
-        <a
-          className={isCatalog ? "current" : ""}
-          aria-current={isCatalog ? "page" : undefined}
-          href={"/kataloq"}
-        >
-          <LayoutGrid size={21} />
-          Kataloq
-        </a>
-        <a
-          className={page === "muqayise" ? "current" : ""}
-          aria-current={page === "muqayise" ? "page" : undefined}
-          href={"/muqayise"}
-        >
-          <Scale size={21} />
-          Müqayisə
-        </a>
-        <a
-          className={page === "secilmisler" ? "current" : ""}
-          aria-current={page === "secilmisler" ? "page" : undefined}
-          href={"/secilmisler"}
-        >
-          <Heart size={21} />
-          Seçilmişlər
-        </a>
-        <a
-          className={page === "bildirisler" ? "current" : ""}
-          aria-current={page === "bildirisler" ? "page" : undefined}
-          href={"/bildirisler"}
-        >
-          <Bell size={21} />
-          Bildirişlər
-        </a>
-      </nav>
-      {toast && (
-        <div className="toast" role="status">
-          <Info size={18} />
-          {toast}
-          <button className="icon-button" aria-label="Bağla" onClick={() => setToast("")}>
-            <X size={15} />
-          </button>
-        </div>
-      )}
-      {modal && (
-        <Modal
-          title={
-            modal.type === "alert"
-              ? "İstədiyin qiyməti seç"
-              : modal.type === "city"
-                ? "Çatdırılma şəhərin"
-                : modal.type === "login"
-                  ? "Qəpik hesabın"
-                  : modal.topic
-          }
-          onClose={() => setModal(null)}
-        >
-          {modal.type === "login" && (
-            <div className="login-content">
-              <div className="login-icon">
-                <UserRound size={32} />
-              </div>
-              <h3>{session.user ? session.user.name : "Qənaətini yadda saxla."}</h3>
               <p>
-                {session.user
-                  ? "Seçilmişlərin və qiymət bildirişlərin hesabında saxlanılır."
-                  : "Seçilmiş məhsullarını saxla və öz qiymət bildirişlərini qur."}
+                {c.settings.headline}
+                <br />
+                Qənaət sənin seçiminlə başlayır.
               </p>
-              {session.user ? (
-                <>
-                  <a className="dark-button" href={"/bildirisler"}>
-                    Bildirişlərim <ArrowRight size={17} />
-                  </a>
-                  <a className="text-link" href="/signout-with-chatgpt?return_to=/" target="_top">
-                    Hesabdan çıx
-                  </a>
-                </>
-              ) : (
-                <a
-                  className="dark-button"
-                  href={"/signin-with-chatgpt?return_to=" + encodeURIComponent(path)}
-                  target="_top"
-                >
-                  ChatGPT ilə daxil ol <ArrowUpRight size={17} />
-                </a>
-              )}
+              <span className="footer-made">Azərbaycan üçün, diqqətlə hazırlanıb.</span>
             </div>
-          )}
-          {modal.type === "city" && (
-            <div className="city-list">
-              {["Bakı", "Sumqayıt", "Gəncə", "Mingəçevir", "Şəki", "Lənkəran", "Naxçıvan"].map(
-                (v) => (
-                  <button
-                    key={v}
-                    onClick={() => {
-                      setPageOffset(0);
-                      setCity(v);
-                      localStorage.setItem("qepik-city", v);
-                      setModal(null);
-                    }}
-                  >
-                    <MapPin size={18} />
-                    {v}
-                    {city === v && <Check size={18} />}
-                  </button>
-                ),
-              )}
-              <p className="muted micro">
-                Yalnız təklifdə çatdırılma şəhəri göstərilən mağazalar uyğun sayılır.
-              </p>
+            <div>
+              <h4>Kəşf et</h4>
+              <a href={"/kataloq"}>Bütün məhsullar</a>
+              <a href={"/endirimler"}>Qiyməti düşənlər</a>
+              <a href={"/magazalar"}>Mağazalar</a>
             </div>
-          )}
-          {modal.type === "alert" && (
-            <form
-              className="form-stack"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const target = Number(new FormData(e.currentTarget).get("target"));
-                if (
-                  await act(async () => {
-                    await api("personal", { kind: "alert", productId: modal.p.id, target });
-                    await refresh();
-                  }, "Qiymət bildirişi saxlanıldı.")
-                )
-                  setModal(null);
+            <div>
+              <h4>Qəpik haqqında</h4>
+              <button onClick={() => setModal({ type: "info", topic: "Haqqımızda" })}>
+                Necə işləyir?
+              </button>
+              <a href={"/rehber"}>Alış-veriş bələdçisi</a>
+              <button onClick={() => setModal({ type: "info", topic: "Sıralama qaydası" })}>
+                Sıralama qaydası
+              </button>
+            </div>
+            <div>
+              <h4>Mağazalar üçün</h4>
+              <a href={"/magaza-qeydiyyat"}>Mağazanı əlavə et</a>
+              <a href={"/admin"}>
+                İdarəetmə paneli <ArrowUpRight size={13} />
+              </a>
+              <button onClick={() => setModal({ type: "info", topic: "Məxfilik" })}>
+                Məxfilik və məlumatlar
+              </button>
+            </div>
+          </div>
+          <div className="shell footer-bottom">
+            <span>© {new Date().getFullYear()} Qəpik. Hər qəpiyin dəyəri var.</span>
+            <span className="footer-brand">
+              Nova Media məhsuludur · <b>Nova Group Azərbaycan</b>
+            </span>
+            <span>Qəpik məhsul satmır. Alış seçilən mağazada tamamlanır.</span>
+          </div>
+        </footer>
+        {comp.length > 0 && page !== "muqayise" && page !== "admin" && (
+          <div className="compare-tray">
+            <span>
+              <Scale size={17} /> {comp.length} məhsul seçilib
+            </span>
+            <a href={"/muqayise"}>
+              Müqayisə et <ArrowRight size={16} />
+            </a>
+            <button
+              className="icon-button"
+              aria-label="Müqayisəni təmizlə"
+              onClick={() => {
+                setComp([]);
+                localStorage.removeItem("qepik-compare");
               }}
             >
-              <div className="alert-product">
-                <ProductImage src={modal.p.image} alt="" />
-                <div>
-                  <h3>{modal.p.name}</h3>
-                  <span>Hazırda {money(priceOf(c, modal.p.id))}</span>
+              <X size={16} />
+            </button>
+          </div>
+        )}
+        <nav className="mobile-nav" aria-label="Əsas bölmələr">
+          <a
+            className={page === "home" ? "current" : ""}
+            aria-current={page === "home" ? "page" : undefined}
+            href={"/"}
+          >
+            <Compass size={21} />
+            Kəşf et
+          </a>
+          <a
+            className={isCatalog ? "current" : ""}
+            aria-current={isCatalog ? "page" : undefined}
+            href={"/kataloq"}
+          >
+            <LayoutGrid size={21} />
+            Kataloq
+          </a>
+          <a
+            className={page === "muqayise" ? "current" : ""}
+            aria-current={page === "muqayise" ? "page" : undefined}
+            href={"/muqayise"}
+          >
+            <Scale size={21} />
+            Müqayisə
+          </a>
+          <a
+            className={page === "secilmisler" ? "current" : ""}
+            aria-current={page === "secilmisler" ? "page" : undefined}
+            href={"/secilmisler"}
+          >
+            <Heart size={21} />
+            Seçilmişlər
+          </a>
+          <a
+            className={page === "bildirisler" ? "current" : ""}
+            aria-current={page === "bildirisler" ? "page" : undefined}
+            href={"/bildirisler"}
+          >
+            <Bell size={21} />
+            Bildirişlər
+          </a>
+        </nav>
+        {toast && (
+          <div className="toast" role="status">
+            <Info size={18} />
+            {toast}
+            <button className="icon-button" aria-label="Bağla" onClick={() => setToast("")}>
+              <X size={15} />
+            </button>
+          </div>
+        )}
+        {modal && (
+          <Modal
+            title={
+              modal.type === "alert"
+                ? "İstədiyin qiyməti seç"
+                : modal.type === "city"
+                  ? "Çatdırılma şəhərin"
+                  : modal.type === "login"
+                    ? "Qəpik hesabın"
+                    : modal.topic
+            }
+            onClose={() => setModal(null)}
+          >
+            {modal.type === "login" && (
+              <div className="login-content">
+                <div className="login-icon">
+                  <UserRound size={32} />
                 </div>
+                <h3>{session.user ? session.user.name : "Qənaətini yadda saxla."}</h3>
+                <p>
+                  {session.user
+                    ? "Seçilmişlərin və qiymət bildirişlərin hesabında saxlanılır."
+                    : "Seçilmiş məhsullarını saxla və öz qiymət bildirişlərini qur."}
+                </p>
+                {session.user ? (
+                  <>
+                    <a className="dark-button" href={"/bildirisler"}>
+                      Bildirişlərim <ArrowRight size={17} />
+                    </a>
+                    <a className="text-link" href="/signout-with-chatgpt?return_to=/" target="_top">
+                      Hesabdan çıx
+                    </a>
+                  </>
+                ) : (
+                  <a
+                    className="dark-button"
+                    href={"/signin-with-chatgpt?return_to=" + encodeURIComponent(path)}
+                    target="_top"
+                  >
+                    ChatGPT ilə daxil ol <ArrowUpRight size={17} />
+                  </a>
+                )}
               </div>
-              <label>
-                Hədəf qiymətin, ₼
-                <input
-                  name="target"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  required
-                  defaultValue={
-                    personal.alerts.find((a) => a.productId === modal.p.id)?.target ||
-                    Math.round(priceOf(c, modal.p.id) * 0.9)
-                  }
-                />
-              </label>
-              <p className="form-help">
-                Bildiriş hesabında saxlanılır. Nəticəni “Bildirişlər” bölməsindən yoxla. E-poçt və
-                mobil push göndərişi hələ aktiv deyil.
-              </p>
-              <button className="dark-button" disabled={busy}>
-                <Bell size={17} />
-                {busy ? "Saxlanılır…" : "Bildirişi yadda saxla"}
-              </button>
-            </form>
-          )}
-          {modal.type === "info" && <InfoContent topic={modal.topic} />}
-        </Modal>
-      )}
-    </div>
+            )}
+            {modal.type === "city" && (
+              <div className="city-list">
+                {["Bakı", "Sumqayıt", "Gəncə", "Mingəçevir", "Şəki", "Lənkəran", "Naxçıvan"].map(
+                  (v) => (
+                    <button
+                      key={v}
+                      onClick={() => {
+                        setPageOffset(0);
+                        setCity(v);
+                        localStorage.setItem("qepik-city", v);
+                        setModal(null);
+                      }}
+                    >
+                      <MapPin size={18} />
+                      {v}
+                      {city === v && <Check size={18} />}
+                    </button>
+                  ),
+                )}
+                <p className="muted micro">
+                  Yalnız təklifdə çatdırılma şəhəri göstərilən mağazalar uyğun sayılır.
+                </p>
+              </div>
+            )}
+            {modal.type === "alert" && (
+              <form
+                className="form-stack"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const target = Number(new FormData(e.currentTarget).get("target"));
+                  if (
+                    await act(async () => {
+                      await api("personal", { kind: "alert", productId: modal.p.id, target });
+                      await refresh();
+                    }, "Qiymət bildirişi saxlanıldı.")
+                  )
+                    setModal(null);
+                }}
+              >
+                <div className="alert-product">
+                  <ProductImage src={modal.p.image} alt="" />
+                  <div>
+                    <h3>{modal.p.name}</h3>
+                    <span>Hazırda {money(priceOf(c, modal.p.id))}</span>
+                  </div>
+                </div>
+                <label>
+                  Hədəf qiymətin, ₼
+                  <input
+                    name="target"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    required
+                    defaultValue={
+                      personal.alerts.find((a) => a.productId === modal.p.id)?.target ||
+                      Math.round(priceOf(c, modal.p.id) * 0.9)
+                    }
+                  />
+                </label>
+                <p className="form-help">
+                  Bildiriş hesabında saxlanılır. Nəticəni “Bildirişlər” bölməsindən yoxla. E-poçt və
+                  mobil push göndərişi hələ aktiv deyil.
+                </p>
+                <button className="dark-button" disabled={busy}>
+                  <Bell size={17} />
+                  {busy ? "Saxlanılır…" : "Bildirişi yadda saxla"}
+                </button>
+              </form>
+            )}
+            {modal.type === "info" && <InfoContent topic={modal.topic} />}
+          </Modal>
+        )}
+      </div>
+    </AdsProvider>
   );
 }
 function ProductDetail({
@@ -1420,6 +1537,7 @@ function ProductDetail({
   setToast,
   needUser,
   openModal,
+  extras,
 }: {
   p: Product;
   c: Catalog;
@@ -1432,7 +1550,20 @@ function ProductDetail({
   setToast: (message: string) => void;
   needUser: () => boolean;
   openModal: (modal: ModalState) => void;
+  extras?: ProductExtras;
 }) {
+  const [views, setViews] = useState(extras?.views ?? 0);
+  // One counted view per product per browser session; the server stores only daily totals.
+  useEffect(() => {
+    const key = "qepik-viewed:" + p.id;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch {}
+    api<{ views?: number }>("view", { productId: p.id })
+      .then((r) => typeof r?.views === "number" && setViews(r.views))
+      .catch(() => {});
+  }, [p.id]);
   const [tab, setTab] = useState("offers"),
     [sort, setSort] = useState("total"),
     [period, setPeriod] = useState(30),
@@ -1442,8 +1573,12 @@ function ProductDetail({
     [term, setTerm] = useState(12),
     [sending, setSending] = useState(false),
     [now] = useState(() => Date.now());
-  const recordedOffers = bestRecordedOffersFor(c, p.id, city);
-  const availableOffers = validOffers(c, p.id, city);
+  const storeOf = (o: Offer) => c.stores.find((s) => s.id === o.storeId);
+  const allRecorded = bestRecordedOffersFor(c, p.id, city);
+  // Classified ads (tap.az shop ads, lalafo) are listed apart and never count as the best offer.
+  const classified = allRecorded.filter((o) => isClassified(o, storeOf(o)));
+  const recordedOffers = allRecorded.filter((o) => !isClassified(o, storeOf(o)));
+  const availableOffers = validOffers(c, p.id, city).filter((o) => !isClassified(o, storeOf(o)));
   let offers = [...recordedOffers];
   if (stockOnly) offers = offers.filter((o) => o.stock && o.stockKnown !== false);
   if (free) offers = offers.filter((o) => o.shipping === 0 && o.shippingKnown !== false);
@@ -1545,29 +1680,58 @@ function ProductDetail({
                 </span>
               ))}
           </div>
-          <div className={"detail-price" + (availableOffers.length ? " has-live-price" : "")}>
-            <span>
-              {!low
-                ? "Qiymət mağazada dəqiqləşdirilir"
-                : low?.stockKnown === false
-                  ? "Mənbədəki qiymət · stok mağazada yoxlanmalıdır"
-                  : low && !low.stock
-                    ? "Son bildirilən qiymət"
-                    : "Ən aşağı nağd qiymət"}
-            </span>
-            <strong className={availableOffers.length ? "price-current" : undefined}>
-              {low ? money(low.price) : "Qiymət soruş"}
-            </strong>
-            <small>
-              {availableOffers.length} mağazada stokda · {recordedOffers.length} qiymət mənbəyi ·{" "}
-              {city}
-              {low?.stockKnown === false
-                ? " · Stok açıqlanmayıb"
-                : low && !low.stock
-                  ? " · Hazırda stokda yoxdur"
-                  : ""}
-            </small>
-          </div>
+          {(() => {
+            const store = low ? storeOf(low) : undefined;
+            const credit = low ? lowestMonthly(low) : undefined;
+            return (
+              <section
+                className={"best-offer" + (availableOffers.length ? " is-live" : "")}
+                aria-label="Ən sərfəli təklif"
+              >
+                <div className="best-offer-head">
+                  <span>
+                    {!low
+                      ? "Qiymət mağazada dəqiqləşdirilir"
+                      : availableOffers.length
+                        ? "Ən sərfəli təklif"
+                        : low.stockKnown === false
+                          ? "Mənbədəki qiymət · stok məlum deyil"
+                          : "Son bildirilən qiymət"}
+                  </span>
+                  {store && <StoreLogo store={store} />}
+                </div>
+                <strong className={availableOffers.length ? "price-current" : undefined}>
+                  {low ? money(low.price) : "Qiymət soruş"}
+                </strong>
+                {credit && low && (
+                  <p className="best-offer-credit">
+                    Kreditlə: <b>{money(credit.monthly)}</b> × {credit.months} ay
+                    {interestFree(credit, low.price) && (
+                      <span className="badge green">0% faiz</span>
+                    )}
+                    {credit.provider && <small> · {credit.provider}</small>}
+                  </p>
+                )}
+                <p className="best-offer-meta">
+                  {availableOffers.length} mağazada stokda · {recordedOffers.length} qiymət mənbəyi
+                  {classified.length > 0 && " · " + classified.length + " elan"}
+                  {views > 0 && " · " + azNumber(views) + " dəfə baxılıb"}
+                </p>
+                {low && !low.demo && (
+                  <a
+                    className="dark-button best-offer-go"
+                    href={low.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => go(e, low)}
+                  >
+                    {store ? locative(store.name) + " al" : "Mağazaya keç"}
+                    <ArrowUpRight size={18} />
+                  </a>
+                )}
+              </section>
+            );
+          })()}
           <div className="detail-actions">
             <button className="dark-button" onClick={() => alert(p)}>
               <Bell size={18} />
@@ -1610,6 +1774,7 @@ function ProductDetail({
           </div>
         </div>
       </div>
+      <AdSlot slot="product-side" format="banner" className="detail-ad" />
       <div className="detail-tabs" role="tablist" aria-label="Məhsul məlumatı">
         {[
           ["offers", "Mağaza təklifləri", offers.length],
@@ -1690,9 +1855,6 @@ function ProductDetail({
               offers.map((o) => {
                 // recordedOffers only keeps offers whose store is known and active.
                 const s = c.stores.find((s) => s.id === o.storeId)!;
-                const finance = o.installmentOptions?.find((x) => x.months === term);
-                const months = finance?.months || (o.months === term ? o.months : 0);
-                const total = finance?.total || (months ? o.installmentTotal : 0);
                 return (
                   <article
                     className={
@@ -1771,16 +1933,30 @@ function ProductDetail({
                       </span>
                     </div>
                     <div className="offer-installment">
-                      {months > 0 ? (
+                      {creditOptions(o).length ? (
                         <>
-                          <strong>
-                            {money(finance?.monthly || total / months)} <small>× {months} ay</small>
-                          </strong>
-                          <span>Taksit yekunu: {money(total)}</span>
-                          <small>Mağaza şərtlərinə əsasən</small>
+                          <span className="offer-credit-title">Kredit şərtləri</span>
+                          <ul className="credit-list">
+                            {creditOptions(o).map((x) => (
+                              <li
+                                key={x.months + ":" + (x.provider || "") + ":" + x.total}
+                                className={x.months === term ? "is-term" : undefined}
+                              >
+                                <b>{x.months} ay</b> × {money(x.monthly)}
+                                <small>
+                                  {" "}
+                                  · yekun {money(x.total)}
+                                  {x.downPayment ? " · ilkin " + money(x.downPayment) : ""}
+                                  {x.provider ? " · " + x.provider : ""}
+                                  {interestFree(x, o.price) ? " · 0% faiz" : ""}
+                                </small>
+                              </li>
+                            ))}
+                          </ul>
+                          <small>Mağazanın saytındakı şərtlər</small>
                         </>
                       ) : (
-                        <span>Taksit məlumatı yoxdur</span>
+                        <span>Kredit məlumatı yoxdur</span>
                       )}
                     </div>
                     <div className="offer-price">
@@ -1813,6 +1989,49 @@ function ProductDetail({
               />
             )}
           </div>
+          {classified.length > 0 && (
+            <section className="classified-offers" aria-labelledby="classified-title">
+              <h3 id="classified-title">Elan saytlarında</h3>
+              <p className="micro muted">
+                Mağaza nişanlı elanlar. Vəziyyəti (yeni / işlənmiş) elanda yoxla; bu qiymətlər ən
+                sərfəli təklif sayılmır.
+              </p>
+              {classified.map((o) => {
+                const s = storeOf(o);
+                const name = s?.name || o.storeId;
+                return (
+                  <article className="classified-row" key={o.id}>
+                    <div>
+                      {s ? <StoreLogo store={s} /> : <b>{name}</b>}
+                      {o.condition === "used" && <span className="badge neutral">İkinci əl</span>}
+                    </div>
+                    <strong>
+                      {o.priceRange && o.priceRange.max > o.priceRange.min
+                        ? locative(name) +
+                          " " +
+                          money(o.priceRange.min) +
+                          " – " +
+                          money(o.priceRange.max)
+                        : money(o.price)}
+                    </strong>
+                    <small>
+                      {o.priceRange ? o.priceRange.count + " elan" : "1 elan"} · yoxlanıb{" "}
+                      <time dateTime={o.checkedAt}>{azDate(o.checkedAt)}</time>
+                    </small>
+                    <a
+                      className="outline-button"
+                      href={o.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => go(e, o)}
+                    >
+                      Elana bax <ArrowUpRight size={16} />
+                    </a>
+                  </article>
+                );
+              })}
+            </section>
+          )}
         </div>
       )}
       {tab === "history" && (
@@ -2033,6 +2252,13 @@ function ProductDetail({
           </form>
         </section>
       )}
+      <ProductQuestions
+        productId={p.id}
+        productName={p.name}
+        initial={extras?.questions}
+        needUser={needUser}
+        setToast={setToast}
+      />
     </>
   );
 }
