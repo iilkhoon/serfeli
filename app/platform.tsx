@@ -270,6 +270,25 @@ export default function Platform({
     return c.matched.flatMap((id) => byId.get(id) || []);
   }, [c]);
   const listingTop = useRef<HTMLDivElement>(null);
+  const navBar = useRef<HTMLElement>(null);
+  // An open category menu closes on a click outside the nav row or on Escape anywhere.
+  useEffect(() => {
+    if (!menu) return;
+    const close = (e: Event) => {
+      if (
+        e instanceof KeyboardEvent
+          ? e.key === "Escape"
+          : !navBar.current?.contains(e.target as Node)
+      )
+        setMenu(false);
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [menu]);
   const listingLoading = sliceQuery !== loadedQuery && !error;
   const filtersActive = !!(filter.brand || filter.store || filter.min || filter.max || filter.real);
   // Nothing to narrow down: the sort and filter controls would only add noise to the empty state.
@@ -587,7 +606,7 @@ export default function Platform({
           </div>
         </div>
       </header>
-      <nav className="nav-bar">
+      <nav className="nav-bar" ref={navBar}>
         <div className="shell">
           <button
             className={"category-toggle " + (menu ? "open" : "")}

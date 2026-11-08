@@ -1866,6 +1866,151 @@ footer .logo,
   }
 }
 
+/* Production pass: touch targets, counters and the older page heroes. */
+.top-strip :is(button, a) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+}
+.nav-bar > .shell > :is(a, button) {
+  min-height: 44px;
+}
+.nav-bar .category-toggle {
+  min-height: 38px;
+  padding-inline: 16px;
+}
+.breadcrumb a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+}
+input[type="checkbox"],
+input[type="radio"] {
+  width: 20px;
+  height: 20px;
+}
+.detail-tabs > :is(button, a).active > span {
+  color: var(--nar-700);
+}
+:is(.merchant-layout, .guide-hero) h1 {
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 1.04;
+}
+:is(.merchant-layout, .guide-hero) h1 em {
+  color: var(--nar-600);
+  font-style: normal;
+}
+
+/* The category menu carries .shell, so the nav row's flex rule must not flatten its grid. */
+.nav-bar > .mega-menu {
+  display: grid;
+  z-index: 70;
+  height: auto;
+  max-height: calc(100dvh - 200px);
+  overflow-y: auto;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 8px;
+  margin-bottom: 12px;
+  padding: 10px;
+}
+.nav-bar > .mega-menu > a {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 14px;
+  font-weight: 600;
+}
+.nav-bar > .mega-menu > a > svg:first-child {
+  color: var(--nar-600);
+}
+@media (max-width: 980px) {
+  .nav-bar > .mega-menu {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .nav-bar > .mega-menu {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Not-found page: rendered outside the storefront shell, so it carries its own frame. */
+.nf {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: 24px 16px;
+}
+.nf-card {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  width: min(640px, 100%);
+  padding: clamp(32px, 6vw, 64px) clamp(20px, 5vw, 56px);
+  border-radius: 36px;
+  background: var(--night);
+  color: var(--on-night-muted);
+  text-align: center;
+}
+.nf-card .logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--on-night);
+  font-size: 24px;
+}
+.nf-code {
+  font-family: var(--display);
+  font-size: clamp(72px, 16vw, 132px);
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -0.06em;
+  color: var(--nar-400);
+}
+.nf-card h1 {
+  color: var(--on-night);
+  font-family: var(--display);
+  font-size: clamp(24px, 4vw, 34px);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+.nf-card p {
+  max-width: 40ch;
+}
+.nf-card .h-search {
+  width: 100%;
+  margin: 6px 0 0;
+}
+.nf-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.nf-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid #ffffff2e;
+  border-radius: 999px;
+  color: var(--on-night);
+  font-weight: 600;
+  transition:
+    background-color 0.2s var(--ease-state),
+    color 0.2s var(--ease-state);
+}
+.nf-links a:hover {
+  background: var(--on-night);
+  color: var(--ink);
+}
+
 /* Older blocks still used outside the home page (stores page offer button). */
 .card-button:hover {
   color: var(--on-ink);
