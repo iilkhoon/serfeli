@@ -19,7 +19,7 @@ import {
 import { withProductMatchLock, MatchConflictError } from "../../../../lib/match-store";
 import { canonicalProductId } from "../../../../lib/catalog";
 import { env } from "cloudflare:workers";
-import { getChatGPTUser, type ChatGPTUser } from "../../../chatgpt-auth";
+import { getUser, type User } from "../../../auth";
 import { scanProduct, safeMerchantUrl } from "../../../../lib/extractor";
 import {
   ApiError,
@@ -49,7 +49,7 @@ const json = (v: unknown, status = 200) =>
     headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
   });
 
-const clientKey = (req: Request, user: ChatGPTUser | null) =>
+const clientKey = (req: Request, user: User | null) =>
   user?.userId || req.headers.get("cf-connecting-ip") || "anonymous";
 const tooMany = () =>
   Response.json(
@@ -58,12 +58,12 @@ const tooMany = () =>
   );
 
 // When OWNER_EMAIL is configured only that account may claim the first-owner slot.
-function mayClaimOwner(user: ChatGPTUser) {
+function mayClaimOwner(user: User) {
   const allowed = env.OWNER_EMAIL?.trim().toLowerCase();
   return !allowed || user.email.trim().toLowerCase() === allowed;
 }
 
-async function bootstrap(user: ChatGPTUser) {
+async function bootstrap(user: User) {
   // An existing owner can never be replaced here.
   if (!(await ownerId()) && !mayClaimOwner(user))
     return json({ error: "Bu hesab platforma sahibi kimi təyin edilə bilməz." }, 403);
@@ -84,7 +84,7 @@ async function bootstrap(user: ChatGPTUser) {
   return json({ ok: true });
 }
 
-async function personalGet(user: ChatGPTUser | null) {
+async function personalGet(user: User | null) {
   if (!user) return json({ favorites: [], alerts: [] });
   const r = await db()
     .prepare("SELECT kind,payload FROM personal WHERE user_id=? ORDER BY updated_at DESC")
@@ -103,7 +103,7 @@ async function personalGet(user: ChatGPTUser | null) {
   return json({ favorites: unique("favorite"), alerts: unique("alert") });
 }
 
-async function personalPost(req: Request, user: ChatGPTUser) {
+async function personalPost(req: Request, user: User) {
   const b = z
     .object({
       kind: z.enum(["favorite", "alert"]),
@@ -149,7 +149,7 @@ async function personalPost(req: Request, user: ChatGPTUser) {
   return json({ ok: true });
 }
 
-async function reviewPost(req: Request, user: ChatGPTUser) {
+async function reviewPost(req: Request, user: User) {
   const b = z
     .object({
       productId: id,
@@ -241,7 +241,7 @@ async function adminData() {
   });
 }
 
-async function feedSync(user: ChatGPTUser) {
+async function feedSync(user: User) {
   const feed = await fetchTechnomania();
   const c = await catalog();
   const currentIds = new Set(c.products.map((p) => p.id));
@@ -310,7 +310,7 @@ async function checkOffer(v: z.infer<typeof offer>, messages: { missing: string;
   v.checkedAt = new Date().toISOString();
 }
 
-async function adminSave(req: Request, user: ChatGPTUser) {
+async function adminSave(req: Request, user: User) {
   const b = saveRequest.parse(await readJson(req));
   if (b.kind === "offer")
     await checkOffer(b.value, {
@@ -328,7 +328,7 @@ async function adminSave(req: Request, user: ChatGPTUser) {
   return json({ ok: true });
 }
 
-async function adminImport(req: Request, user: ChatGPTUser) {
+async function adminImport(req: Request, user: User) {
   const b = z.object({ offers: z.array(offer).min(1).max(100) }).parse(await readJson(req));
   for (const v of b.offers)
     await checkOffer(v, {
@@ -345,7 +345,7 @@ async function adminImport(req: Request, user: ChatGPTUser) {
   return json({ ok: true, count: b.offers.length });
 }
 
-async function adminModerate(req: Request, user: ChatGPTUser) {
+async function adminModerate(req: Request, user: User) {
   const b = z
     .object({
       kind: z.enum(["review", "application"]),
@@ -363,7 +363,7 @@ async function adminModerate(req: Request, user: ChatGPTUser) {
   return json({ ok: true });
 }
 
-async function adminDelete(req: Request, user: ChatGPTUser) {
+async function adminDelete(req: Request, user: User) {
   const b = z
     .object({ kind: z.enum(["product", "store", "offer"]), id })
     .parse(await readJson(req));
@@ -435,7 +435,7 @@ async function matchesGet(req: Request) {
     ],
   });
 }
-async function matchesPost(req: Request, user: ChatGPTUser) {
+async function matchesPost(req: Request, user: User) {
   const b = z
     .discriminatedUnion("action", [
       z.object({
@@ -497,7 +497,7 @@ async function matchesPost(req: Request, user: ChatGPTUser) {
   }
 }
 
-async function admin(req: Request, path: string, user: ChatGPTUser) {
+async function admin(req: Request, path: string, user: User) {
   const route = `${req.method} ${path}`;
   switch (route) {
     case "POST admin/catalog/materialize":
@@ -550,7 +550,7 @@ async function route(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const path = url.pathname.replace("/api/v1/", "");
   const method = req.method;
-  const user = await getChatGPTUser();
+  const user = await getUser();
   if (method !== "GET") {
     if (crossSite(req, url)) return json({ error: "Sorğunun mənbəyi uyğun deyil." }, 403);
     if (Number(req.headers.get("content-length") || 0) > MAX_BODY)

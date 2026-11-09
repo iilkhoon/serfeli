@@ -9,7 +9,9 @@ import {
   type Product,
 } from "./catalog";
 
-export const SITE_URL = "https://qepik-az.mythicfern36.chatgpt.site";
+// Canonical origin for SEO tags, sitemaps and robots.txt. Local until the site moves to its own
+// domain; change it here when it does.
+export const SITE_URL = "http://localhost:5173";
 export const SITE_NAME = "Qəpik";
 const SOCIAL_CARD = SITE_URL + "/social-card.png";
 const DESCRIPTION_LIMIT = 160;

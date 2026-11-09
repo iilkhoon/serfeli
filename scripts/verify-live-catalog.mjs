@@ -75,7 +75,7 @@ async function publicCatalog(ids) {
   return out;
 }
 // Visitors no longer trigger the feed; store it the way the admin sync and cron do.
-const sign = await fetch("http://127.0.0.1:5173/signin-with-chatgpt?return_to=/admin", {
+const sign = await fetch("http://127.0.0.1:5173/giris?return_to=/admin", {
   redirect: "manual",
 });
 const sync = await fetch("http://127.0.0.1:5173/api/v1/admin/feed-sync", {

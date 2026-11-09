@@ -56,6 +56,7 @@ import { api, errorMessage, Modal, Empty, CategoryIcon, StoreLogo } from "./ui";
 import type { Act, Personal, Session } from "./types";
 import Admin from "./admin";
 import Home from "./home";
+import { SIGN_IN_PATH, SIGN_OUT_PATH } from "./auth-headers";
 import { ProductImage } from "../components/product-image";
 import { azDate, azDateTime, azNumber } from "../components/format";
 type ModalState =
@@ -1265,7 +1266,7 @@ export default function Platform({
           </div>
         </div>
         <div className="shell footer-bottom">
-          <span>© 2026 Qəpik. Hər qəpiyin dəyəri var.</span>
+          <span>© 2026 Qəpik · Novo Media tərəfindən hazırlanıb</span>
           <span>Qəpik məhsul satmır. Alış seçilən mağazada tamamlanır.</span>
         </div>
       </footer>
@@ -1369,17 +1370,17 @@ export default function Platform({
                   <a className="dark-button" href={"/bildirisler"}>
                     Bildirişlərim <ArrowRight size={17} />
                   </a>
-                  <a className="text-link" href="/signout-with-chatgpt?return_to=/" target="_top">
+                  <a className="text-link" href={SIGN_OUT_PATH + "?return_to=/"} target="_top">
                     Hesabdan çıx
                   </a>
                 </>
               ) : (
                 <a
                   className="dark-button"
-                  href={"/signin-with-chatgpt?return_to=" + encodeURIComponent(path)}
+                  href={SIGN_IN_PATH + "?return_to=" + encodeURIComponent(path)}
                   target="_top"
                 >
-                  ChatGPT ilə daxil ol <ArrowUpRight size={17} />
+                  Hesaba daxil ol <ArrowUpRight size={17} />
                 </a>
               )}
             </div>
@@ -2248,8 +2249,8 @@ function InfoContent({ topic }: { topic: string }) {
     Məxfilik: (
       <>
         <p>
-          Hesaba giriş ChatGPT vasitəsilə həyata keçirilir. Seçilmişlər və qiymət bildirişləri hesab
-          identifikatoruna bağlı məlumat bazasında saxlanılır.
+          Seçilmişlər və qiymət bildirişləri hesab identifikatoruna bağlı məlumat bazasında
+          saxlanılır.
         </p>
         <p>
           Yalnız öz seçilmişlərini və bildirişlərini oxuya və silə bilərsən. Mağaza müraciətləri və

@@ -15,14 +15,7 @@ const eslintConfig = defineConfig([
       "@next/next/no-html-link-for-pages": "off",
     },
   },
-  globalIgnores([
-    "dist/**",
-    ".vinext/**",
-    ".wrangler/**",
-    ".sites-runtime/**",
-    "outputs/**",
-    "work/**",
-  ]),
+  globalIgnores(["dist/**", ".vinext/**", ".wrangler/**", ".runtime/**", "outputs/**", "work/**"]),
   {
     files: ["components/ui/**/*.{ts,tsx}", "hooks/use-mobile.ts"],
     rules: {
