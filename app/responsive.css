@@ -912,9 +912,9 @@
     left: 0;
     right: 0;
     z-index: 35;
-    background: #fffef9f5;
+    background: var(--surface);
     backdrop-filter: blur(15px);
-    border-top: 1px solid #dddfe4;
+    border-top: 1px solid var(--line);
     justify-content: space-around;
     padding: 10px 3px max(12px, env(safe-area-inset-bottom));
   }
@@ -2067,7 +2067,7 @@
     width: 38px;
     height: 4px;
     border-radius: 5px;
-    background: #d8dfce;
+    background: var(--surface-2);
     margin: -12px auto 19px;
   }
   .table-scroll {
@@ -2388,7 +2388,7 @@
   gap: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
   padding: 8px 15px;
   margin-bottom: 25px;
   max-width: 700px;
@@ -2406,8 +2406,8 @@
   color: var(--muted);
 }
 .official-feed {
-  border-color: #a8bb88;
-  background: #f9fafb;
+  border-color: var(--line-strong);
+  background: var(--surface);
 }
 .feed-source-link {
   display: flex;
@@ -2424,7 +2424,7 @@
   gap: 12px;
   flex-wrap: wrap;
   padding: 12px;
-  background: #e9eaed;
+  background: var(--surface-2);
   border-radius: 6px;
   margin: 15px 0;
   font-size: 11px;
@@ -2459,7 +2459,7 @@
   font-size: 12px;
 }
 .offer-row.unavailable {
-  background: #f6f7f8;
+  background: var(--surface-2);
 }
 .offer-row.unavailable .offer-price > strong {
   color: var(--danger);
@@ -2542,7 +2542,7 @@
   padding: 26px 10px;
 }
 .load-more > .outline-button {
-  background: #fff;
+  background: var(--surface);
   font-size: 12px;
 }
 .store-card {

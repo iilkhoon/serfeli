@@ -1,10 +1,9 @@
 import path from "node:path";
 
-// Shared defaults for Vite and standalone Wrangler commands. Managed Linux
-// supplies its own checkout-local paths before these defaults are applied.
+// Shared defaults for Vite and standalone Wrangler commands; RUNTIME_ROOT overrides the
+// checkout-local folder for tool state.
 export function configureToolEnvironment(projectRoot) {
-  const runtimeRoot =
-    process.env.SITES_RUNTIME_ROOT || path.join(projectRoot, ".sites-runtime");
+  const runtimeRoot = process.env.RUNTIME_ROOT || path.join(projectRoot, ".runtime");
   const defaults = {
     CLOUDFLARE_CF_FETCH_ENABLED: "false",
     WRANGLER_SEND_METRICS: "false",

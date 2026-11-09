@@ -42,7 +42,7 @@ export async function politeText(
           headers: {
             ...requestHeaders,
             Accept: "application/json,application/xml,text/xml,text/html;q=0.8",
-            "User-Agent": "Qepik/1.0 PublicCatalog (+https://qepik-az.mythicfern36.chatgpt.site)",
+            "User-Agent": "Qepik/1.0 PublicCatalog",
             ...(cache?.headers?.etag ? { "If-None-Match": cache.headers.etag } : {}),
             ...(cache?.headers?.["last-modified"]
               ? { "If-Modified-Since": cache.headers["last-modified"] }

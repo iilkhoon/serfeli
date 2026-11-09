@@ -1,7 +1,7 @@
 import fs from "node:fs";
 const verified = JSON.parse(fs.readFileSync("docs/verified-products.json", "utf8"));
 const base = "http://127.0.0.1:5173";
-const s = await fetch(base + "/signin-with-chatgpt?return_to=/admin", { redirect: "manual" });
+const s = await fetch(base + "/giris?return_to=/admin", { redirect: "manual" });
 const cookie = s.headers.get("set-cookie").split(";")[0];
 async function post(path, b) {
   const r = await fetch(base + "/api/v1/" + path, {

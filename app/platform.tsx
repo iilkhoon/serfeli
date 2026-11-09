@@ -36,6 +36,8 @@ import {
   Send,
   Scale,
   Compass,
+  CreditCard,
+  Truck,
 } from "lucide-react";
 import {
   categories,
@@ -54,6 +56,7 @@ import { api, errorMessage, Modal, Empty, CategoryIcon, StoreLogo } from "./ui";
 import type { Act, Personal, Session } from "./types";
 import Admin from "./admin";
 import Home from "./home";
+import { SIGN_IN_PATH, SIGN_OUT_PATH } from "./auth-headers";
 import { ProductImage } from "../components/product-image";
 import { azDate, azDateTime, azNumber } from "../components/format";
 type ModalState =
@@ -268,6 +271,25 @@ export default function Platform({
     return c.matched.flatMap((id) => byId.get(id) || []);
   }, [c]);
   const listingTop = useRef<HTMLDivElement>(null);
+  const navBar = useRef<HTMLElement>(null);
+  // An open category menu closes on a click outside the nav row or on Escape anywhere.
+  useEffect(() => {
+    if (!menu) return;
+    const close = (e: Event) => {
+      if (
+        e instanceof KeyboardEvent
+          ? e.key === "Escape"
+          : !navBar.current?.contains(e.target as Node)
+      )
+        setMenu(false);
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [menu]);
   const listingLoading = sliceQuery !== loadedQuery && !error;
   const filtersActive = !!(filter.brand || filter.store || filter.min || filter.max || filter.real);
   // Nothing to narrow down: the sort and filter controls would only add noise to the empty state.
@@ -331,7 +353,23 @@ export default function Platform({
             }
           : worthSaving
             ? { tone: "save", text: money(Math.round(save)) + " fərq" }
-            : null;
+            : null,
+      // Card facts come only from recorded offers: the smallest monthly instalment any store
+      // lists, and free delivery only where a store states it.
+      credit = available
+        .flatMap((o) =>
+          o.installmentOptions?.length
+            ? o.installmentOptions.map((x) => ({
+                months: x.months,
+                monthly: x.monthly || x.total / x.months,
+              }))
+            : o.months > 0 && o.installmentTotal > 0
+              ? [{ months: o.months, monthly: o.installmentTotal / o.months }]
+              : [],
+        )
+        .filter((x) => x.months > 0 && x.monthly > 0)
+        .sort((a, b) => a.monthly - b.monthly)[0],
+      freeDelivery = available.some((o) => o.shippingKnown === true && o.shipping === 0);
     return (
       <article className={"pcard" + (available.length ? "" : " pcard-off")} key={p.id}>
         <a className="pcard-image" href={"/mehsul/" + p.id} tabIndex={-1} aria-hidden="true">
@@ -386,7 +424,31 @@ export default function Platform({
           <div className="pcard-price">
             <strong>{low ? money(low.price) : "Qiymət yoxdur"}</strong>
             {low && !available.length && <small>son qiymət</small>}
+            {low && available.length > 1 && high > low.price && (
+              <small className="pcard-high">ən baha {money(high)}</small>
+            )}
           </div>
+          <ul className="pcard-facts">
+            {credit && (
+              <li className="pcard-credit">
+                <CreditCard size={14} aria-hidden="true" />
+                Kreditlə {money(credit.monthly)}/ay
+                <span className="pcard-months"> · {credit.months} ay</span>
+              </li>
+            )}
+            {freeDelivery && (
+              <li>
+                <Truck size={14} aria-hidden="true" />
+                Pulsuz çatdırılma
+              </li>
+            )}
+            {available.length > 0 && !credit && !freeDelivery && (
+              <li className="pcard-fact-muted">
+                <ShieldCheck size={14} aria-hidden="true" />
+                Şərtlərə bax
+              </li>
+            )}
+          </ul>
           <a
             className="pcard-stores"
             href={"/mehsul/" + p.id}
@@ -545,7 +607,7 @@ export default function Platform({
           </div>
         </div>
       </header>
-      <nav className="nav-bar">
+      <nav className="nav-bar" ref={navBar}>
         <div className="shell">
           <button
             className={"category-toggle " + (menu ? "open" : "")}
@@ -634,9 +696,6 @@ export default function Platform({
             </nav>
             <div className="page-heading" ref={listingTop}>
               <div>
-                <span className="eyebrow">
-                  {storeId ? "MAĞAZA TƏKLİFLƏRİ" : "QİYMƏTİ BİL, AĞILLI SEÇ"}
-                </span>
                 <h1>{storeId ? currentStore?.name : title}</h1>
                 <p>
                   {azNumber(c.matchedTotal)} məhsul · {city} üçün müqayisə
@@ -890,7 +949,6 @@ export default function Platform({
           <>
             <div className="page-heading">
               <div>
-                <span className="eyebrow">YERLİ MAĞAZALAR</span>
                 <h1>
                   Tanıdığın mağazalar.
                   <br />
@@ -965,7 +1023,6 @@ export default function Platform({
           <>
             <div className="page-heading">
               <div>
-                <span className="eyebrow">YAN-YANA BAX</span>
                 <h1>Məhsulları müqayisə et</h1>
                 <p>Maksimum 4 məhsulun xüsusiyyətlərini müqayisə et.</p>
               </div>
@@ -1064,7 +1121,6 @@ export default function Platform({
           <>
             <div className="page-heading">
               <div>
-                <span className="eyebrow">QIYMƏTİ İZLƏ</span>
                 <h1>Qiymət bildirişlərin</h1>
                 <p>
                   Hədəfinə çatan qiymətləri bu səhifədə gör. E-poçt və push göndərişi qoşulmayıb.
@@ -1210,7 +1266,7 @@ export default function Platform({
           </div>
         </div>
         <div className="shell footer-bottom">
-          <span>© 2026 Qəpik. Hər qəpiyin dəyəri var.</span>
+          <span>© 2026 Qəpik · Novo Media tərəfindən hazırlanıb</span>
           <span>Qəpik məhsul satmır. Alış seçilən mağazada tamamlanır.</span>
         </div>
       </footer>
@@ -1314,17 +1370,17 @@ export default function Platform({
                   <a className="dark-button" href={"/bildirisler"}>
                     Bildirişlərim <ArrowRight size={17} />
                   </a>
-                  <a className="text-link" href="/signout-with-chatgpt?return_to=/" target="_top">
+                  <a className="text-link" href={SIGN_OUT_PATH + "?return_to=/"} target="_top">
                     Hesabdan çıx
                   </a>
                 </>
               ) : (
                 <a
                   className="dark-button"
-                  href={"/signin-with-chatgpt?return_to=" + encodeURIComponent(path)}
+                  href={SIGN_IN_PATH + "?return_to=" + encodeURIComponent(path)}
                   target="_top"
                 >
-                  ChatGPT ilə daxil ol <ArrowUpRight size={17} />
+                  Hesaba daxil ol <ArrowUpRight size={17} />
                 </a>
               )}
             </div>
@@ -1505,7 +1561,7 @@ function ProductDetail({
           </span>
         </div>
         <div className="detail-overview">
-          <span className="eyebrow">
+          <span className="detail-meta">
             {p.brand} / {categories.find((x) => x.id === p.category)?.name}
           </span>
           <h1>{p.name}</h1>
@@ -2039,7 +2095,6 @@ function MerchantForm({ act, needUser }: { act: Act; needUser: () => boolean }) 
   return (
     <div className="merchant-layout">
       <div>
-        <span className="eyebrow">BİRLİKDƏ BÖYÜYƏK</span>
         <h1>
           Mağazanı
           <br />
@@ -2194,8 +2249,8 @@ function InfoContent({ topic }: { topic: string }) {
     Məxfilik: (
       <>
         <p>
-          Hesaba giriş ChatGPT vasitəsilə həyata keçirilir. Seçilmişlər və qiymət bildirişləri hesab
-          identifikatoruna bağlı məlumat bazasında saxlanılır.
+          Seçilmişlər və qiymət bildirişləri hesab identifikatoruna bağlı məlumat bazasında
+          saxlanılır.
         </p>
         <p>
           Yalnız öz seçilmişlərini və bildirişlərini oxuya və silə bilərsən. Mağaza müraciətləri və
@@ -2215,7 +2270,6 @@ function Guide() {
   return (
     <>
       <div className="guide-hero">
-        <span className="eyebrow">QƏPİK BƏLƏDÇİSİ</span>
         <h1>
           Yaxşı alış-veriş
           <br />

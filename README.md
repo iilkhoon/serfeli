@@ -30,7 +30,7 @@ node scripts/verify-crawl-recovery.mjs
 node scripts/verify-alinino.mjs
 ```
 
-D1 üçün ilk build-dən sonra `drizzle/` daxilindəki SQL migration faylları lokal `.wrangler/state` bazasına tətbiq edilir. Yayımlamada Sites migration-ları özü tətbiq edir.
+D1 üçün ilk build-dən sonra `drizzle/` daxilindəki SQL migration faylları lokal `.wrangler/state` bazasına tətbiq edilir. Server yayımında bu migration-lar serverin D1 bazasına ayrıca tətbiq edilməlidir.
 
 `verify-api.mjs` yalnız localhost bazasına müvəqqəti test məlumatı yazır. `sync-directory-local.mjs` və `verify-live.mjs` lokal ilkin məlumat alətləridir; production-a avtomatik tətbiq edilmir.
 
@@ -51,7 +51,9 @@ D1 üçün ilk build-dən sonra `drizzle/` daxilindəki SQL migration faylları 
 
 ## Giriş və yayım
 
-Sayt ilkin olaraq sahibə məxsus şəxsi yayımdadır. `/admin` səhifəsində ilk aktivləşdirmə sahib hesabını admin kimi D1-də saxlayır. Bu tamamlanmadan giriş dairəsi genişləndirilməməlidir. `OWNER_EMAIL` mühit dəyişəni təyin olunarsa, sahib yerini yalnız həmin e-poçtlu hesab tuta bilər; təyin olunmayıbsa ilk aktivləşdirən hesab sahib olur.
+Sayt hazırda lokalda işləyir. `npm run dev` zamanı `/giris` sabit yerli test hesabı ilə daxil edir, `/cixis` çıxarır (`scripts/vite/local-auth-plugin.ts`, yalnız localhost-dan gələn sorğulara cavab verir). Tətbiq hesabı `x-qepik-user-id`, `x-qepik-user-email`, `x-qepik-user-name` başlıqlarından oxuyur (`app/auth.ts`). Serverə keçiddə real giriş xidməti bu başlıqları brauzerdən gələn sorğulardan silməli və yalnız hesabı yoxladıqdan sonra özü yazmalıdır; `/giris` və `/cixis` marşrutlarını da o xidmət verməlidir. Kanonik domen `lib/seo.ts`-dəki `SITE_URL`-dir.
+
+`/admin` səhifəsində ilk aktivləşdirmə sahib hesabını admin kimi D1-də saxlayır. Bu tamamlanmadan giriş dairəsi genişləndirilməməlidir. `OWNER_EMAIL` mühit dəyişəni təyin olunarsa, sahib yerini yalnız həmin e-poçtlu hesab tuta bilər; təyin olunmayıbsa ilk aktivləşdirən hesab sahib olur.
 
 Yazma sorğuları (`POST`) başqa saytdan gələrsə rədd edilir: `Origin` başqa mənbədirsə və ya `Sec-Fetch-Site` `same-origin`/`none` deyilsə cavab 403-dür. Sonrakı admin yazmaları serverdə həmin identifikatora görə qorunur. Seçilmişlər və bildirişlər istifadəçi identifikatoruna bağlıdır.
 

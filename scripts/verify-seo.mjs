@@ -323,7 +323,20 @@ assert.equal(r.status, 200);
 assert((await r.text()).includes("Disallow: /admin"));
 r = await fetch(base + "/sitemap.xml");
 assert.equal(r.status, 200);
-const sitemap = await r.text();
+let sitemap = await r.text();
+// A large catalog is served as an index of chunks; read the chunks through this server.
+if (sitemap.includes("<sitemapindex")) {
+  const chunks = [...sitemap.matchAll(/\/sitemaps\/(\d+\.xml)<\/loc>/g)].map((m) => m[1]);
+  assert(chunks.length > 0);
+  const parts = await Promise.all(
+    chunks.map(async (name) => {
+      const res = await fetch(base + "/sitemaps/" + name);
+      assert.equal(res.status, 200);
+      return res.text();
+    }),
+  );
+  sitemap = parts.join("\n");
+}
 assert(sitemap.includes("/mehsul/iphone16-black"));
 assert(sitemap.includes("/magazalar/technomania"));
 assert(!sitemap.includes("/admin"));

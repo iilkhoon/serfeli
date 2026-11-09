@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="az">
+  <head>
+    <meta charset="utf-8" />
+    <title>Qəpik — Brend kitabı</title>
+    <!-- Fonts are stored next to this file so the PDF export embeds them. -->
+    <link rel="stylesheet" href="fonts/fonts.css" />
+    <style>
+      @page {
+        size: 297mm 210mm;
+        margin: 0;
+      }
+      :root {
+        --nar-50: #fff1f5;
+        --nar-100: #ffe3eb;
+        --nar-200: #ffc7d7;
+        --nar-300: #ff9bb8;
+        --nar-400: #f45d8a;
+        --nar-500: #e8336a;
+        --nar-600: #d81b54;
+        --nar-700: #b3134a;
+        --nar-800: #8c0f3b;
+        --nar-900: #5e0b29;
+        --nar-950: #2a0714;
+        --milk: #fff8f1;
+        --surface-2: #fbf1e7;
+        --line: #efe2d3;
+        --ink: #22111a;
+        --text: #36222c;
+        --muted: #6e5a63;
+        --success: #157a47;
+        --danger: #b3261e;
+        --display: "Unbounded", sans-serif;
+        --font: "Plus Jakarta Sans", sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        background: var(--milk);
+      }
+      body {
+        color: var(--text);
+        font-family: var(--font);
+        font-size: 11pt;
+        line-height: 1.5;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .page {
+        position: relative;
+        width: 297mm;
+        height: 210mm;
+        padding: 18mm 20mm 16mm;
+        overflow: hidden;
+        background: var(--milk);
+        page-break-after: always;
+        break-after: page;
+      }
+      .page:last-child {
+        page-break-after: auto;
+      }
+      .night {
+        background: var(--nar-950);
+        color: var(--nar-50);
+      }
+      .nar {
+        background: var(--nar-600);
+        color: #fff;
+      }
+      .folio {
+        position: absolute;
+        left: 20mm;
+        right: 20mm;
+        bottom: 9mm;
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 8pt;
+        font-weight: 600;
+      }
+      .night .folio,
+      .nar .folio {
+        color: var(--nar-200);
+      }
+      h1,
+      h2,
+      h3 {
+        color: var(--ink);
+        font-family: var(--display);
+        font-weight: 600;
+        letter-spacing: -0.04em;
+        line-height: 1.05;
+      }
+      .night :is(h1, h2, h3),
+      .nar :is(h1, h2, h3) {
+        color: #fff;
+      }
+      h2 {
+        font-size: 28pt;
+        margin-bottom: 6mm;
+      }
+      h3 {
+        font-size: 12pt;
+        margin-bottom: 2mm;
+        letter-spacing: -0.02em;
+      }
+      p {
+        max-width: 120mm;
+      }
+      .lede {
+        max-width: 135mm;
+        color: var(--muted);
+        font-size: 12pt;
+      }
+      .night .lede {
+        color: var(--nar-200);
+      }
+      .grid {
+        display: grid;
+        gap: 6mm;
+      }
+      .card {
+        padding: 6mm;
+        border-radius: 6mm;
+        background: #fff;
+        border: 1px solid var(--line);
+      }
+      .card.nar {
+        background: var(--nar-600);
+      }
+      .card.night {
+        background: var(--nar-950);
+      }
+      .mark {
+        display: inline-block;
+      }
+      .wordmark {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.32em;
+        color: var(--ink);
+        font-family: var(--display);
+        font-weight: 700;
+        letter-spacing: -0.045em;
+        line-height: 1;
+      }
+      .wordmark svg {
+        width: 1.15em;
+        height: 1.15em;
+        flex: none;
+      }
+      .wordmark i {
+        color: var(--nar-600);
+        font-style: normal;
+      }
+      .on-dark .wordmark,
+      .night .wordmark,
+      .nar .wordmark {
+        color: #fff;
+      }
+      .nar .wordmark i {
+        color: var(--nar-200);
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 2mm;
+        padding: 2.2mm 5mm;
+        border-radius: 99px;
+        font-weight: 700;
+        font-size: 10pt;
+      }
+      .small {
+        font-size: 8.5pt;
+        color: var(--muted);
+      }
+      .night .small {
+        color: var(--nar-200);
+      }
+      ul.clean {
+        list-style: none;
+        display: grid;
+        gap: 2mm;
+      }
+      ul.clean li::before {
+        content: "";
+        display: inline-block;
+        width: 2mm;
+        height: 2mm;
+        margin: 0 3mm 0.5mm 0;
+        border-radius: 50%;
+        background: var(--nar-600);
+      }
+      .x li::before {
+        background: var(--muted);
+      }
+      .i {
+        width: 1em;
+        height: 1em;
+        flex: none;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vertical-align: -0.14em;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Reusable mark -->
+    <svg width="0" height="0" style="position: absolute">
+      <defs>
+        <symbol id="mark" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="18" fill="#d81b54" />
+          <circle cx="30" cy="30" r="14" fill="none" stroke="#fff8f1" stroke-width="7" />
+          <path d="m40 40 9.5 9.5" stroke="#fff8f1" stroke-width="7" stroke-linecap="round" />
+          <circle cx="30" cy="30" r="4.5" fill="#ffc7d7" />
+        </symbol>
+        <symbol id="mark-mono" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="18" fill="#fff" />
+          <circle cx="30" cy="30" r="14" fill="none" stroke="#d81b54" stroke-width="7" />
+          <path d="m40 40 9.5 9.5" stroke="#d81b54" stroke-width="7" stroke-linecap="round" />
+          <circle cx="30" cy="30" r="4.5" fill="#d81b54" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <!-- 1. Cover -->
+    <section class="page night" style="padding: 22mm 24mm">
+      <div
+        style="
+          position: absolute;
+          right: -60mm;
+          bottom: -90mm;
+          width: 220mm;
+          height: 220mm;
+          border-radius: 50%;
+          background: #d81b54;
+          filter: blur(60px);
+          opacity: 0.55;
+        "
+      ></div>
+      <div class="wordmark" style="font-size: 22pt">
+        <svg><use href="#mark" /></svg><span>qəpik<i>.</i></span>
+      </div>
+      <div style="position: absolute; left: 24mm; bottom: 34mm">
+        <p style="color: var(--nar-200); font-weight: 700; font-size: 11pt; margin-bottom: 6mm">
+          Brend kitabı · 2026
+        </p>
+        <h1 style="font-size: 54pt; max-width: 210mm">
+          Ucuzunu tap,<br /><span
+            style="
+              display: inline-block;
+              margin-top: 3mm;
+              padding: 0 4mm 1.5mm;
+              border-radius: 4mm;
+              background: #d81b54;
+              transform: rotate(-2deg);
+            "
+            >qəpiyinə qədər.</span
+          >
+        </h1>
+      </div>
+      <div class="folio"><span>Qəpik — Azərbaycan qiymət müqayisəsi</span><span>01</span></div>
+    </section>
+
+    <!-- 2. Brand -->
+    <section class="page">
+      <div class="grid" style="grid-template-columns: 1.1fr 1fr; gap: 16mm; height: 100%">
+        <div>
+          <h2>Qəpik nədir?</h2>
+          <p class="lede">
+            Qəpik Azərbaycan mağazalarının qiymətlərini bir yerdə göstərən müqayisə saytıdır.
+            Eyni məhsulun qiymətini, çatdırılmasını, kredit şərtlərini və stokunu yan-yana qoyur.
+            Qəpik heç nə satmır: alış seçilən mağazanın öz saytında tamamlanır.
+          </p>
+          <div class="card" style="margin-top: 10mm; background: var(--nar-50); border-color: var(--nar-200)">
+            <h3 style="color: var(--nar-800)">Vədimiz</h3>
+            <p style="font-size: 13pt; color: var(--ink); font-weight: 600">
+              Hər qəpiyin hesabını görürsən. Gördüyün hər qiymət real mağaza təklifindən gəlir və
+              yoxlanma vaxtı ilə göstərilir.
+            </p>
+          </div>
+        </div>
+        <div class="grid" style="align-content: start">
+          <h3>Mündəricat</h3>
+          <ol style="display: grid; gap: 2.4mm; padding-left: 6mm; font-weight: 600; color: var(--ink)">
+            <li>Brend və səs tonu</li>
+            <li>Loqo və işarə</li>
+            <li>Loqonun istifadəsi və boş sahə</li>
+            <li>Səhv istifadə</li>
+            <li>Rəng: nar şkalası</li>
+            <li>Rəng nisbəti və funksional rənglər</li>
+            <li>Tipoqrafiya</li>
+            <li>İnterfeys elementləri</li>
+            <li>Məhsul kartı</li>
+            <li>İkon, foto və hərəkət</li>
+            <li>Tətbiq nümunələri</li>
+          </ol>
+        </div>
+      </div>
+      <div class="folio"><span>Brend</span><span>02</span></div>
+    </section>
+
+    <!-- 3. Voice -->
+    <section class="page">
+      <h2>Səs tonu</h2>
+      <p class="lede" style="margin-bottom: 10mm">
+        Qəpik dost kimi danışır: “sən” deyə müraciət edir, qısa və aydın yazır, rəqəmləri
+        şişirtmir. Şən ola bilər, amma heç vaxt aldatmır.
+      </p>
+      <div class="grid" style="grid-template-columns: repeat(3, 1fr)">
+        <div class="card">
+          <h3>Dürüst</h3>
+          <p class="small">
+            Mağazanın dərc etmədiyi endirim faizi yoxdur. “Son şans”, “yalnız bu gün” kimi süni
+            təcililik yoxdur.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Aydın</h3>
+          <p class="small">
+            Bir cümlə, bir fikir. Düymə nə edəcəyini deyir: “Axtar”, “Mağazaya keç”, “Hədəf qiymət
+            qur”.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Şən</h3>
+          <p class="small">
+            Qəpik sözü ilə oyun, yüngül zarafat, canlı başlıqlar. Ciddi məlumat (qiymət, stok,
+            zəmanət) həmişə sadə qalır.
+          </p>
+        </div>
+      </div>
+      <div class="grid" style="grid-template-columns: 1fr 1fr; margin-top: 8mm">
+        <div class="card" style="border-color: var(--nar-200)">
+          <h3 style="color: var(--nar-700)">Belə yazırıq</h3>
+          <ul class="clean" style="font-weight: 600; color: var(--ink)">
+            <li>Ucuzunu tap, qəpiyinə qədər.</li>
+            <li>4 mağazada eyni məhsul — 611 ₼ qənaət.</li>
+            <li>İstədiyin qiymətə düşəndə xəbər verək.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3 style="color: var(--muted)">Belə yazmırıq</h3>
+          <ul class="clean x" style="color: var(--muted)">
+            <li>ŞOK ENDİRİM!!! Yalnız bu gün −70%</li>
+            <li>Ən yaxşı qiymət zəmanəti</li>
+            <li>Dəyərli müştərimiz, sizə təqdim edirik…</li>
+          </ul>
+        </div>
+      </div>
+      <div class="folio"><span>Brend və səs tonu</span><span>03</span></div>
+    </section>
+
+    <!-- 4. Logo -->
+    <section class="page">
+      <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14mm">
+        <div>
+          <h2>Loqo</h2>
+          <p class="lede">
+            Loqo iki hissədən ibarətdir: işarə və “qəpik.” yazısı. İşarə axtarış lupasıdır; lupanın
+            içindəki dairə qəpik sikkəsidir. Yazı Unbounded Bold, sondakı nöqtə nar rəngindədir.
+          </p>
+          <div class="grid" style="grid-template-columns: 1fr 1fr; margin-top: 10mm; gap: 4mm">
+            <div class="card">
+              <h3>İşarə</h3>
+              <p class="small">64 × 64 kvadrat, künc radiusu 18. Favicon, tətbiq ikonu, profil şəkli.</p>
+            </div>
+            <div class="card">
+              <h3>Tam loqo</h3>
+              <p class="small">İşarə + yazı. Sayt başlığı, sənədlər, reklam, mağaza materialları.</p>
+            </div>
+          </div>
+        </div>
+        <div
+          class="card"
+          style="display: grid; place-items: center; gap: 12mm; padding: 14mm; background: #fff"
+        >
+          <div class="wordmark" style="font-size: 46pt">
+            <svg><use href="#mark" /></svg><span>qəpik<i>.</i></span>
+          </div>
+          <svg style="width: 52mm; height: 52mm"><use href="#mark" /></svg>
+        </div>
+      </div>
+      <div class="folio"><span>Loqo və işarə</span><span>04</span></div>
+    </section>
+
+    <!-- 5. Logo usage -->
+    <section class="page">
+      <h2>Versiyalar və boş sahə</h2>
+      <div class="grid" style="grid-template-columns: repeat(3, 1fr); height: 74mm">
+        <div class="card" style="display: grid; place-items: center">
+          <div class="wordmark" style="font-size: 24pt"><svg><use href="#mark" /></svg><span>qəpik<i>.</i></span></div>
+        </div>
+        <div class="card nar" style="display: grid; place-items: center; border: 0">
+          <div class="wordmark" style="font-size: 24pt">
+            <svg><use href="#mark-mono" /></svg><span>qəpik<i>.</i></span>
+          </div>
+        </div>
+        <div class="card night" style="display: grid; place-items: center; border: 0">
+          <div class="wordmark" style="font-size: 24pt"><svg><use href="#mark" /></svg><span>qəpik<i>.</i></span></div>
+        </div>
+      </div>
+      <div class="grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 3mm">
+        <p class="small">Əsas: süd rəngli və ya ağ fonda.</p>
+        <p class="small">Nar fonda: ağ işarə, nöqtə nar-200.</p>
+        <p class="small">Gecə fonda (nar-950): əsas işarə, ağ yazı.</p>
+      </div>
+      <div class="grid" style="grid-template-columns: 1.2fr 1fr 1fr; margin-top: 9mm; align-items: start">
+        <div class="card" style="display: flex; align-items: center; gap: 8mm">
+          <div style="padding: 7mm; border: 1.5px dashed var(--nar-300); border-radius: 3mm">
+            <div class="wordmark" style="font-size: 18pt"><svg><use href="#mark" /></svg><span>qəpik<i>.</i></span></div>
+          </div>
+          <p class="small" style="max-width: 50mm">
+            Boş sahə: loqonun ətrafında ən azı işarənin yarısı qədər (X/2) boşluq saxla.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Minimum ölçü</h3>
+          <p class="small">Tam loqo: ekranda 96 px, çapda 24 mm. İşarə: 16 px, çapda 6 mm.</p>
+        </div>
+        <div class="card">
+          <h3>Fayllar</h3>
+          <p class="small">İşarə: public/favicon.svg. Rənglər app/theme.css-dəki --nar tokenləridir.</p>
+        </div>
+      </div>
+      <div class="folio"><span>Loqonun istifadəsi</span><span>05</span></div>
+    </section>
+
+    <!-- 6. Misuse -->
+    <section class="page">
+      <h2>Səhv istifadə</h2>
+      <p class="lede" style="margin-bottom: 9mm">Loqonu dəyişmə. Bu nümunələr qadağandır.</p>
+      <div class="grid" style="grid-template-columns: repeat(4, 1fr)">
+        <div class="card" style="display: grid; place-items: center; height: 46mm">
+          <div class="wordmark" style="font-size: 18pt; transform: scaleX(1.5)">
+            <svg><use href="#mark" /></svg><span>qəpik<i>.</i></span>
+          </div>
+        </div>
+        <div class="card" style="display: grid; place-items: center; height: 46mm">
+          <div class="wordmark" style="font-size: 18pt; color: #1f5eff">
+            <svg style="filter: hue-rotate(160deg)"><use href="#mark" /></svg>qəpik<i style="color: #1f5eff">.</i>
+          </div>
+        </div>
+        <div class="card" style="display: grid; place-items: center; height: 46mm">
+          <div class="wordmark" style="font-size: 18pt; text-shadow: 3px 3px 0 #ffc7d7">
+            <svg><use href="#mark" /></svg><span>qəpik<i>.</i></span>
+          </div>
+        </div>
+        <div
+          class="card"
+          style="display: grid; place-items: center; height: 46mm; background: var(--nar-400); border: 0"
+        >
+          <div class="wordmark" style="font-size: 18pt"><svg><use href="#mark" /></svg><span>qəpik<i>.</i></span></div>
+        </div>
+      </div>
+      <div class="grid" style="grid-template-columns: repeat(4, 1fr); margin-top: 3mm">
+        <p class="small"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg> Uzatma və sıxma</p>
+        <p class="small"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg> Başqa rəngə boyama</p>
+        <p class="small"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg> Kölgə, kontur, effekt</p>
+        <p class="small"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg> Zəif kontrastlı fonda</p>
+      </div>
+      <div class="grid" style="grid-template-columns: repeat(4, 1fr); margin-top: 8mm">
+        <div class="card" style="display: grid; place-items: center; height: 46mm">
+          <div class="wordmark" style="font-size: 18pt; font-family: Georgia, serif; letter-spacing: 0">
+            <svg><use href="#mark" /></svg><span>qəpik<i>.</i></span>
+          </div>
+        </div>
+        <div class="card" style="display: grid; place-items: center; height: 46mm">
+          <div class="wordmark" style="font-size: 18pt; transform: rotate(-12deg)">
+            <svg><use href="#mark" /></svg><span>qəpik<i>.</i></span>
+          </div>
+        </div>
+        <div class="card" style="display: grid; place-items: center; height: 46mm">
+          <div class="wordmark" style="font-size: 18pt">
+            <span>qəpik<i>.</i></span><svg><use href="#mark" /></svg>
+          </div>
+        </div>
+        <div class="card" style="display: grid; place-items: center; height: 46mm">
+          <div class="wordmark" style="font-size: 18pt"><span>QƏPİK<i>.</i></span></div>
+        </div>
+      </div>
+      <div class="grid" style="grid-template-columns: repeat(4, 1fr); margin-top: 3mm">
+        <p class="small"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg> Başqa şrift</p>
+        <p class="small"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg> Döndərmə</p>
+        <p class="small"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg> Hissələrin yerini dəyişmə</p>
+        <p class="small"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg> Böyük hərflə yazma</p>
+      </div>
+      <div class="folio"><span>Səhv istifadə</span><span>06</span></div>
+    </section>
+
+    <!-- 7. Colour scale -->
+    <section class="page">
+      <h2>Rəng: nar</h2>
+      <p class="lede" style="margin-bottom: 9mm">
+        Qəpik-in bir rəngi var: nar <b style="color: var(--nar-600)">#D81B54</b>. Saytdakı bütün
+        rənglər bu tondan törəyir. Açıq çalarlar fon və nişan, tünd çalarlar mətn və gecə
+        paneli üçündür.
+      </p>
+      <div style="display: grid; grid-template-columns: repeat(11, 1fr); gap: 2mm; height: 72mm">
+        <div style="background: #fff1f5; border-radius: 4mm; border: 1px solid var(--line)"></div>
+        <div style="background: #ffe3eb; border-radius: 4mm"></div>
+        <div style="background: #ffc7d7; border-radius: 4mm"></div>
+        <div style="background: #ff9bb8; border-radius: 4mm"></div>
+        <div style="background: #f45d8a; border-radius: 4mm"></div>
+        <div style="background: #e8336a; border-radius: 4mm"></div>
+        <div style="background: #d81b54; border-radius: 4mm; outline: 2.5px solid var(--ink); outline-offset: 2px"></div>
+        <div style="background: #b3134a; border-radius: 4mm"></div>
+        <div style="background: #8c0f3b; border-radius: 4mm"></div>
+        <div style="background: #5e0b29; border-radius: 4mm"></div>
+        <div style="background: #2a0714; border-radius: 4mm"></div>
+      </div>
+      <div
+        style="
+          display: grid;
+          grid-template-columns: repeat(11, 1fr);
+          gap: 2mm;
+          margin-top: 3mm;
+          font-size: 8pt;
+          line-height: 1.35;
+        "
+      >
+        <div><b>50</b><br />#FFF1F5<br /><span class="small">fon vurğusu</span></div>
+        <div><b>100</b><br />#FFE3EB<br /><span class="small">nişan fonu</span></div>
+        <div><b>200</b><br />#FFC7D7<br /><span class="small">seçim, kontur</span></div>
+        <div><b>300</b><br />#FF9BB8<br /><span class="small">fokus halqası</span></div>
+        <div><b>400</b><br />#F45D8A<br /><span class="small">işıq effekti</span></div>
+        <div><b>500</b><br />#E8336A<br /><span class="small">illüstrasiya</span></div>
+        <div><b>600 · əsas</b><br />#D81B54<br /><span class="small">brend, düymə</span></div>
+        <div><b>700</b><br />#B3134A<br /><span class="small">hover, link</span></div>
+        <div><b>800</b><br />#8C0F3B<br /><span class="small">nişan mətni</span></div>
+        <div><b>900</b><br />#5E0B29<br /><span class="small">dərin fon</span></div>
+        <div><b>950</b><br />#2A0714<br /><span class="small">gecə paneli</span></div>
+      </div>
+      <div class="folio"><span>Rəng: nar şkalası</span><span>07</span></div>
+    </section>
+
+    <!-- 8. Ratio + neutrals -->
+    <section class="page">
+      <h2>Nisbət və funksional rənglər</h2>
+      <div style="display: flex; height: 26mm; border-radius: 5mm; overflow: hidden; margin-bottom: 3mm">
+        <div style="flex: 60; background: var(--milk); border: 1px solid var(--line); border-radius: 5mm 0 0 5mm; padding: 4mm; font-weight: 700">60% süd</div>
+        <div style="flex: 22; background: #fff; border-block: 1px solid var(--line); padding: 4mm; font-weight: 700">22% ağ</div>
+        <div style="flex: 10; background: var(--nar-600); color: #fff; padding: 4mm; font-weight: 700">10% nar</div>
+        <div style="flex: 8; background: var(--nar-950); color: #fff; padding: 4mm; font-weight: 700">8%</div>
+      </div>
+      <p class="small" style="margin-bottom: 9mm">
+        Səhifənin çoxu sakit fondur. Nar yalnız diqqət lazım olan yerdə: əsas düymə, qənaət nişanı,
+        loqo, aktiv vəziyyət.
+      </p>
+      <div class="grid" style="grid-template-columns: repeat(4, 1fr)">
+        <div class="card">
+          <div style="height: 18mm; border-radius: 3mm; background: var(--milk); border: 1px solid var(--line)"></div>
+          <h3 style="margin-top: 3mm">Süd</h3>
+          <p class="small">#FFF8F1 · səhifə fonu</p>
+        </div>
+        <div class="card">
+          <div style="height: 18mm; border-radius: 3mm; background: var(--ink)"></div>
+          <h3 style="margin-top: 3mm">Mürəkkəb</h3>
+          <p class="small">#22111A · mətn, qiymət</p>
+        </div>
+        <div class="card">
+          <div style="height: 18mm; border-radius: 3mm; background: var(--success)"></div>
+          <h3 style="margin-top: 3mm">Stok yaşılı</h3>
+          <p class="small">#157A47 · yalnız “stokda var”</p>
+        </div>
+        <div class="card">
+          <div style="height: 18mm; border-radius: 3mm; background: var(--danger)"></div>
+          <h3 style="margin-top: 3mm">Xəta qırmızısı</h3>
+          <p class="small">#B3261E · yalnız xəta</p>
+        </div>
+      </div>
+      <div class="card" style="margin-top: 7mm; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm">
+        <div><b>17.2 : 1</b><br /><span class="small">mürəkkəb / süd</span></div>
+        <div><b>4.99 : 1</b><br /><span class="small">ağ mətn / nar düymə</span></div>
+        <div><b>6.03 : 1</b><br /><span class="small">köməkçi mətn / süd</span></div>
+        <div><b>WCAG AA</b><br /><span class="small">bütün mətn cütləri keçir</span></div>
+      </div>
+      <div class="folio"><span>Rəng nisbəti</span><span>08</span></div>
+    </section>
+
+    <!-- 9. Type -->
+    <section class="page">
+      <h2>Tipoqrafiya</h2>
+      <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10mm">
+        <div class="card">
+          <p class="small" style="margin-bottom: 3mm">Başlıq, loqo, qiymət</p>
+          <div style="font-family: var(--display); font-weight: 600; font-size: 40pt; letter-spacing: -0.045em; line-height: 1; color: var(--ink)">
+            Unbounded
+          </div>
+          <div style="font-family: var(--display); font-size: 16pt; margin-top: 5mm; color: var(--ink); letter-spacing: -0.02em">
+            Əə Ğğ İı Şş Çç Öö Üü ₼<br />1 789 ₼ · 611 ₼ qənaət
+          </div>
+          <p class="small" style="margin-top: 4mm">500 · 600 · 700. Hərf aralığı −0.04em. Sətir 1.0–1.1.</p>
+        </div>
+        <div class="card">
+          <p class="small" style="margin-bottom: 3mm">İnterfeys və mətn</p>
+          <div style="font-weight: 800; font-size: 34pt; letter-spacing: -0.03em; line-height: 1; color: var(--ink)">
+            Plus Jakarta Sans
+          </div>
+          <div style="font-size: 13pt; margin-top: 5mm; color: var(--ink)">
+            Əə Ğğ İı Şş Çç Öö Üü ₼<br />Qiyməti, çatdırılmanı və krediti yan-yana gör.
+          </div>
+          <p class="small" style="margin-top: 4mm">400 · 600 · 700 · 800. Əsas mətn 15 px, sətir 1.55.</p>
+        </div>
+      </div>
+      <div class="card" style="margin-top: 7mm; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4mm; align-items: end">
+        <div><div style="font-family: var(--display); font-weight: 600; font-size: 30pt; letter-spacing: -0.045em; color: var(--ink)">Aa</div><span class="small">Hero · 34–64 px</span></div>
+        <div><div style="font-family: var(--display); font-weight: 600; font-size: 22pt; letter-spacing: -0.045em; color: var(--ink)">Aa</div><span class="small">Bölmə · 24–36 px</span></div>
+        <div><div style="font-family: var(--display); font-weight: 600; font-size: 15pt; letter-spacing: -0.04em; color: var(--ink)">1 789 ₼</div><span class="small">Qiymət · 16–19 px</span></div>
+        <div><div style="font-weight: 700; font-size: 12pt; color: var(--ink)">Kart başlığı</div><span class="small">14 px · 600</span></div>
+        <div><div style="font-size: 10pt; color: var(--muted)">Köməkçi mətn</div><span class="small">12.5–13 px</span></div>
+      </div>
+      <p class="small" style="margin-top: 5mm">
+        Hər iki şrift ə, Ə, ğ, İ və ₼ işarələrini dəstəkləyir. Bu, seçimin əsas şərti idi:
+        Bricolage, Rubik, Outfit kimi məşhur şriftlərdə “ə” hərfi yoxdur.
+      </p>
+      <div class="folio"><span>Tipoqrafiya</span><span>09</span></div>
+    </section>
+
+    <!-- 10. UI -->
+    <section class="page">
+      <h2>İnterfeys elementləri</h2>
+      <div class="grid" style="grid-template-columns: 1.15fr 1fr; gap: 10mm">
+        <div class="grid" style="align-content: start; gap: 7mm">
+          <div class="card">
+            <h3>Düymələr</h3>
+            <div style="display: flex; gap: 4mm; flex-wrap: wrap; margin-top: 3mm">
+              <span class="pill" style="background: var(--nar-600); color: #fff">Axtar <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+              <span class="pill" style="background: #fff; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink)">Mağazaya keç <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg></span>
+              <span class="pill" style="background: var(--ink); color: #fff">Bütün kateqoriyalar</span>
+            </div>
+            <p class="small" style="margin-top: 3mm">Hamısı həb formasında. Əsas hərəkət nar, ikinci dərəcəli mürəkkəb kontur.</p>
+          </div>
+          <div class="card">
+            <h3>Nişanlar</h3>
+            <div style="display: flex; gap: 3mm; flex-wrap: wrap; margin-top: 3mm">
+              <span class="pill" style="background: var(--nar-600); color: #fff; font-size: 9pt; padding: 1.5mm 4mm"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 17-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/></svg> 611 ₼ fərq</span>
+              <span class="pill" style="background: var(--nar-100); color: var(--nar-800); font-size: 9pt; padding: 1.5mm 4mm">Ən ucuz</span>
+              <span class="pill" style="background: var(--ink); color: #fff; font-size: 9pt; padding: 1.5mm 4mm">Stokda yoxdur</span>
+              <span class="pill" style="background: #dff5e8; color: var(--success); font-size: 9pt; padding: 1.5mm 4mm"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> Stokda var</span>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Axtarış</h3>
+            <div style="display: flex; align-items: center; gap: 3mm; margin-top: 3mm; padding: 1.5mm 1.5mm 1.5mm 5mm; border-radius: 99px; background: #fff; box-shadow: inset 0 0 0 1.5px #dcc9b5">
+              <span class="small" style="flex: 1">Nə axtarırsan? Məsələn, iPhone 17</span>
+              <span class="pill" style="background: var(--nar-600); color: #fff">Axtar <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="background: var(--nar-950); border: 0">
+          <h3 style="color: #fff">Radius və kölgə</h3>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; margin-top: 4mm">
+            <div style="height: 26mm; border-radius: 99px; background: #fff"></div>
+            <div style="height: 26mm; border-radius: 6mm; background: #fff"></div>
+            <div style="height: 26mm; border-radius: 9mm; background: var(--nar-600)"></div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; margin-top: 2mm; color: var(--nar-200); font-size: 8.5pt">
+            <span>Həb · düymə</span><span>22 px · kart</span><span>36 px · panel</span>
+          </div>
+          <p style="color: var(--nar-200); font-size: 9.5pt; margin-top: 8mm">
+            Kölgə yumşaq və tünd nar tonundadır: 0 2px 4px və 0 18px 40px, 8–12% şəffaflıq.
+            Sərt, ofsetli kölgə istifadə edilmir.
+          </p>
+        </div>
+      </div>
+      <div class="folio"><span>İnterfeys elementləri</span><span>10</span></div>
+    </section>
+
+    <!-- 11. Product card -->
+    <section class="page">
+      <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14mm; align-items: center; height: 100%">
+        <div>
+          <h2>Məhsul kartı</h2>
+          <p class="lede">Kart alıcının ilk sualına cavab verir: harada, neçəyə, hansı şərtlə?</p>
+          <ul class="clean" style="margin-top: 8mm; color: var(--ink)">
+            <li>Şəkil isti lövhədə, nisbət sabit</li>
+            <li>Nar nişan yalnız real qənaət olanda (5 ₼ və 2%-dən çox)</li>
+            <li>Ən aşağı qiymət + ən baha qiymət</li>
+            <li>Kredit (aylıq ödəniş) və pulsuz çatdırılma, yalnız mağaza bildirəndə</li>
+            <li>“N mağazada qiymət” keçidi</li>
+            <li>Seçilmişlər və müqayisə düymələri</li>
+          </ul>
+        </div>
+        <div style="display: grid; place-items: center">
+          <div style="width: 78mm; padding: 2.4mm; border-radius: 6mm; background: #fff; box-shadow: 0 2px 4px #2a071414, 0 18px 40px #2a07141f">
+            <div style="position: relative; height: 62mm; border-radius: 4.5mm; background: #f7f1ea; display: grid; place-items: center">
+              <svg viewBox="0 0 60 110" style="height: 46mm">
+                <rect x="4" y="2" width="52" height="106" rx="10" fill="#2b2b30" />
+                <rect x="8" y="6" width="44" height="98" rx="7" fill="#45454d" />
+                <circle cx="18" cy="16" r="5" fill="#1b1b1f" />
+                <circle cx="18" cy="28" r="5" fill="#1b1b1f" />
+              </svg>
+              <span class="pill" style="position: absolute; top: 3mm; left: 3mm; background: var(--nar-600); color: #fff; font-size: 8pt; padding: 1mm 3mm"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 17-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/></svg> 611 ₼ fərq</span>
+            </div>
+            <div style="padding: 3mm 2mm 2mm">
+              <div style="font-weight: 600; color: var(--ink); font-size: 10.5pt">Apple iPhone 16</div>
+              <div class="small">128 GB · Black</div>
+              <div style="display: flex; align-items: baseline; gap: 2mm; margin-top: 3mm">
+                <span style="font-family: var(--display); font-weight: 600; font-size: 15pt; letter-spacing: -0.04em; color: var(--ink)">1 789 ₼</span>
+                <span class="small">ən baha 2 399,99 ₼</span>
+              </div>
+              <div style="color: var(--nar-700); font-weight: 600; font-size: 8.5pt; margin-top: 1.5mm"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg> Kreditlə 108,28 ₼/ay · 18 ay</div>
+              <span class="pill" style="margin-top: 3mm; background: var(--surface-2); color: var(--ink); font-size: 8.5pt; padding: 1mm 3mm">4 mağazada qiymət <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="folio"><span>Məhsul kartı</span><span>11</span></div>
+    </section>
+
+    <!-- 12. Icon, photo, motion -->
+    <section class="page">
+      <h2>İkon, foto və hərəkət</h2>
+      <div class="grid" style="grid-template-columns: repeat(3, 1fr)">
+        <div class="card">
+          <h3>İkonlar</h3>
+          <div style="display: flex; gap: 3mm; margin: 4mm 0">
+            <span style="display: grid; place-items: center; width: 13mm; height: 13mm; border-radius: 4mm; background: var(--nar-50)">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d81b54" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" /><path d="M12 18h.01" /></svg>
+            </span>
+            <span style="display: grid; place-items: center; width: 13mm; height: 13mm; border-radius: 4mm; background: var(--nar-50)">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d81b54" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" /></svg>
+            </span>
+            <span style="display: grid; place-items: center; width: 13mm; height: 13mm; border-radius: 4mm; background: var(--nar-50)">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d81b54" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></svg>
+            </span>
+          </div>
+          <p class="small">Lucide kitabxanası, xətt qalınlığı 1.6. İkon nar-50 fonda nar-600 rəngdə. Emoji ikon kimi istifadə edilmir.</p>
+        </div>
+        <div class="card">
+          <h3>Məhsul fotosu</h3>
+          <div style="height: 22mm; margin: 4mm 0; border-radius: 4mm; background: #f7f1ea; display: grid; place-items: center">
+            <svg viewBox="0 0 80 40" style="height: 14mm"><rect x="10" y="6" width="60" height="28" rx="6" fill="#d9d4ce" /><circle cx="40" cy="20" r="8" fill="#bdb6ae" /></svg>
+          </div>
+          <p class="small">Mağazanın öz şəkli dəyişdirilmir. İsti lövhədə “multiply” ilə oturur ki, ağ fon itsin.</p>
+        </div>
+        <div class="card">
+          <h3>Hərəkət</h3>
+          <ul class="clean small" style="margin-top: 4mm">
+            <li>Bir imza anı: 3D qiymət kartları</li>
+            <li>Giriş: 0.9 s, ease-out, yuxarı qalxma</li>
+            <li>Hover: 0.2–0.45 s, kart 4 px qalxır</li>
+            <li>“Hərəkəti azalt” ayarında hamısı dayanır</li>
+          </ul>
+        </div>
+      </div>
+      <div class="folio"><span>İkon, foto və hərəkət</span><span>12</span></div>
+    </section>
+
+    <!-- 13. Applications -->
+    <section class="page">
+      <h2>Tətbiq nümunələri</h2>
+      <div class="grid" style="grid-template-columns: 1fr 1fr 0.8fr; gap: 7mm; align-items: start">
+        <div class="night" style="aspect-ratio: 1; border-radius: 6mm; background: var(--nar-950); color: #fff; padding: 8mm; position: relative; overflow: hidden">
+          <div style="position: absolute; right: -25mm; bottom: -30mm; width: 70mm; height: 70mm; border-radius: 50%; background: #d81b54; filter: blur(30px); opacity: 0.6"></div>
+          <div class="wordmark" style="font-size: 11pt"><svg><use href="#mark" /></svg><span>qəpik<i>.</i></span></div>
+          <div style="position: absolute; left: 8mm; bottom: 9mm; right: 8mm">
+            <div style="font-family: var(--display); font-weight: 600; font-size: 19pt; letter-spacing: -0.045em; line-height: 1.05">Eyni iPhone.<br /><span style="color: var(--nar-300)">611 ₼ fərq.</span></div>
+            <div style="font-size: 8pt; color: var(--nar-200); margin-top: 3mm">Qəpik-də müqayisə et</div>
+          </div>
+        </div>
+        <div class="nar" style="aspect-ratio: 1; border-radius: 6mm; background: var(--nar-600); color: #fff; padding: 8mm; position: relative">
+          <div class="wordmark" style="font-size: 11pt"><svg><use href="#mark-mono" /></svg><span>qəpik<i>.</i></span></div>
+          <div style="position: absolute; left: 8mm; bottom: 9mm; right: 8mm">
+            <div style="font-family: var(--display); font-weight: 600; font-size: 19pt; letter-spacing: -0.045em; line-height: 1.05">Qiymət düşəndə<br />xəbər verək.</div>
+            <span class="pill" style="margin-top: 4mm; background: #fff; color: var(--nar-700); font-size: 8.5pt">Hədəf qiymət qur <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+          </div>
+        </div>
+        <div class="grid" style="gap: 5mm">
+          <div class="card" style="display: flex; align-items: center; gap: 4mm">
+            <svg style="width: 18mm; height: 18mm; filter: drop-shadow(0 4px 8px #2a071433)"><use href="#mark" /></svg>
+            <div><h3 style="margin: 0">Tətbiq ikonu</h3><p class="small">İşarə tam, kənarsız.</p></div>
+          </div>
+          <div class="card">
+            <h3>Sosial media</h3>
+            <p class="small">Bir post, bir rəqəm, bir mesaj. Real məhsul və real qənaət məbləği.</p>
+          </div>
+          <div class="card">
+            <h3>Mağaza materialı</h3>
+            <p class="small">“Qiymətlərimiz Qəpik-də” stikeri: süd fon, tam loqo.</p>
+          </div>
+        </div>
+      </div>
+      <div class="folio"><span>Tətbiq nümunələri</span><span>13</span></div>
+    </section>
+
+    <!-- 14. Back -->
+    <section class="page nar" style="display: grid; place-items: center; text-align: center">
+      <div>
+        <div class="wordmark" style="font-size: 40pt"><svg><use href="#mark-mono" /></svg><span>qəpik<i>.</i></span></div>
+        <p style="margin: 8mm auto 0; color: var(--nar-100); font-size: 13pt; max-width: none">
+          Qiyməti bil. Ağıllı seç.
+        </p>
+      </div>
+      <div class="folio"><span>Qəpik brend kitabı · 2026</span><span>14</span></div>
+    </section>
+  </body>
+</html>

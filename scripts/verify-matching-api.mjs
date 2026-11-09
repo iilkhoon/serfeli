@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 
 // Deliberately fixed to local preview; this script must never write to a published catalog.
 const base = "http://127.0.0.1:5173";
-const auth = await fetch(base + "/signin-with-chatgpt?return_to=/admin", { redirect: "manual" });
+const auth = await fetch(base + "/giris?return_to=/admin", { redirect: "manual" });
 const cookie = auth.headers.get("set-cookie")?.split(";")[0];
 assert(cookie, "local auth cookie");
 async function api(path, body, authenticated = true, origin = base) {

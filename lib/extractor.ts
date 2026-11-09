@@ -61,7 +61,7 @@ async function sourceFetch(url: URL, timeoutMs = 12000, extraHeaders: Record<str
         redirect: "manual",
         signal: AbortSignal.timeout(timeoutMs),
         headers: {
-          "User-Agent": "QepikBot/1.0 (+https://qepik-az.mythicfern36.chatgpt.site)",
+          "User-Agent": "QepikBot/1.0",
           Accept: "text/html,text/plain;q=0.8",
           ...extraHeaders,
         },

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 const base = "http://127.0.0.1:5173";
-const sign = await fetch(base + "/signin-with-chatgpt?return_to=/admin", { redirect: "manual" });
+const sign = await fetch(base + "/giris?return_to=/admin", { redirect: "manual" });
 const cookie = sign.headers.get("set-cookie")?.split(";")[0];
 assert(cookie);
 async function call(path, body, auth = true) {
