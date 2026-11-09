@@ -31,14 +31,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": [
-    "node_modules",
-    "examples",
-    "dist",
-    ".vinext",
-    ".wrangler",
-    ".runtime",
-    "outputs",
-    "work"
-  ]
+  "exclude": ["node_modules", "dist", ".vinext", ".wrangler", ".runtime", "outputs", "work"]
 }

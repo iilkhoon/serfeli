@@ -4,7 +4,6 @@ node_modules
 .vinext
 components/ui
 hooks
-vendor
 drizzle
 docs
 lib/store-catalogs
@@ -14,6 +13,5 @@ package-lock.json
 public
 outputs
 work
-examples
 # Captured merchant responses used by verify-*.mjs; must stay byte-for-byte
 scripts/fixtures
