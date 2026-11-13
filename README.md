@@ -30,7 +30,7 @@ node scripts/verify-crawl-recovery.mjs
 node scripts/verify-alinino.mjs
 ```
 
-`npm run start` hər işə düşəndə `drizzle/` daxilindəki yeni SQL migration fayllarını lokal `.wrangler/state` bazasına avtomatik tətbiq edir (ayrıca: `npm run db:migrate`). Server yayımında bu migration-lar serverin D1 bazasına ayrıca tətbiq edilməlidir.
+`npm run start` hər işə düşəndə əvvəlcə `drizzle/` daxilindəki yeni SQL migration fayllarını lokal `.wrangler/state` bazasına tətbiq edir (`npm run db:migrate`), sonra layihədəki ilkin kataloqu bazaya yazır (`npm run db:seed`). Lokal `wrangler dev` cron işlətmədiyi üçün bu addım olmasa sayt 0 məhsul göstərir. İlk dəfə ~2 dəqiqə çəkir, sonrakı başlanğıclarda keçilir. Server yayımında migration-lar serverin D1 bazasına ayrıca tətbiq edilməlidir.
 
 `verify-api.mjs` yalnız localhost bazasına müvəqqəti test məlumatı yazır. `sync-directory-local.mjs` və `verify-live.mjs` lokal ilkin məlumat alətləridir; production-a avtomatik tətbiq edilmir.
 
