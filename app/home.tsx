@@ -40,6 +40,57 @@ const STAGE_INTERVAL = 6500;
 
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+// Counts up to `value` once on mount. Server and no-JS render the final number.
+function CountUp({ value }: { value: number }) {
+  const [shown, setShown] = useState(value);
+  useEffect(() => {
+    if (!value || reducedMotion()) return;
+    let raf = 0;
+    const start = performance.now(),
+      duration = 1400;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      setShown(Math.round(value * (1 - Math.pow(1 - t, 3))));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return <span className="h-count">{azNumber(shown)}</span>;
+}
+
+// A soft light that follows the mouse across the hero; mouse only, never with reduced motion.
+function useSpotlight<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.matchMedia("(hover: hover) and (pointer: fine)").matches || reducedMotion())
+      return;
+    let raf = 0;
+    const move = (e: PointerEvent) => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const r = el.getBoundingClientRect();
+        el.style.setProperty("--mx", e.clientX - r.left + "px");
+        el.style.setProperty("--my", e.clientY - r.top + "px");
+      });
+    };
+    const leave = () => {
+      cancelAnimationFrame(raf);
+      el.style.removeProperty("--mx");
+      el.style.removeProperty("--my");
+    };
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerleave", leave);
+    return () => {
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerleave", leave);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+  return ref;
+}
+
 // Hero signature: a fanned 3D stack of real products. The front card opens into its store
 // prices as bars, the cheapest one marked; a back card comes forward when clicked.
 function PriceStage({ c, city, items }: { c: CatalogSlice; city: string; items: Product[] }) {
@@ -132,7 +183,7 @@ function PriceStage({ c, city, items }: { c: CatalogSlice; city: string; items: 
                         style={{ "--r": r } as never}
                       >
                         <span className="stage-store">
-                          {store ? store.name : o.storeId}
+                          <span>{store ? store.name : o.storeId}</span>
                           {r === 0 && <em>Ən ucuz</em>}
                         </span>
                         <span className="stage-bar" aria-hidden="true">
@@ -262,9 +313,9 @@ export default function Home({
     .map((x) => x.p);
   const popularIds = new Set(ranked.slice(0, 12).map((p) => p.id));
   const deals = gaps.filter((p) => !popularIds.has(p.id)).slice(0, 12);
-  // Hero: widely compared products whose stores disagree by a visible amount.
+  // Hero: compared products whose stores disagree by a visible amount, most stores first.
   const stageItems = ranked
-    .filter((p) => validOffers(c, p.id, city).length >= 3 && (gapOf.get(p.id) || 0) >= 0.04)
+    .filter((p) => validOffers(c, p.id, city).length >= 2 && (gapOf.get(p.id) || 0) >= 0.03)
     .slice(0, 3);
   // Only stores whose prices are connected, largest catalogs first.
   const stores = c.stores
@@ -277,9 +328,11 @@ export default function Home({
     )
     .sort((a, b) => (c.storeStats[b.id]?.count || 0) - (c.storeStats[a.id]?.count || 0));
   const storeCount = stores.length;
+  const hero = useSpotlight<HTMLElement>();
   return (
     <div className="h-home">
       <section
+        ref={hero}
         className={"h-hero" + (stageItems.length ? "" : " h-hero-solo")}
         aria-labelledby="home-title"
       >
@@ -288,9 +341,15 @@ export default function Home({
             <span>Ucuzunu tap,</span> <span className="h-hero-pop">qəpiyinə qədər.</span>
           </h1>
           <p>
-            {storeCount ? azNumber(storeCount) + " mağazanın " : "Mağazaların "}
-            {azNumber(c.totals?.products || 0)} məhsulu bir yerdə. Qiyməti, çatdırılmanı və taksiti
-            yan-yana gör, ən sərfəli mağazaya bir kliklə keç.
+            {storeCount ? (
+              <>
+                <CountUp value={storeCount} /> mağazanın{" "}
+              </>
+            ) : (
+              "Mağazaların "
+            )}
+            <CountUp value={c.totals?.products || 0} /> məhsulu bir yerdə. Qiyməti, çatdırılmanı və
+            taksiti yan-yana gör, ən sərfəli mağazaya bir kliklə keç.
           </p>
           <form
             action="/axtaris"
@@ -303,7 +362,7 @@ export default function Home({
             <input
               name="q"
               required
-              placeholder="Nə axtarırsan? Məsələn, iPhone 17"
+              placeholder="Məsələn, iPhone 17"
               aria-label="Məhsul, model və ya brend axtar"
             />
             <button type="submit">
@@ -330,7 +389,11 @@ export default function Home({
             </a>
           </div>
           <Rail label="Kateqoriyalar">
-            <div className="h-categories" data-rail>
+            <div
+              className="h-categories"
+              data-rail
+              style={{ "--cat-cols": Math.ceil(availableCategories.length / 2) } as never}
+            >
               {availableCategories.map((cat) => (
                 <a key={cat.id} href={"/kateqoriya/" + cat.id}>
                   <span>

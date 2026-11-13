@@ -737,7 +737,13 @@ footer .logo,
   padding: clamp(36px, 5vw, 72px) clamp(24px, 4.5vw, 72px);
   overflow: hidden;
   border-radius: 36px;
-  background: var(--night);
+  background:
+    radial-gradient(
+      460px circle at var(--mx, -600px) var(--my, -600px),
+      #ff5d8f40,
+      transparent 70%
+    ),
+    var(--night);
   color: var(--on-night);
 }
 /* Two fruit-coloured lights low in the panel; they sit behind everything. */
@@ -750,7 +756,9 @@ footer .logo,
   pointer-events: none;
   filter: blur(90px);
 }
+/* The two lights drift slowly; a third follows the mouse (useSpotlight in app/home.tsx). */
 .h-hero::before {
+  animation: hero-drift 18s ease-in-out infinite alternate;
   width: 520px;
   height: 520px;
   right: -120px;
@@ -759,12 +767,22 @@ footer .logo,
   opacity: 0.55;
 }
 .h-hero::after {
+  animation: hero-drift 23s ease-in-out -7s infinite alternate-reverse;
   width: 380px;
   height: 380px;
   left: 28%;
   top: -260px;
   background: var(--nar-400);
   opacity: 0.22;
+}
+@keyframes hero-drift {
+  to {
+    translate: -90px -60px;
+    scale: 1.18;
+  }
+}
+.h-count {
+  font-variant-numeric: tabular-nums;
 }
 .h-hero-solo {
   grid-template-columns: minmax(0, 1fr);
@@ -1016,7 +1034,7 @@ footer .logo,
 }
 .stage-rows li {
   display: grid;
-  grid-template-columns: minmax(96px, 150px) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(96px, 200px) minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
   min-height: 46px;
@@ -1035,6 +1053,11 @@ footer .logo,
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
+}
+.stage-store > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .stage-store em {
   flex: none;
@@ -1185,7 +1208,9 @@ footer .logo,
   display: grid;
   grid-auto-flow: column;
   grid-template-rows: repeat(2, auto);
-  grid-auto-columns: calc((100% - 7 * 12px) / 8);
+  /* --cat-cols is set from the number of categories, so two rows always span the width. */
+  --cols: min(var(--cat-cols, 8), 8);
+  grid-auto-columns: calc((100% - (var(--cols) - 1) * 12px) / var(--cols));
   gap: 12px;
   margin: -8px;
   padding: 8px 8px 12px;
@@ -1372,6 +1397,24 @@ footer .logo,
 }
 .h-tile:hover {
   transform: translateY(-5px) rotate(-0.6deg);
+}
+/* A light sweep crosses the tile on hover. */
+.h-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, #ffffff40 50%, transparent 65%);
+  translate: -110% 0;
+  pointer-events: none;
+}
+.h-tile:hover::after {
+  translate: 110% 0;
+  transition: translate 0.9s var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .h-tile::after {
+    display: none;
+  }
 }
 .h-tile:hover .h-tile-go {
   background: var(--surface);
@@ -1591,6 +1634,8 @@ footer .logo,
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .h-hero::before,
+  .h-hero::after,
   .h-hero-copy > *,
   .h-hero-pop,
   .stage,
@@ -1622,7 +1667,7 @@ footer .logo,
     grid-auto-columns: calc((100% - 3 * 14px) / 4);
   }
   .h-categories {
-    grid-auto-columns: calc((100% - 5 * 12px) / 6);
+    --cols: min(var(--cat-cols, 6), 6);
   }
 }
 @media (max-width: 980px) {
@@ -1705,7 +1750,7 @@ footer .logo,
     border-radius: 28px;
   }
   .h-hero h1 {
-    font-size: clamp(32px, 10vw, 44px);
+    font-size: clamp(30px, 8.6vw, 44px);
   }
   .h-hero-copy > p {
     margin-top: 18px;
