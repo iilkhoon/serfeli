@@ -19,10 +19,21 @@ function ask(question) {
     const input = process.stdin;
     process.stdout.write(question);
     if (!input.isTTY) {
+      // Piped input only (tests, automation). Over SSH use `ssh -t` so the prompt is hidden.
+      console.error(
+        "\nXəbərdarlıq: terminal yoxdur, parol gizlədilə bilmir. `ssh -t` istifadə edin.",
+      );
       let data = "";
       input.setEncoding("utf8");
-      input.on("data", (c) => (data += c));
-      input.on("end", () => resolve(data.split(/\r?\n/)[0]));
+      const done = () => {
+        input.pause();
+        resolve(data.split(/\r?\n/)[0]);
+      };
+      input.on("data", (c) => {
+        data += c;
+        if (/\r?\n/.test(data)) done();
+      });
+      input.on("end", done);
       return;
     }
     let value = "";

@@ -2,7 +2,7 @@
 
 ## İlk giriş
 
-Sayt ilkin olaraq sahibə məxsus şəxsi yayımda saxlanır. Serverdə sahib hesabını yaradın (`sudo -u qepik node scripts/set-password.mjs <OWNER_EMAIL>`, parol gizli yazılır), `/giris` ünvanında həmin e-poçt və parolla daxil olun, sonra `/admin` ünvanında aktivləşdirmə düyməsini basın. Sahib identifikatoru bazada bir dəfə saxlanır. Admin yalnız `OWNER_EMAIL` hesabına açıqdır; başqa hesab 403 alır, `OWNER_EMAIL` təyin olunmayıbsa production-da admin heç kimə açılmır. Yeni admin rol sistemi bu buraxılışda yoxdur.
+Sayt ilkin olaraq sahibə məxsus şəxsi yayımda saxlanır. Serverdə sahib hesabını yaradın (`ssh -t root@<server> "cd /srv/qepik && sudo -u qepik env DATABASE_PATH=/var/lib/qepik/qepik.db node scripts/set-password.mjs <OWNER_EMAIL>"`, parol gizli yazılır), `/giris` ünvanında həmin e-poçt və parolla daxil olun, sonra `/admin` ünvanında aktivləşdirmə düyməsini basın. Sahib identifikatoru bazada bir dəfə saxlanır. Admin yalnız `OWNER_EMAIL` hesabına açıqdır; başqa hesab 403 alır, `OWNER_EMAIL` təyin olunmayıbsa production-da admin heç kimə açılmır. Yeni admin rol sistemi bu buraxılışda yoxdur.
 
 ## Hazır imkanlar
 

@@ -60,7 +60,7 @@ Mobil tətbiq (Expo) üçün: `POST /api/v1/auth/register` və ya `POST /api/v1/
 
 `npm run dev` zamanı `/giris` sabit yerli test hesabı ilə daxil edir, `/cixis` çıxarır (`scripts/vite/local-auth-plugin.ts`, yalnız localhost-dan). Bu plugin hesabı `x-qepik-user-*` başlıqları ilə ötürür; tətbiq bu başlıqları yalnız dev rejimində oxuyur (`app/auth.ts`, `import.meta.env.DEV`), production build-də bu kod yoxdur, ona görə saxta başlıq heç bir icazə vermir.
 
-**Admin.** `/admin` yalnız `OWNER_EMAIL` hesabına açıqdır: ilk aktivləşdirmə həmin hesabı sahib kimi saxlayır, başqa hesab 403 alır. Production-da `OWNER_EMAIL` təyin olunmayıbsa admin heç kimə açılmır. Bu e-poçtla saytda qeydiyyat bağlıdır; sahib hesabı serverdə yaradılır: `sudo -u qepik node scripts/set-password.mjs <OWNER_EMAIL>`.
+**Admin.** `/admin` yalnız `OWNER_EMAIL` hesabına açıqdır: ilk aktivləşdirmə həmin hesabı sahib kimi saxlayır, başqa hesab 403 alır. Production-da `OWNER_EMAIL` təyin olunmayıbsa admin heç kimə açılmır. Bu e-poçtla saytda qeydiyyat bağlıdır; sahib hesabı serverdə yaradılır: `ssh -t root@<server> "cd /srv/qepik && sudo -u qepik env DATABASE_PATH=/var/lib/qepik/qepik.db node scripts/set-password.mjs <OWNER_EMAIL>"`.
 
 **Server.** Sayt öz VPS-də işləyir (Ubuntu, Node 24, nginx + Let's Encrypt). Quraşdırma və yeniləmə addımları `docs/OPERATIONS.md` → “Server”. Parametrlər `/etc/qepik/qepik.env` faylındadır (nümunə: `deploy/qepik.env.example`); kanonik domen `SITE_URL` dəyişənidir (`lib/seo.ts`).
 
