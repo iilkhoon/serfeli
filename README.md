@@ -42,7 +42,7 @@ Məlumat SQLite faylındadır: `DATABASE_PATH`, yoxdursa `data/qepik.db` (`db/sq
 - `app/api/v1/[...path]/route.ts`: versiyalanmış API marşrutları, autentifikasiya və admin icazələri.
 - `lib/api/schemas.ts`, `lib/api/records.ts`: API-nin Zod sxemləri və baza qeyd köməkçiləri.
 - `db/sqlite.ts`: SQLite bağlantısı və tətbiqin istifadə etdiyi D1-üslublu API (`prepare/bind/batch`); `scripts/db-migrate.mjs`, `scripts/db-seed.mjs`.
-- `lib/auth/`, `app/giris`, `app/cixis`: e-poçt kodu ilə giriş, sessiyalar.
+- `lib/auth/`, `app/giris`, `app/cixis`: e-poçt və parolla giriş, sessiyalar; `scripts/set-password.mjs`.
 - `app/types.ts`: brauzerin gördüyü API cavab tipləri.
 - `instrumentation.ts`, `lib/cron.ts`: server prosesində hər dəqiqə idxal işlərini irəlilədən cron (`CRON_ENABLED=1`).
 - `deploy/`: VPS üçün systemd servisi, nginx, gecəlik yedək və deploy skripti.
@@ -54,19 +54,19 @@ Məlumat SQLite faylındadır: `DATABASE_PATH`, yoxdursa `data/qepik.db` (`db/sq
 
 ## Giriş və yayım
 
-**Giriş.** Production-da `/giris` e-poçta 6 rəqəmli kod göndərir (Resend, `RESEND_API_KEY`); kod 10 dəqiqə və 5 cəhd üçün etibarlıdır, bir dəfə işləyir. Doğru kod sessiya yaradır: sayt tokeni `HttpOnly; Secure` `qepik_session` kukisində saxlayır, mobil tətbiq isə eyni API-dən `Authorization: Bearer` tokeni alır. Bazada yalnız tokenin SHA-256 heşi və kodun HMAC-ı (`AUTH_SECRET`) saxlanır. `/cixis` sessiyanı bağlayır.
+**Giriş.** Heç bir xarici xidmət yoxdur. `/giris` e-poçt və parolla daxil olur və ya qeydiyyat açır (`lib/auth/session.ts`). Parollar scrypt ilə heşlənir (`lib/auth/password.mjs`), giriş cəhdləri IP və e-poçt üzrə məhdudlaşdırılır. Uğurlu giriş sessiya yaradır: sayt tokeni `HttpOnly; Secure` `qepik_session` kukisində saxlayır, mobil tətbiq eyni API-dən `Authorization: Bearer` tokeni alır. Bazada yalnız tokenin SHA-256 heşi saxlanır. `/cixis` sessiyanı bağlayır. E-poçt təsdiqi və parol bərpası e-poçt göndərişi olmadığı üçün yoxdur; parolu serverdə `scripts/set-password.mjs` dəyişir.
 
-Mobil tətbiq (Expo) üçün: `POST /api/v1/auth/code {"email"}` → `POST /api/v1/auth/verify {"email","code","client":"app"}` → `{token, expiresAt, user}`; sonrakı sorğularda `Authorization: Bearer <token>`; çıxış `POST /api/v1/auth/logout`. Sessiya 60 gün etibarlıdır.
+Mobil tətbiq (Expo) üçün: `POST /api/v1/auth/register` və ya `POST /api/v1/auth/login` `{"email","password","client":"app"}` → `{token, expiresAt, user}`; sonrakı sorğularda `Authorization: Bearer <token>`; çıxış `POST /api/v1/auth/logout`. Sessiya 60 gün etibarlıdır.
 
 `npm run dev` zamanı `/giris` sabit yerli test hesabı ilə daxil edir, `/cixis` çıxarır (`scripts/vite/local-auth-plugin.ts`, yalnız localhost-dan). Bu plugin hesabı `x-qepik-user-*` başlıqları ilə ötürür; tətbiq bu başlıqları yalnız dev rejimində oxuyur (`app/auth.ts`, `import.meta.env.DEV`), production build-də bu kod yoxdur, ona görə saxta başlıq heç bir icazə vermir.
 
-**Admin.** `/admin` yalnız `OWNER_EMAIL` hesabına açıqdır: ilk aktivləşdirmə həmin hesabı sahib kimi saxlayır, başqa hesab 403 alır. Production-da `OWNER_EMAIL` təyin olunmayıbsa admin heç kimə açılmır.
+**Admin.** `/admin` yalnız `OWNER_EMAIL` hesabına açıqdır: ilk aktivləşdirmə həmin hesabı sahib kimi saxlayır, başqa hesab 403 alır. Production-da `OWNER_EMAIL` təyin olunmayıbsa admin heç kimə açılmır. Bu e-poçtla saytda qeydiyyat bağlıdır; sahib hesabı serverdə yaradılır: `sudo -u qepik node scripts/set-password.mjs <OWNER_EMAIL>`.
 
 **Server.** Sayt öz VPS-də işləyir (Ubuntu, Node 24, nginx + Let's Encrypt). Quraşdırma və yeniləmə addımları `docs/OPERATIONS.md` → “Server”. Parametrlər `/etc/qepik/qepik.env` faylındadır (nümunə: `deploy/qepik.env.example`); kanonik domen `SITE_URL` dəyişənidir (`lib/seo.ts`).
 
 Yazma sorğuları (`POST`) başqa saytdan gələrsə rədd edilir: `Origin` başqa mənbədirsə və ya `Sec-Fetch-Site` `same-origin`/`none` deyilsə cavab 403-dür. Sonrakı admin yazmaları serverdə həmin identifikatora görə qorunur. Seçilmişlər və bildirişlər istifadəçi identifikatoruna bağlıdır.
 
-Giriş kodundan başqa e-poçt/SMS/Telegram/push göndərişi və native iOS/Android tətbiqi hazırda qoşulmayıb. Feed admin panelindən real vaxtda yenilənir. Native tətbiq üçün `/api/v1` və dizayn tokenləri hazırdır; mobil web manifest mövcuddur.
+E-poçt/SMS/Telegram/push göndərişi və native iOS/Android tətbiqi hazırda qoşulmayıb. Feed admin panelindən real vaxtda yenilənir. Native tətbiq üçün `/api/v1` və dizayn tokenləri hazırdır; mobil web manifest mövcuddur.
 
 
 ## İdxal növbəsi

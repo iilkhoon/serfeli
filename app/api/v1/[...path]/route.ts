@@ -44,10 +44,10 @@ import {
   AuthError,
   clearedSessionCookie,
   endSession,
-  requestCode,
+  login,
+  register as registerAccount,
   requestToken,
   sessionCookie,
-  verifyCode,
 } from "../../../../lib/auth/session";
 import { z } from "zod";
 export const dynamic = "force-dynamic";
@@ -92,26 +92,29 @@ async function bootstrap(user: User) {
   return json({ ok: true });
 }
 
-// E-mail code sign-in for the website (cookie) and the mobile app (`client: "app"`, Bearer token).
+// E-mail + password sign-in for the website (cookie) and the mobile app (`client: "app"`, Bearer token).
 async function authRoute(req: Request, path: string) {
   const ip = req.headers.get("x-real-ip") || "anonymous";
   try {
-    if (path === "auth/code") {
-      if (rateLimited("auth-code:" + ip, 10, 600000)) return tooMany();
-      const b = z.object({ email: z.string().max(254) }).parse(await readJson(req, 4000));
-      await requestCode(b.email);
-      return json({ ok: true });
-    }
-    if (path === "auth/verify") {
-      if (rateLimited("auth-verify:" + ip, 30, 600000)) return tooMany();
+    if (path === "auth/login" || path === "auth/register") {
+      const register = path === "auth/register";
+      if (
+        rateLimited((register ? "auth-register:" : "auth-login:") + ip, register ? 5 : 20, 600000)
+      )
+        return tooMany();
       const b = z
         .object({
           email: z.string().max(254),
-          code: z.string().max(20),
+          password: z.string().max(200),
           client: z.enum(["web", "app"]).default("web"),
         })
         .parse(await readJson(req, 4000));
-      const s = await verifyCode(b.email, b.code, b.client);
+      // Per-address limit as well, so one account cannot be guessed from many addresses.
+      if (!register && rateLimited("auth-login:" + b.email.trim().toLowerCase(), 10, 600000))
+        return tooMany();
+      const s = register
+        ? await registerAccount(b.email, b.password, b.client)
+        : await login(b.email, b.password, b.client);
       if (b.client === "app") return json({ token: s.token, expiresAt: s.expiresAt, user: s.user });
       const res = json({ user: s.user });
       res.headers.append("Set-Cookie", sessionCookie(s.token));

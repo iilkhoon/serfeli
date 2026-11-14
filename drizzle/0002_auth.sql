@@ -1,12 +1,3 @@
-CREATE TABLE `auth_codes` (
-	`email` text PRIMARY KEY NOT NULL,
-	`code_hash` text NOT NULL,
-	`expires_at` integer NOT NULL,
-	`attempts` integer DEFAULT 0 NOT NULL,
-	`window_start` integer NOT NULL,
-	`sends` integer DEFAULT 1 NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE `sessions` (
 	`token_hash` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,
@@ -20,6 +11,7 @@ CREATE TABLE `users` (
 	`id` text PRIMARY KEY NOT NULL,
 	`email` text NOT NULL,
 	`name` text,
+	`password_hash` text NOT NULL,
 	`created_at` integer NOT NULL
 );
 --> statement-breakpoint

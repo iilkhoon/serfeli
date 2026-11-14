@@ -9,8 +9,8 @@ body {
 }
 :root {
   color-scheme: light;
-  --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --display: "Unbounded", var(--font);
+  --font: "Plus Jakarta Sans Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: "Unbounded Variable", var(--font);
   --body: var(--font);
 
   --bg: #fff8f1;

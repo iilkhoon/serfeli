@@ -1,107 +1,90 @@
 "use client";
 import { useState, type FormEvent } from "react";
 
-type Step = { kind: "email" } | { kind: "code"; email: string };
-
-async function post(path: string, body: unknown) {
-  const res = await fetch("/api/v1/" + path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const data = (await res.json().catch(() => ({}))) as { error?: string };
-  if (!res.ok) throw new Error(data.error || "Əməliyyat alınmadı. Bir az sonra yenidən cəhd edin.");
-  return data;
-}
+type Mode = "login" | "register";
 
 export default function SignInForm({ returnTo }: { returnTo: string }) {
-  const [step, setStep] = useState<Step>({ kind: "email" });
+  const [mode, setMode] = useState<Mode>("login");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
 
-  async function run(work: () => Promise<void>) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    const password = String(form.get("password") || "");
+    if (mode === "register" && password !== String(form.get("password2") || "")) {
+      setError("Parollar eyni deyil.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
-      await work();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
+      const res = await fetch("/api/v1/auth/" + mode, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: String(form.get("email") || "").trim(), password }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok)
+        throw new Error(data.error || "Əməliyyat alınmadı. Bir az sonra yenidən cəhd edin.");
+      window.location.assign(returnTo);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
       setBusy(false);
     }
   }
 
-  function sendCode(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const email = String(new FormData(e.currentTarget).get("email") || "").trim();
-    void run(async () => {
-      await post("auth/code", { email });
-      setNotice(`${email} ünvanına 6 rəqəmli kod göndərdik.`);
-      setStep({ kind: "code", email });
-    });
-  }
-
-  function verify(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (step.kind !== "code") return;
-    const code = String(new FormData(e.currentTarget).get("code") || "");
-    void run(async () => {
-      await post("auth/verify", { email: step.email, code });
-      window.location.assign(returnTo);
-    });
-  }
-
-  if (step.kind === "email")
-    return (
-      <form key="email" className="auth-form" onSubmit={sendCode}>
-        <p>E-poçt ünvanınızı yazın, daxil olmaq üçün kod göndərək. Parol lazım deyil.</p>
-        <label className="auth-field">
-          <span>E-poçt</span>
-          <input
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            inputMode="email"
-            placeholder="ad@nümunə.az"
-            autoFocus
-          />
-        </label>
-        {error && (
-          <p className="auth-error" role="alert">
-            {error}
-          </p>
-        )}
-        <button className="dark-button" type="submit" disabled={busy}>
-          {busy ? "Göndərilir…" : "Kod göndər"}
-        </button>
-      </form>
-    );
-
+  const register = mode === "register";
   return (
-    <form key="code" className="auth-form" onSubmit={verify}>
-      <p role="status">{notice}</p>
+    <form key={mode} className="auth-form" onSubmit={submit}>
+      <p>
+        {register
+          ? "Seçilmişlərin və qiymət bildirişlərin hesabında saxlanılsın."
+          : "E-poçt və parolunuzla daxil olun."}
+      </p>
       <label className="auth-field">
-        <span>Kod</span>
+        <span>E-poçt</span>
         <input
-          name="code"
+          name="email"
+          type="email"
           required
-          autoComplete="one-time-code"
-          inputMode="numeric"
-          pattern="[0-9 ]{6,7}"
-          maxLength={7}
-          placeholder="123456"
+          autoComplete="email"
+          inputMode="email"
+          placeholder="ad@nümunə.az"
           autoFocus
         />
       </label>
+      <label className="auth-field">
+        <span>Parol</span>
+        <input
+          name="password"
+          type="password"
+          required
+          minLength={register ? 8 : undefined}
+          maxLength={200}
+          autoComplete={register ? "new-password" : "current-password"}
+        />
+      </label>
+      {register && (
+        <label className="auth-field">
+          <span>Parolu təkrarla</span>
+          <input
+            name="password2"
+            type="password"
+            required
+            minLength={8}
+            maxLength={200}
+            autoComplete="new-password"
+          />
+        </label>
+      )}
       {error && (
         <p className="auth-error" role="alert">
           {error}
         </p>
       )}
       <button className="dark-button" type="submit" disabled={busy}>
-        {busy ? "Yoxlanılır…" : "Daxil ol"}
+        {busy ? "Gözləyin…" : register ? "Hesab yarat" : "Daxil ol"}
       </button>
       <button
         className="auth-link"
@@ -109,10 +92,10 @@ export default function SignInForm({ returnTo }: { returnTo: string }) {
         disabled={busy}
         onClick={() => {
           setError("");
-          setStep({ kind: "email" });
+          setMode(register ? "login" : "register");
         }}
       >
-        Başqa e-poçt yaz
+        {register ? "Hesabım var, daxil olum" : "Hesabın yoxdur? Qeydiyyatdan keç"}
       </button>
     </form>
   );

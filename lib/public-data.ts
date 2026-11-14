@@ -7,9 +7,10 @@ import {
 } from "./product-matching";
 import type { Catalog } from "./catalog";
 
-// Rebuilding the merged catalog reads every D1 record and ~13k bundled products, so each worker
-// isolate keeps the result briefly. Writes through the API call invalidatePublicCatalog(); other
-// isolates pick the change up when their copy expires.
+// Rebuilding the merged catalog reads every stored record and ~13k bundled products, so the server
+// process keeps the result. After TTL the old copy keeps serving while one rebuild runs in the
+// background (cron imports show up within a minute and no visitor waits for the rebuild). Writes
+// through the API call invalidatePublicCatalog(), so the next request sees them at once.
 const TTL = 60_000;
 const FALLBACK_TTL = 5_000;
 const emptyCatalog = (): Catalog => ({
@@ -27,7 +28,8 @@ const emptyCatalog = (): Catalog => ({
     message: "Məlumat bazası hazırda cavab vermir. Qiymətləri yenidən yükləyin.",
   },
 });
-let cache: { expires: number; value: Promise<Catalog> } | undefined;
+type Entry = { expires: number; value: Promise<Catalog>; refreshing?: boolean };
+let cache: Entry | undefined;
 
 async function build(): Promise<{ value: Catalog; fallback: boolean }> {
   try {
@@ -48,16 +50,32 @@ async function build(): Promise<{ value: Catalog; fallback: boolean }> {
   }
 }
 
-export function publicCatalog(): Promise<Catalog> {
-  if (cache && Date.now() < cache.expires) return cache.value;
-  const entry = { expires: Date.now() + TTL, value: Promise.resolve(emptyCatalog()) };
+function rebuild(): Entry {
+  const entry: Entry = { expires: Date.now() + TTL, value: Promise.resolve(emptyCatalog()) };
   entry.value = build().then(({ value, fallback }) => {
-    // A database outage should not pin the seed catalog for a full minute.
+    // A database outage should not pin the empty catalog for a full minute.
     if (fallback) entry.expires = Date.now() + FALLBACK_TTL;
     return value;
   });
-  cache = entry;
-  return entry.value;
+  return entry;
+}
+
+export function publicCatalog(): Promise<Catalog> {
+  const current = cache;
+  if (!current) return (cache = rebuild()).value;
+  if (Date.now() >= current.expires && !current.refreshing) {
+    current.refreshing = true;
+    const next = rebuild();
+    next.value.then(
+      () => {
+        if (cache === current) cache = next;
+      },
+      () => {
+        current.refreshing = false;
+      },
+    );
+  }
+  return current.value;
 }
 
 export function invalidatePublicCatalog() {

@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { SITE_NAME, SITE_URL } from "../lib/seo";
+// Fonts are bundled and served from this server (no third-party font host).
+import "@fontsource-variable/plus-jakarta-sans";
+import "@fontsource-variable/unbounded";
 import "./design.css";
 import "./pages.css";
 import "./responsive.css";

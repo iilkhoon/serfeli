@@ -4,7 +4,7 @@ import SignInForm from "./sign-in-form";
 
 export const metadata: Metadata = {
   title: "Hesaba daxil ol | Qəpik",
-  description: "E-poçtunuza göndərilən kodla Qəpik hesabınıza daxil olun.",
+  description: "E-poçt və parolla Qəpik hesabınıza daxil olun və ya qeydiyyatdan keçin.",
   robots: { index: false, follow: false },
 };
 export const dynamic = "force-dynamic";

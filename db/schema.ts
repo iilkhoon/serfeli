@@ -23,16 +23,9 @@ export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name"),
+  // scrypt$N$r$p$salt$hash (lib/auth/password.mjs)
+  passwordHash: text("password_hash").notNull(),
   createdAt: integer("created_at").notNull(),
-});
-// The pending one-time sign-in code for an e-mail address (stored as an HMAC, never in clear).
-export const authCodes = sqliteTable("auth_codes", {
-  email: text("email").primaryKey(),
-  codeHash: text("code_hash").notNull(),
-  expiresAt: integer("expires_at").notNull(),
-  attempts: integer("attempts").notNull().default(0),
-  windowStart: integer("window_start").notNull(),
-  sends: integer("sends").notNull().default(1),
 });
 // Signed-in devices: the web cookie and mobile bearer tokens both map to a row here by SHA-256.
 export const sessions = sqliteTable(

@@ -2,7 +2,7 @@
 
 ## İlk giriş
 
-Sayt ilkin olaraq sahibə məxsus şəxsi yayımda saxlanır. `/giris` ünvanında `OWNER_EMAIL` e-poçtu ilə daxil olun (kod e-poçta gəlir), sonra `/admin` ünvanında aktivləşdirmə düyməsini basın. Sahib identifikatoru bazada bir dəfə saxlanır. Admin yalnız `OWNER_EMAIL` hesabına açıqdır; başqa hesab 403 alır, `OWNER_EMAIL` təyin olunmayıbsa production-da admin heç kimə açılmır. Yeni admin rol sistemi bu buraxılışda yoxdur.
+Sayt ilkin olaraq sahibə məxsus şəxsi yayımda saxlanır. Serverdə sahib hesabını yaradın (`sudo -u qepik node scripts/set-password.mjs <OWNER_EMAIL>`, parol gizli yazılır), `/giris` ünvanında həmin e-poçt və parolla daxil olun, sonra `/admin` ünvanında aktivləşdirmə düyməsini basın. Sahib identifikatoru bazada bir dəfə saxlanır. Admin yalnız `OWNER_EMAIL` hesabına açıqdır; başqa hesab 403 alır, `OWNER_EMAIL` təyin olunmayıbsa production-da admin heç kimə açılmır. Yeni admin rol sistemi bu buraxılışda yoxdur.
 
 ## Hazır imkanlar
 
@@ -112,10 +112,10 @@ Vitrin axtarışı (`lib/catalog-query.ts`) sorğunun bütün sözlərini istən
 
 ## Server
 
-Sayt bir Ubuntu VPS-də işləyir: Node 24 LTS, `qepik` systemd servisi (`deploy/qepik.service`, `127.0.0.1:3000`), qarşısında nginx (`deploy/nginx-qepik.conf`) və Let's Encrypt sertifikatı (certbot avtomatik yeniləyir). Firewall (ufw) yalnız 22, 80, 443 portlarını açır. Kod `/srv/qepik`-dədir (`qepik` istifadəçisi), baza `/var/lib/qepik/qepik.db`, parametrlər `/etc/qepik/qepik.env` (nümunə `deploy/qepik.env.example`: `SITE_URL`, `OWNER_EMAIL`, `AUTH_SECRET`, `RESEND_API_KEY`, `MAIL_FROM`, `CRON_ENABLED=1`, `VINEXT_TRUST_PROXY=1`).
+Sayt bir Ubuntu VPS-də işləyir: Node 24 LTS, `qepik` systemd servisi (`deploy/qepik.service`, `127.0.0.1:3000`), qarşısında nginx (`deploy/nginx-qepik.conf`) və Let's Encrypt sertifikatı (certbot avtomatik yeniləyir). Firewall (ufw) yalnız 22, 80, 443 portlarını açır. Kod `/srv/qepik`-dədir (`qepik` istifadəçisi), baza `/var/lib/qepik/qepik.db`, parametrlər `/etc/qepik/qepik.env` (nümunə `deploy/qepik.env.example`: `SITE_URL`, `OWNER_EMAIL`, `CRON_ENABLED=1`, `VINEXT_TRUST_PROXY=1`). Sayt heç bir xarici xidmətə bağlı deyil: şriftlər paketlə gəlir (`@fontsource-variable/*`), giriş öz bazasındadır. Xaricə yalnız mağaza saytlarından qiymət oxuyan idxal sorğuları və brauzerin mağaza saytlarından yüklədiyi məhsul şəkilləri gedir.
 
 - **Yeniləmə:** `sudo /srv/qepik/deploy/deploy.sh` — `main`-i çəkir, `npm ci`, `npm run build`, servisi yenidən başladır və cavabı yoxlayır. Migration-lar servis başlayanda tətbiq olunur (`ExecStartPre`).
 - **Loqlar:** `journalctl -u qepik -f` (server, cron, API xətaları); nginx: `/var/log/nginx/`.
 - **Yedək:** `qepik-backup.timer` hər gecə 03:30-da `deploy/backup.sh` ilə bazanın onlayn surətini `/var/backups/qepik/` qovluğuna yazır (gzip, 14 gün). Əl ilə: `sudo systemctl start qepik-backup`.
 - **Bərpa:** `sudo systemctl stop qepik`, yedəyi `gunzip -c ... > /var/lib/qepik/qepik.db` ilə yerinə qoyun (`-wal`/`-shm` fayllarını silin), `chown qepik:qepik`, `sudo systemctl start qepik`.
-- **E-poçt:** giriş kodları Resend ilə gedir; `MAIL_FROM` domeni (qepik.az) Resend-də DNS qeydləri ilə təsdiqlənməlidir, əks halda kod göndərilmir və `/giris` xəta göstərir.
+- **Parol:** istifadəçi parolunu unudarsa: `cd /srv/qepik && sudo -u qepik env DATABASE_PATH=/var/lib/qepik/qepik.db node scripts/set-password.mjs <e-poçt>`.
