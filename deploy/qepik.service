@@ -1,0 +1,29 @@
+# /etc/systemd/system/qepik.service: the Qəpik web server (vinext production build on Node).
+# Listens on 127.0.0.1:3000; nginx terminates HTTPS in front of it. Settings: /etc/qepik/qepik.env.
+[Unit]
+Description=Qəpik web server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=qepik
+Group=qepik
+WorkingDirectory=/srv/qepik
+EnvironmentFile=/etc/qepik/qepik.env
+Environment=NODE_ENV=production
+Environment=NODE_OPTIONS=--disable-warning=ExperimentalWarning
+ExecStartPre=/usr/bin/node scripts/db-migrate.mjs
+ExecStart=/usr/bin/node scripts/run-framework.mjs start
+Restart=always
+RestartSec=3
+TimeoutStopSec=20
+StateDirectory=qepik
+StateDirectoryMode=0750
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

@@ -9,7 +9,7 @@ const eslintConfig = defineConfig([
     rules: {
       // `const { secret, ...rest } = value` is the project's way of omitting fields.
       "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }],
-      // Merchant logos and product photos are remote URLs and Workers has no next/image optimizer.
+      // Merchant logos and product photos are remote URLs; no next/image optimizer is configured.
       "@next/next/no-img-element": "off",
       // The storefront is one catch-all page that routes itself; plain links do full navigations on purpose.
       "@next/next/no-html-link-for-pages": "off",

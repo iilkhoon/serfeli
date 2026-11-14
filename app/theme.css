@@ -2011,6 +2011,57 @@ input[type="radio"] {
   color: var(--ink);
 }
 
+/* Sign-in page (/giris): the not-found frame with an e-mail and code form. */
+.auth-card {
+  width: min(480px, 100%);
+}
+.auth-form {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+}
+.auth-form > p {
+  text-align: center;
+}
+.auth-field {
+  display: grid;
+  gap: 6px;
+  color: var(--on-night);
+  font-weight: 600;
+}
+.auth-field input {
+  min-height: 52px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 18px;
+}
+.auth-field input:focus-visible {
+  outline: 3px solid var(--nar-300);
+  outline-offset: 2px;
+}
+.auth-form .dark-button {
+  justify-content: center;
+  min-height: 52px;
+}
+.auth-form .dark-button:disabled {
+  opacity: 0.6;
+}
+.auth-error {
+  color: var(--nar-300);
+  font-weight: 600;
+  text-align: center;
+}
+.auth-link {
+  justify-self: center;
+  color: var(--on-night);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 /* Older blocks still used outside the home page (stores page offer button). */
 .card-button:hover {
   color: var(--on-ink);

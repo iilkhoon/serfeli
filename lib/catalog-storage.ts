@@ -1,4 +1,4 @@
-import type { D1Database } from "@cloudflare/workers-types";
+import type { D1Database } from "../db/sqlite";
 import { seedCatalog } from "./server-catalog";
 import { withStoreSnapshots } from "./store-snapshots";
 

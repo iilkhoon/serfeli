@@ -1,13 +1,20 @@
-import { env } from "cloudflare:workers";
-import { drizzle } from "drizzle-orm/d1";
+import { drizzle } from "drizzle-orm/sqlite-proxy";
+import { getD1 } from "./sqlite";
 import * as schema from "./schema";
 
+// Drizzle over the same SQLite connection the rest of the app uses.
 export function getDb() {
-  if (!env.DB) {
-    throw new Error(
-      "Cloudflare D1 binding `DB` is unavailable. Run the app through Vite/Wrangler with the D1 binding named `DB` (see vite.config.ts).",
-    );
-  }
-
-  return drizzle(env.DB, { schema });
+  return drizzle(
+    async (sql, params, method) => {
+      const stmt = getD1().raw.prepare(sql);
+      if (method === "run") {
+        stmt.run(...(params as never[]));
+        return { rows: [] };
+      }
+      stmt.setReturnArrays(true);
+      const rows = stmt.all(...(params as never[])) as unknown as unknown[][];
+      return { rows: method === "get" ? (rows[0] ?? []) : rows } as { rows: unknown[] };
+    },
+    { schema },
+  );
 }

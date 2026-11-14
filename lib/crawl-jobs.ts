@@ -1,5 +1,5 @@
 import { knownSourceProduct } from "./store-snapshots";
-import type { D1Database } from "@cloudflare/workers-types";
+import type { D1Database, D1PreparedStatement } from "../db/sqlite";
 import {
   crawlSources,
   sourceUrlAllowed,

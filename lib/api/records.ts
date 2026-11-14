@@ -1,12 +1,11 @@
-// D1 record helpers shared by the API routes. Every record is a JSON payload keyed by `${kind}:${id}`.
-import { env } from "cloudflare:workers";
+// Record helpers (SQLite, D1-style API; see db/sqlite.ts) shared by the API routes. Every record is a JSON payload keyed by `${kind}:${id}`.
+import { getD1, type D1PreparedStatement } from "../../db/sqlite";
 import type { Catalog, Review } from "../catalog";
 import { seedCatalog } from "../server-catalog";
 import { catalogMaterializationStatus } from "../catalog-storage";
 
 export function db() {
-  if (!env.DB) throw new Error("Məlumat bazası qoşulmayıb.");
-  return env.DB;
+  return getD1();
 }
 
 export async function list<T = unknown>(kind: string): Promise<T[]> {

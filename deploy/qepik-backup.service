@@ -1,0 +1,7 @@
+# /etc/systemd/system/qepik-backup.service: run by qepik-backup.timer.
+[Unit]
+Description=Qəpik SQLite backup
+
+[Service]
+Type=oneshot
+ExecStart=/srv/qepik/deploy/backup.sh
