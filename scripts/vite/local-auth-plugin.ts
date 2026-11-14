@@ -1,6 +1,7 @@
 // Local sign-in for `npm run dev`: /giris signs in one fixed test account, /cixis signs out.
 // It only answers requests from this machine; identity headers sent by the browser are always
-// removed first, so they can only come from here. Production needs its own sign-in (see app/auth.ts).
+// removed first, so they can only come from here. Production uses e-mail code sign-in instead
+// (app/giris, lib/auth/session.ts); its build never reads these headers (see app/auth.ts).
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin } from "vite";
 import {

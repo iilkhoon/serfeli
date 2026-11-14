@@ -1,4 +1,4 @@
-import type { D1Database } from "@cloudflare/workers-types";
+import type { D1Database } from "../db/sqlite";
 
 export class MatchConflictError extends Error {}
 type RecordWrite = { kind: string; id: string; value: object };

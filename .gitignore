@@ -35,6 +35,9 @@ yarn-error.log*
 /.wrangler/
 /.runtime/
 
+# SQLite database (DATABASE_PATH defaults to data/qepik.db)
+/data/
+
 # Workspace scaffolding and publication archives
 /outputs/
 /work/

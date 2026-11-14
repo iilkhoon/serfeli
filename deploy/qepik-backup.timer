@@ -1,0 +1,11 @@
+# /etc/systemd/system/qepik-backup.timer: nightly at 03:30 server time.
+[Unit]
+Description=Nightly Qəpik SQLite backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

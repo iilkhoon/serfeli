@@ -18,8 +18,8 @@ import {
 } from "../../../../lib/product-matching";
 import { withProductMatchLock, MatchConflictError } from "../../../../lib/match-store";
 import { canonicalProductId } from "../../../../lib/catalog";
-import { env } from "cloudflare:workers";
-import { getUser, type User } from "../../../auth";
+import type { D1PreparedStatement } from "../../../../db/sqlite";
+import { getUser, isOwnerEmail, type User } from "../../../auth";
 import { scanProduct, safeMerchantUrl } from "../../../../lib/extractor";
 import {
   ApiError,
@@ -40,6 +40,15 @@ import {
   runBatched,
   statement,
 } from "../../../../lib/api/records";
+import {
+  AuthError,
+  clearedSessionCookie,
+  endSession,
+  login,
+  register as registerAccount,
+  requestToken,
+  sessionCookie,
+} from "../../../../lib/auth/session";
 import { z } from "zod";
 export const dynamic = "force-dynamic";
 
@@ -50,22 +59,21 @@ const json = (v: unknown, status = 200) =>
   });
 
 const clientKey = (req: Request, user: User | null) =>
-  user?.userId || req.headers.get("cf-connecting-ip") || "anonymous";
+  user?.userId || req.headers.get("x-real-ip") || "anonymous";
 const tooMany = () =>
   Response.json(
     { error: "Çox sayda sorğu. Bir az sonra yenidən cəhd edin." },
     { status: 429, headers: { "Cache-Control": "no-store", "Retry-After": "60" } },
   );
 
-// When OWNER_EMAIL is configured only that account may claim the first-owner slot.
-function mayClaimOwner(user: User) {
-  const allowed = env.OWNER_EMAIL?.trim().toLowerCase();
-  return !allowed || user.email.trim().toLowerCase() === allowed;
-}
+// Only the OWNER_EMAIL account may claim the owner slot or use the admin panel (see app/auth.ts).
+const mayClaimOwner = (user: User) => isOwnerEmail(user.email);
+const isAdmin = async (user: User | null) =>
+  !!user && mayClaimOwner(user) && (await ownerId()) === user.userId;
 
 async function bootstrap(user: User) {
   // An existing owner can never be replaced here.
-  if (!(await ownerId()) && !mayClaimOwner(user))
+  if (!mayClaimOwner(user))
     return json({ error: "Bu hesab platforma sahibi kimi təyin edilə bilməz." }, 403);
   await db()
     .prepare(
@@ -82,6 +90,47 @@ async function bootstrap(user: User) {
     await statement("system", { id: "seed" }).run();
   }
   return json({ ok: true });
+}
+
+// E-mail + password sign-in for the website (cookie) and the mobile app (`client: "app"`, Bearer token).
+async function authRoute(req: Request, path: string) {
+  const ip = req.headers.get("x-real-ip") || "anonymous";
+  try {
+    if (path === "auth/login" || path === "auth/register") {
+      const register = path === "auth/register";
+      if (
+        rateLimited((register ? "auth-register:" : "auth-login:") + ip, register ? 5 : 20, 600000)
+      )
+        return tooMany();
+      const b = z
+        .object({
+          email: z.string().max(254),
+          password: z.string().max(200),
+          client: z.enum(["web", "app"]).default("web"),
+        })
+        .parse(await readJson(req, 4000));
+      // Per-address limit as well, so one account cannot be guessed from many addresses.
+      if (!register && rateLimited("auth-login:" + b.email.trim().toLowerCase(), 10, 600000))
+        return tooMany();
+      const s = register
+        ? await registerAccount(b.email, b.password, b.client)
+        : await login(b.email, b.password, b.client);
+      if (b.client === "app") return json({ token: s.token, expiresAt: s.expiresAt, user: s.user });
+      const res = json({ user: s.user });
+      res.headers.append("Set-Cookie", sessionCookie(s.token));
+      return res;
+    }
+    if (path === "auth/logout") {
+      await endSession(requestToken(req.headers));
+      const res = json({ ok: true });
+      res.headers.append("Set-Cookie", clearedSessionCookie());
+      return res;
+    }
+  } catch (e) {
+    if (e instanceof AuthError) return json({ error: e.message }, e.status);
+    throw e;
+  }
+  return json({ error: "Ünvan tapılmadı." }, 404);
 }
 
 async function personalGet(user: User | null) {
@@ -559,6 +608,7 @@ async function route(req: Request): Promise<Response> {
       if (rateLimited("click:" + clientKey(req, user), 60)) return tooMany();
       return clickPost(req);
     }
+    if (path.startsWith("auth/")) return authRoute(req, path);
     if (!user) return json({ error: "Bu əməliyyat üçün hesabınıza daxil olun." }, 401);
     // Public writes (favourites, reviews, applications); admin work is owner-only and unlimited.
     if (!path.startsWith("admin/")) {
@@ -573,7 +623,7 @@ async function route(req: Request): Promise<Response> {
     const owner = await ownerId();
     return json({
       user: user ? { id: user.userId, name: user.displayName } : null,
-      admin: !!user && owner === user.userId,
+      admin: await isAdmin(user),
       needsSetup: !owner,
     });
   }
@@ -586,7 +636,7 @@ async function route(req: Request): Promise<Response> {
   }
   if (!path.startsWith("admin/")) return json({ error: "Ünvan tapılmadı." }, 404);
   if (!user) return json({ error: "Bu əməliyyat üçün hesabınıza daxil olun." }, 401);
-  if ((await ownerId()) !== user.userId) return json({ error: "Admin icazəsi tələb olunur." }, 403);
+  if (!(await isAdmin(user))) return json({ error: "Admin icazəsi tələb olunur." }, 403);
   return admin(req, path, user);
 }
 
